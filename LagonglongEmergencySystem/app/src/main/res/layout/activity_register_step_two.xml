@@ -21,7 +21,25 @@
         <EditText android:id="@+id/reg_password" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Password" android:inputType="textPassword"/>
         <EditText android:id="@+id/reg_confirm_password" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Confirm Password" android:inputType="textPassword"/>
 
-        <Button android:id="@+id/btn_selfie" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Take Selfie Photo" android:layout_marginTop="15dp"/>
+        <ImageView
+            android:id="@+id/iv_selfie_preview"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:src="@android:drawable/ic_menu_camera"
+            android:background="#EEEEEE" />
+
+        <Button android:id="@+id/btn_selfie" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Take Selfie Photo" android:layout_marginTop="5dp"/>
+
+        <ImageView
+            android:id="@+id/iv_id_preview"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_marginTop="15dp"
+            android:src="@android:drawable/ic_menu_gallery"
+            android:background="#EEEEEE" />
+
         <Button android:id="@+id/btn_id_picture" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Take ID Picture" android:layout_marginTop="5dp"/>
 
         <Button
