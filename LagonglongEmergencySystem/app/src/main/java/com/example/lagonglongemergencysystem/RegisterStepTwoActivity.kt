@@ -1,71 +1,111 @@
 package com.example.lagonglongemergencysystem
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Bundle
-import android.provider.MediaStore
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import okhttp3.*
+import java.io.IOException
 
 class RegisterStepTwoActivity : AppCompatActivity() {
 
+    // Passengers from Step 1
     private var firstName: String? = null
-    // ... other variables remain same
-
-    // Launcher for Selfie
-    private val takeselfie = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val imageBitmap = result.data?.extras?.get("data") as Bitmap
-            // Ensure this ID matches your activity_register_step_two.xml exactly!
-            findViewById<ImageView>(R.id.iv_selfie_preview).setImageBitmap(imageBitmap)
-        }
-    }
-
-    // Launcher for ID
-    private val takeIdphoto = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val imageBitmap = result.data?.extras?.get("data") as Bitmap
-            findViewById<ImageView>(R.id.iv_id_preview).setImageBitmap(imageBitmap)
-        }
-    }
+    private var middleName: String? = null
+    private var lastName: String? = null
+    private var age: String? = null
+    private var contact: String? = null
+    private var address: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register_step_two)
 
-        // 1. Link Buttons
-        val btnSelfie = findViewById<Button>(R.id.btn_selfie)
-        val btnIdPicture = findViewById<Button>(R.id.btn_id_picture)
+        // 1. Unpack Step 1 Data
+        firstName = intent.getStringExtra("first_name")
+        middleName = intent.getStringExtra("middle_name")
+        lastName = intent.getStringExtra("last_name")
+        age = intent.getStringExtra("age")
+        contact = intent.getStringExtra("contact")
+        address = intent.getStringExtra("address")
 
-        // 2. Selfie Button with Permission Check
-        btnSelfie.setOnClickListener {
-            checkPermissionAndLaunchCamera(takeselfie)
-        }
+        // 2. Find Step 2 Account Views
+        // Ensure these IDs exist in your XML!
+        val etUsername = findViewById<EditText>(R.id.reg_username)
+        val etEmail = findViewById<EditText>(R.id.reg_email)
+        val etPassword = findViewById<EditText>(R.id.reg_password)
+        val etConfirmPassword = findViewById<EditText>(R.id.reg_confirm_password)
+        val btnRegister = findViewById<Button>(R.id.btn_register)
 
-        // 3. ID Button with Permission Check
-        btnIdPicture.setOnClickListener {
-            checkPermissionAndLaunchCamera(takeIdphoto)
-        }
+        // Note: I removed the Camera Buttons logic. They will just do nothing if clicked.
 
-        // ... Catch data and Register logic remain the same
-    }
+        btnRegister.setOnClickListener {
+            val username = etUsername.text.toString().trim()
+            val email = etEmail.text.toString().trim()
+            val password = etPassword.text.toString().trim()
+            val confirm = etConfirmPassword.text.toString().trim()
 
-    // A helper function to handle the permission "Gatekeeper"
-    private fun checkPermissionAndLaunchCamera(launcher: androidx.activity.result.ActivityResultLauncher<Intent>) {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            launcher.launch(intent)
-        } else {
-            // If not granted, show a Toast or ask for permission
-            Toast.makeText(this, "Please enable Camera permission in Settings", Toast.LENGTH_SHORT).show()
-            // Pro Tip: You can also use requestPermissionLauncher here
+            // Basic Validation
+            if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Fill in all account details", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (password != confirm) {
+                Toast.makeText(this, "Passwords do not match!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // 3. Build Request Body (TEXT ONLY - No Files)
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                // Personal Info
+                .addFormDataPart("first_name", firstName ?: "")
+                .addFormDataPart("middle_name", middleName ?: "")
+                .addFormDataPart("last_name", lastName ?: "")
+                .addFormDataPart("age", age ?: "")
+                .addFormDataPart("contact_number", contact ?: "") // Matches your DB field
+                .addFormDataPart("address", address ?: "")
+                // Auth Info
+                .addFormDataPart("username", username)
+                .addFormDataPart("email", email)
+                .addFormDataPart("password", password)
+                .addFormDataPart("passwordConfirm", confirm)
+                .addFormDataPart("status", "pending")
+                .build()
+
+            // 4. Execute API Call
+            // FIX: Use 10.0.2.2 for Emulator and removed double port error
+            val request = Request.Builder()
+                .url("http://10.0.2.2:8090/api/collections/users/records")
+                .post(requestBody)
+                .build()
+
+            val client = OkHttpClient()
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    runOnUiThread {
+                        Log.e("NET_ERROR", e.toString())
+                        Toast.makeText(applicationContext, "Connection Failed!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val bodyString = response.body?.string()
+                    runOnUiThread {
+                        if (response.isSuccessful) {
+                            Toast.makeText(applicationContext, "Success! Text data sent.", Toast.LENGTH_LONG).show()
+                            // Finish and go back to Login or Main
+                            finish()
+                        } else {
+                            // Log the exact error from PocketBase
+                            Log.e("PB_ERROR", "Code: ${response.code} | Body: $bodyString")
+                            Toast.makeText(applicationContext, "Server Error: ${response.code}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            })
         }
     }
 }
