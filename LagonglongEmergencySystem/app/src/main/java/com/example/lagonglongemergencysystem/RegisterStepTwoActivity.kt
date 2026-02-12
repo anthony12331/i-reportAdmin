@@ -130,7 +130,7 @@ class RegisterStepTwoActivity : AppCompatActivity() {
 
             // 7. Send to PocketBase (Emulator IP)
             val request = Request.Builder()
-                .url("http://10.0.2.2:8090/api/collections/users/records")
+                .url("http://192.168.1.11:8090/api/collections/users/records")
                 .post(requestBody)
                 .build()
 
