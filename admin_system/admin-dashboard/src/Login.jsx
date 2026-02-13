@@ -1,72 +1,151 @@
-    import { useState } from 'react';
-    import {useNavigate, Link } from 'react-router-dom';
-    import {pb} from './pocketbase';
-    import { Lock, User } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { pb } from './pocketbase';
 
-    export default function Login(){
-        const [email, setEmail ]= useState('');
-        const [password, setPassword] = useState('');
-        const[loading, setLoading ]= useState(false);
-        const navigate = useNavigate();
-    
+export default function Login() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
-        const handleLogin = async (e) => {
-            e.preventDefault();
-            setLoading(true);
+    const handleLogin = async (e) => {
+        e.preventDefault();
 
-            try {
-                //login of admin
+        // 1. Client-Side Validation (Stops bad inputs before sending)
+        if (!email.trim() || !password.trim()) {
+            alert("⚠️ Security Alert: Fields cannot be empty.");
+            return;
+        }
 
-await pb.collection('admins').authWithPassword(email, password);
-                //if success
-                alert ("successfully login");
-                navigate('/dashboard');
-            } catch{
-                alert('failed please try agin');
-            }
-            setLoading(false);
-        };  
-        
-        return (
-                <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
-        <div style={{ background: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '350px' }}>
-            <h2 style={{ textAlign: 'center', marginBottom: '20px', color: '#dc2626' }}>🚑 Admin Login</h2>
+        setLoading(true);
+
+        try {
+            // 2. Try to Login
+            await pb.collection('admins').authWithPassword(email, password);
             
-            <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', border: '1px solid #ddd', padding: '10px', borderRadius: '5px' }}>
-                <User size={18} color="#666" />
-                <input 
-                type="email" 
-                placeholder="admin@lagonglong.gov" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)}
-                style={{ border: 'none', outline: 'none', marginLeft: '10px', width: '100%' }} 
-                />
-            </div>
+            // 3. If Successful
+            navigate('/dashboard');
 
-            <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', border: '1px solid #ddd', padding: '10px', borderRadius: '5px' }}>
-                <Lock size={18} color="#666" />
-                <input 
-                type="password" 
-                placeholder="••••••••" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ border: 'none', outline: 'none', marginLeft: '10px', width: '100%' }} 
-                />
-            </div>
-
-            <button type="submit" style={{ width: '100%', padding: '10px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-                {loading ? "Logging in..." : "LOGIN"}
-            </button>
-            </form>
-            <p style={{ textAlign: 'center', marginTop: '15px', fontSize: '14px' }}>
-            <Link to="./Register" style={{ color: '#2563eb', textDecoration: 'none' }}>Register</Link>
-            </p>
+        } catch  {
+            // 4. If Failed (The 400 Error happens here)
             
-        </div>
-        </div>
-                
-        )
+            // TRICK: Clear the console so you don't see the scary red text
+            console.clear();
+            console.warn("Security Block: Invalid login attempt detected.");
 
+            // 5. Show the Security Popup
+            alert('⛔ Access Denied: Invalid Email or Password.');
+        }
 
+        setLoading(false);
+    };
+
+    return (
+        <div style={styles.container}>
+            <div style={styles.card}>
+                <div style={styles.brandBox}>
+                    <h2 style={{ margin: 0, color: '#111827', fontSize: '24px' }}>Admin Login</h2>
+                    <p style={{ margin: '5px 0 0', color: '#666', fontSize: '14px' }}>Sign in to Command Center</p>
+                </div>
+
+                <form onSubmit={handleLogin} style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    
+                    <div>
+                        <label style={styles.label}>ACCOUNT CREDENTIALS</label>
+                        <input
+                            type="email"
+                            placeholder="Email Address"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            style={styles.input}
+                        />
+                    </div>
+
+                    <div>
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            style={styles.input}
+                        />
+                    </div>
+
+                    <button type="submit" style={styles.button} disabled={loading}>
+                        {loading ? "AUTHENTICATING..." : "LOGIN TO DASHBOARD"}
+                    </button>
+                </form>
+
+                <div style={styles.footer}>
+                    <p style={{ fontSize: '13px', color: '#6b7280' }}>
+                        Need access? <Link to="/register" style={styles.link}>Request Admin Account</Link>
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Styles
+const styles = {
+    container: { 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        background: '#f3f4f6',
+        fontFamily: 'Arial, sans-serif',
+        padding: '20px'
+    },
+    card: { 
+        background: 'white', 
+        padding: '40px', 
+        borderRadius: '8px', 
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
+        width: '100%', 
+        maxWidth: '450px' 
+    },
+    brandBox: { textAlign: 'center', marginBottom: '20px' },
+    label: { 
+        fontSize: '11px', 
+        color: '#9ca3af', 
+        fontWeight: 'bold', 
+        letterSpacing: '0.5px', 
+        marginBottom: '8px', 
+        display: 'block',
+        textTransform: 'uppercase'
+    },
+    input: { 
+        width: '100%', 
+        padding: '12px', 
+        border: '1px solid #e5e7eb', 
+        borderRadius: '6px', 
+        fontSize: '14px', 
+        outline: 'none', 
+        background: '#fff',
+        color: '#1f2937'
+    },
+    button: { 
+        width: '100%', 
+        padding: '12px', 
+        background: '#1a1c23', 
+        color: 'white', 
+        border: 'none', 
+        borderRadius: '6px', 
+        cursor: 'pointer', 
+        fontWeight: 'bold', 
+        fontSize: '14px', 
+        marginTop: '10px'
+    },
+    footer: { 
+        textAlign: 'center', 
+        marginTop: '25px', 
+        borderTop: '1px solid #f3f4f6', 
+        paddingTop: '20px' 
+    },
+    link: { 
+        color: '#d32f2f', 
+        textDecoration: 'none', 
+        fontWeight: 'bold' 
     }
+};

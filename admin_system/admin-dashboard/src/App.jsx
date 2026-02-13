@@ -1,26 +1,28 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Login';
-import Dashboard from './Dashboard';
 import Register from './Register';
-import ProtectedRoute from './ProtectedRoute';
+import Dashboard from './Dashboard';
 
-export default function App() {
+// 👇 CRITICAL CHANGE: Matches your new filename "pending-users.jsx"
+import PendingUserRegistration from './pending-users'; 
+
+function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
-        {/* ✅ CORRECT WAY: Wrap the Dashboard inside the ProtectedRoute element */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
+        {/* Private Admin Routes */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        
+        {/* 👇 This route now connects to your new file */}
+        <Route path="/pending-users" element={<PendingUserRegistration />} />
+        
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
+
+export default App;
