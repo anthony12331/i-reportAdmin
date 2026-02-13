@@ -37,11 +37,17 @@ android {
     buildFeatures {
         compose = true
     }
+
+    buildFeatures {
+        viewBinding = true
+    }
 }
 
 dependencies {
     // to send data in pocketbase
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // ADD THIS LINE FOR LOCATION (Fixes 'gms' and 'FusedLocationProviderClient')
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 
 
     implementation(libs.androidx.core.ktx)
