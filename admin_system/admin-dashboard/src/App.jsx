@@ -3,8 +3,11 @@ import Login from './Login';
 import Register from './Register';
 import Dashboard from './Dashboard';
 
-// 👇 CRITICAL CHANGE: Matches your new filename "pending-users.jsx"
+// Matches your file "pending-users.jsx"
 import PendingUserRegistration from './pending-users'; 
+
+// 1. ADD THIS IMPORT for your new file "pending-incidents.jsx"
+import PendingIncidents from './pending-incidents'; 
 
 function App() {
   return (
@@ -17,8 +20,11 @@ function App() {
         {/* Private Admin Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
         
-        {/* 👇 This route now connects to your new file */}
+        {/* Route for User Verifications */}
         <Route path="/pending-users" element={<PendingUserRegistration />} />
+
+        {/* 2. REGISTER THE NEW ROUTE FOR INCIDENTS HERE */}
+        <Route path="/pending-incidents" element={<PendingIncidents />} />
         
       </Routes>
     </Router>

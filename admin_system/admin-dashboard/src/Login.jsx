@@ -72,7 +72,7 @@ export default function Login() {
                     </div>
 
                     <button type="submit" style={styles.button} disabled={loading}>
-                        {loading ? "AUTHENTICATING..." : "LOGIN TO DASHBOARD"}
+                        {loading ? "AUTHENTICATING..." : "LOGIN"}
                     </button>
                 </form>
 
