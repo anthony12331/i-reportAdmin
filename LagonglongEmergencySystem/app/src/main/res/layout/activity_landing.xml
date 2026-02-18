@@ -3,47 +3,90 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="30dp"
+    android:padding="40dp"
     android:gravity="center"
-    android:background="#FFFFFF">
+    android:background="#F5F5F5">
 
     <TextView
-        android:id="@+id/tvStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="LAGONGLONG\nEMERGENCY"
         android:textAlignment="center"
-        android:text="Location access required for emergency services."
-        android:textSize="18sp"
-        android:textColor="#333333" />
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="#D32F2F"
+        android:letterSpacing="0.05"
+        android:layout_marginBottom="10dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="REPORT SYSTEM"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#555555"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="60dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:padding="20dp"
+        android:orientation="vertical"
+        android:elevation="4dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:text="Location access required for emergency services."
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:lineSpacingExtra="4dp"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnTurnOnNow"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:layout_marginTop="30dp"
-        android:text="TURN ON NOW"
-        android:backgroundTint="#FF9800" />
+        android:text="ENABLE LOCATION"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:backgroundTint="#FF9800"
+        android:textColor="#FFFFFF" />
 
     <LinearLayout
         android:id="@+id/layoutAuth"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:visibility="gone">
+        android:visibility="gone"
+        android:layout_marginTop="30dp">
 
         <Button
             android:id="@+id/btnLogin"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:text="LOGIN" />
+            android:layout_height="60dp"
+            android:text="LOGIN"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFFFFF"/>
 
         <Button
             android:id="@+id/btnRegister"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="REGISTER" />
+            android:layout_height="60dp"
+            android:layout_marginTop="15dp"
+            android:text="CREATE ACCOUNT"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="#333333"
+            android:textColor="#FFFFFF"/>
     </LinearLayout>
 
 </LinearLayout>

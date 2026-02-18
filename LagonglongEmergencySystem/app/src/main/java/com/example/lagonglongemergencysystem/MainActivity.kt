@@ -18,6 +18,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority // ADDED THIS IMPORT
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -30,7 +31,6 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private var userId: String? = null
-    // FIX 1: Add variable to store the Auth Token
     private var userToken: String? = null
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
 
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            Toast.makeText(this, "Photo taken! Getting location...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Photo taken! Acquiring GPS signal...", Toast.LENGTH_SHORT).show()
             getCurrentLocationAndUpload()
         } else {
             Toast.makeText(this, "Camera cancelled.", Toast.LENGTH_SHORT).show()
@@ -53,7 +53,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // FIX 2: Get the Token passed from LoginActivity
         userId = intent.getStringExtra("USER_ID")
         userToken = intent.getStringExtra("USER_TOKEN")
 
@@ -122,23 +121,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // UPDATED: Use getCurrentLocation instead of lastLocation for high reliability
     private fun getCurrentLocationAndUpload() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Permission required", Toast.LENGTH_SHORT).show()
             return
         }
 
-        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-            if (location != null) {
-                uploadToPocketBase(location)
-            } else {
-                Toast.makeText(this, "Location not found. Try opening Maps.", Toast.LENGTH_LONG).show()
+        // forces the GPS to wake up and get fresh coordinates immediately
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    uploadToPocketBase(location)
+                } else {
+                    // Fallback to lastLocation if getCurrentLocation fails
+                    fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
+                        if (lastLoc != null) {
+                            uploadToPocketBase(lastLoc)
+                        } else {
+                            Toast.makeText(this, "Unable to get location. Please ensure GPS is ON and you are outdoors.", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             }
-        }
+            .addOnFailureListener { e ->
+                Log.e("GPS_ERROR", e.message.toString())
+                Toast.makeText(this, "GPS Signal Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun uploadToPocketBase(location: Location) {
-        val file = File(currentPhotoPath)
+        val file = File(currentPhotoPath ?: "")
+        if (!file.exists()) {
+            Toast.makeText(this, "Image file not found.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val client = OkHttpClient()
 
         val requestBody = MultipartBody.Builder()
@@ -155,7 +173,6 @@ class MainActivity : AppCompatActivity() {
             )
             .build()
 
-        // FIX 3: Add Authorization Header to prove you are logged in
         val request = Request.Builder()
             .url("http://192.168.1.11:8090/api/collections/incident_reports/records")
             .addHeader("Authorization", "Bearer $userToken")

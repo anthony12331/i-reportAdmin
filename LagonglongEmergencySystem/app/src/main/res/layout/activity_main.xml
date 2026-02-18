@@ -5,34 +5,74 @@
     android:orientation="vertical"
     android:padding="30dp"
     android:gravity="center_horizontal"
-    android:background="#FFFFFF">
+    android:background="#F5F5F5">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="50dp"
-        android:text="Lagonglong Emergency"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#333333" />
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="40dp"
+        android:layout_marginBottom="40dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="Report an incident to send help."
-        android:textSize="16sp"
-        android:textColor="#666666" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SYSTEM ACTIVE"
+            android:textSize="14sp"
+            android:letterSpacing="0.2"
+            android:textStyle="bold"
+            android:textColor="#4CAF50"
+            android:background="#E8F5E9"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="15dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="EMERGENCY\nDASHBOARD"
+            android:textAlignment="center"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#333333" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Select an incident type below to alert responders immediately."
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textColor="#757575"
+            android:lineSpacingExtra="4dp"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/btn_report_menu"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="60dp"
+        android:layout_height="120dp"
         android:text="REPORT INCIDENT"
-        android:textSize="18sp"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
+        android:textColor="#FFFFFF"
         android:backgroundTint="#D32F2F"
-        android:padding="15dp" />
+        android:elevation="8dp"
+        android:shadowColor="#000000"
+        android:shadowDx="0"
+        android:shadowDy="4"
+        android:shadowRadius="4" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:text="Tap to open camera &amp; send location"
+        android:textSize="12sp"
+        android:textColor="#999999" />
 
     <View
         android:layout_width="0dp"
@@ -43,9 +83,10 @@
         android:id="@+id/btn_main_logout"
         style="@style/Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:layout_marginBottom="20dp"
         android:text="LOGOUT"
+        android:textSize="14sp"
         android:textColor="#757575" />
 
 </LinearLayout>

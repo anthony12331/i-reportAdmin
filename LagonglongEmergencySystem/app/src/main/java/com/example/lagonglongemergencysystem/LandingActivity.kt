@@ -31,47 +31,62 @@ class LandingActivity : AppCompatActivity() {
         btnLogin = findViewById(R.id.btnLogin)
         btnRegister = findViewById(R.id.btnRegister)
 
+        // Run the permission check immediately
         checkPermissions()
 
         btnTurnOnNow.setOnClickListener {
+            // Request permission standard way
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
-        // UPDATED: Navigation for Login button
         btnLogin.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, LoginActivity::class.java))
         }
 
         btnRegister.setOnClickListener {
-            val intent = Intent(this, RegisterActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
 
     private fun checkPermissions() {
-        val fineLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        val fineLocation = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
 
         if (fineLocation == PackageManager.PERMISSION_GRANTED) {
+            updateUI(true)
+        } else {
+            updateUI(false)
+        }
+    }
+
+    private fun updateUI(isReady: Boolean) {
+        if (isReady) {
             layoutAuth.visibility = View.VISIBLE
             btnTurnOnNow.visibility = View.GONE
-            tvStatus.text = "Location access granted. Proceed below."
+            tvStatus.text = "Location access granted.\nProceed below."
         } else {
             layoutAuth.visibility = View.GONE
             btnTurnOnNow.visibility = View.VISIBLE
-            tvStatus.text = "Emergency services require your location to find you."
+            tvStatus.text = "Location access required for\nemergency services."
         }
     }
 
-    private val locationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            checkPermissions()
-        } else {
-            Toast.makeText(this, "Permission denied. Location is mandatory!", Toast.LENGTH_SHORT).show()
+    private val locationPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                updateUI(true)
+            } else {
+                Toast.makeText(
+                    this,
+                    "Permission denied. Location is required.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
-    }
 
     override fun onResume() {
         super.onResume()

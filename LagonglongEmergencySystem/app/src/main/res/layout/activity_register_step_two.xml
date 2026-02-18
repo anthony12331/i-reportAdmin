@@ -1,7 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:background="#F5F5F5"
+    android:padding="30dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -11,42 +13,124 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Step 2: Account &amp; Verification"
-            android:textSize="22sp"
+            android:text="VERIFICATION"
+            android:textSize="24sp"
             android:textStyle="bold"
-            android:layout_marginBottom="20dp"/>
+            android:textColor="#D32F2F"
+            android:layout_marginBottom="5dp"/>
 
-        <EditText android:id="@+id/reg_email" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Email" android:inputType="textEmailAddress"/>
-        <EditText android:id="@+id/reg_password" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Password" android:inputType="textPassword"/>
-        <EditText android:id="@+id/reg_confirm_password" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Confirm Password" android:inputType="textPassword"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Step 2 of 2: Security &amp; ID"
+            android:textSize="14sp"
+            android:textColor="#555555"
+            android:layout_marginBottom="30dp"/>
 
-        <ImageView
-            android:id="@+id/iv_selfie_preview"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="10dp"
-            android:src="@android:drawable/ic_menu_camera"
-            android:background="#EEEEEE" />
-
-        <Button android:id="@+id/btn_selfie" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Take Selfie Photo" android:layout_marginTop="5dp"/>
-
-        <ImageView
-            android:id="@+id/iv_id_preview"
+        <EditText
+            android:id="@+id/reg_email"
             android:layout_width="match_parent"
-            android:layout_height="150dp"
-            android:layout_marginTop="15dp"
-            android:src="@android:drawable/ic_menu_gallery"
-            android:background="#EEEEEE" />
+            android:layout_height="60dp"
+            android:background="#FFFFFF"
+            android:hint="Email Address"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:elevation="2dp"
+            android:inputType="textEmailAddress"
+            android:layout_marginBottom="15dp"/>
 
-        <Button android:id="@+id/btn_id_picture" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Take ID Picture" android:layout_marginTop="5dp"/>
+        <EditText
+            android:id="@+id/reg_password"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="#FFFFFF"
+            android:hint="Password"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:elevation="2dp"
+            android:inputType="textPassword"
+            android:layout_marginBottom="15dp"/>
+
+        <EditText
+            android:id="@+id/reg_confirm_password"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="#FFFFFF"
+            android:hint="Confirm Password"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:elevation="2dp"
+            android:inputType="textPassword"
+            android:layout_marginBottom="30dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Identity Verification"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="10dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+
+            <ImageView
+                android:id="@+id/iv_selfie_preview"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@android:drawable/ic_menu_camera"
+                android:background="#E0E0E0"
+                android:scaleType="centerCrop"
+                android:padding="10dp"/>
+
+            <Button
+                android:id="@+id/btn_selfie"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginStart="15dp"
+                android:text="TAKE SELFIE"
+                android:backgroundTint="#FF9800"
+                android:textColor="#FFFFFF"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="30dp">
+
+            <ImageView
+                android:id="@+id/iv_id_preview"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:src="@android:drawable/ic_menu_gallery"
+                android:background="#E0E0E0"
+                android:scaleType="centerInside"
+                android:padding="30dp"
+                android:layout_marginBottom="10dp"/>
+
+            <Button
+                android:id="@+id/btn_id_picture"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="SCAN VALID ID"
+                android:backgroundTint="#FF9800"
+                android:textColor="#FFFFFF"/>
+        </LinearLayout>
 
         <Button
             android:id="@+id/btn_register"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="REGISTER"
-            android:layout_marginTop="30dp"
-            android:backgroundTint="#4CAF50"/>
+            android:layout_height="70dp"
+            android:text="COMPLETE REGISTRATION"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFFFFF"/>
+
     </LinearLayout>
 </ScrollView>
