@@ -109,17 +109,52 @@
                 android:inputType="phone"/>
         </LinearLayout>
 
-        <EditText
-            android:id="@+id/reg_address"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Municipality"
+            android:textSize="12sp"
+            android:textColor="#555555"
+            android:layout_marginBottom="5dp"
+            android:layout_marginTop="10dp"/>
+
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="60dp"
             android:background="#FFFFFF"
-            android:hint="Complete Address"
-            android:padding="20dp"
             android:elevation="2dp"
-            android:gravity="top|start"
-            android:textColor="#333333"
-            android:layout_marginBottom="30dp"/>
+            android:layout_marginBottom="15dp">
+
+            <Spinner
+                android:id="@+id/spinner_municipality"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"/>
+        </RelativeLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Barangay"
+            android:textSize="12sp"
+            android:textColor="#555555"
+            android:layout_marginBottom="5dp"/>
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="#FFFFFF"
+            android:elevation="2dp"
+            android:layout_marginBottom="25dp">
+
+            <Spinner
+                android:id="@+id/spinner_barangay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"/>
+        </RelativeLayout>
 
         <Button
             android:id="@+id/btn_next"

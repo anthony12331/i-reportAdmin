@@ -37,6 +37,7 @@
             android:paddingEnd="20dp"
             android:elevation="2dp"
             android:inputType="textEmailAddress"
+            android:textColor="#333333"
             android:layout_marginBottom="15dp"/>
 
         <EditText
@@ -49,6 +50,8 @@
             android:paddingEnd="20dp"
             android:elevation="2dp"
             android:inputType="textPassword"
+            android:textColor="#333333"
+            android:drawableEnd="@android:drawable/ic_menu_view"
             android:layout_marginBottom="15dp"/>
 
         <EditText
@@ -61,6 +64,8 @@
             android:paddingEnd="20dp"
             android:elevation="2dp"
             android:inputType="textPassword"
+            android:textColor="#333333"
+            android:drawableEnd="@android:drawable/ic_menu_view"
             android:layout_marginBottom="30dp"/>
 
         <TextView
