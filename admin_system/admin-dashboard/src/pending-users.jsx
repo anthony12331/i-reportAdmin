@@ -8,7 +8,7 @@ export default function PendingUserRegistration() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // State to hold the full-size image URL
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -150,7 +150,7 @@ export default function PendingUserRegistration() {
                   <div style={styles.detailsBox}>
                     <p style={styles.detailText}><User size={14} /> Age: <b>{user.age}</b></p>
                     <p style={styles.detailText}><Phone size={14} /> {user.contact_number}</p>
-                    <p style={styles.detailText}><MapPin size={14} /> {user.address}</p>
+                    <p style={styles.detailText}><MapPin size={14} /> {user.baranggay}, {user.municipality}, {user.province}  </p>
                   </div>
 
                   <div style={styles.imageGrid}>
