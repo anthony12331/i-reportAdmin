@@ -28,6 +28,8 @@ class RegisterStepTwoActivity : AppCompatActivity() {
     private var firstName: String? = null
     private var middleName: String? = null
     private var lastName: String? = null
+
+    private var extension: String? = null
     private var age: String? = null
     private var contact: String? = null
     private var address: String? = null
@@ -62,6 +64,7 @@ class RegisterStepTwoActivity : AppCompatActivity() {
         firstName = intent.getStringExtra("first_name")
         middleName = intent.getStringExtra("middle_name")
         lastName = intent.getStringExtra("last_name")
+        extension = intent.getStringExtra("extension")
         age = intent.getStringExtra("age")
         contact = intent.getStringExtra("contact")
         address = intent.getStringExtra("address")
@@ -113,6 +116,7 @@ class RegisterStepTwoActivity : AppCompatActivity() {
                 // Personal Info
                 .addFormDataPart("first_name", firstName ?: "")
                 .addFormDataPart("middle_name", middleName ?: "")
+                .addFormDataPart("extension", extension?: "")
                 .addFormDataPart("last_name", lastName ?: "")
                 .addFormDataPart("age", age ?: "")
                 .addFormDataPart("contact_number", contact ?: "")
