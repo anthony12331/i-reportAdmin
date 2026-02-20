@@ -242,7 +242,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val request = Request.Builder()
-            .url("http://192.168.1.11:8090/api/collections/incident_reports/records")
+            .url("http://192.168.1.6:8090/api/collections/incident_reports/records")
 
             // AUTHORIZATION HEADER (The Key!)
             .addHeader("Authorization", "Bearer $userToken")

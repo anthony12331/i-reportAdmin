@@ -5,7 +5,7 @@ import okhttp3.OkHttpClient;
 
 public class ApiClient {
     // UPDATED: Use your real Wi-Fi IP for physical device testing
-    public static final String BASE_URL = "http://192.168.1.11:8090/";
+    public static final String BASE_URL = "http://192.168.1.6:8090/";
 
     private static OkHttpClient client;
 
