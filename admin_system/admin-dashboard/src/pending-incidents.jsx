@@ -48,7 +48,7 @@ export default function PendingIncidents() {
           const cleanAddress = [barangay, town, province].filter(part => part !== "").join(', ');
           newAddresses[record.id] = cleanAddress || "Location Identified";
           setAddresses({ ...newAddresses }); 
-        } catch (e) {
+        } catch  {
           newAddresses[record.id] = "Coordinates pinpointed";
         }
       }
@@ -67,17 +67,58 @@ export default function PendingIncidents() {
   }, []);
 
   const openMap = (lat, lng) => {
-    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+    const url = `http://googleusercontent.com/maps.google.com/maps?q=${lat},${lng}`;
     window.open(url, '_blank');
   };
 
-  const updateStatus = async (id, newStatus) => {
-    setProcessingId(id);
+  // SOLVED & SCHEMA-ALIGNED: Logic to assign responders
+  const updateStatus = async (incident, newStatus) => {
+    setProcessingId(incident.id);
     try {
-      await pb.collection('incident_reports').update(id, { status: newStatus });
-      setIncidents(prev => prev.filter(i => i.id !== id));
+      let updateData = { status: newStatus };
+
+      if (newStatus === 'ongoing') {
+        // Mapped exactly to your schema's 'type' and 'department' Select options
+        const typeToDept = {
+          'fire': 'Fire',
+          'accident': 'ambulance', 
+          'landslide': 'MDRRMO'
+        };
+
+        const targetDept = typeToDept[incident.type.toLowerCase()] || 'Fire';
+
+        try {
+          // Find the first available responder for this exact department
+          const responder = await pb.collection('responder_accounts').getFirstListItem(
+            `department = "${targetDept}" && is_available = true`, 
+            { requestKey: null }
+          );
+
+          if (responder) {
+            // Because maxSelect is 1 in your schema, we pass the ID directly as a string
+            updateData.responders = responder.id;
+            
+            // Mark responder as busy so they don't get double-assigned
+            await pb.collection('responder_accounts').update(responder.id, { is_available: true });
+          }
+        } catch  {
+          // Alert the admin if assignment fails, but allow status update to proceed
+          console.warn(`Assignment Warning: No available ${targetDept} unit found.`);
+          alert(`Warning: No available ${targetDept} unit found. The incident status will be updated to ONGOING, but no responder is assigned.`);
+        }
+      }
+
+      // Update the incident report with status and responder ID
+      await pb.collection('incident_reports').update(incident.id, updateData);
+      
+      // Remove item from UI list
+      setIncidents(prev => prev.filter(i => i.id !== incident.id));
+      
+      alert(`Incident Successfully Processed: Status set to ${newStatus.toUpperCase()}.`);
+      
     } catch (error) {
-      alert("Update failed");
+      console.error("Critical Update Failure:", error);
+      alert("Error: System could not update the incident. Please check your database connection.");
     }
     setProcessingId(null);
   };
@@ -193,10 +234,10 @@ export default function PendingIncidents() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-                    <button onClick={() => updateStatus(incident.id, 'ongoing')} disabled={processingId === incident.id} style={{ flex: 1, padding: '14px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', border: 'none' }}>
+                    <button onClick={() => updateStatus(incident, 'ongoing')} disabled={processingId === incident.id} style={{ flex: 1, padding: '14px', backgroundColor: '#1e293b', color: 'white', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', border: 'none' }}>
                       {processingId === incident.id ? '...' : 'DEPLOY HELP'}
                     </button>
-                    <button onClick={() => updateStatus(incident.id, 'resolved')} disabled={processingId === incident.id} style={{ flex: 1, padding: '14px', backgroundColor: '#059669', color: 'white', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', border: 'none' }}>
+                    <button onClick={() => updateStatus(incident, 'resolved')} disabled={processingId === incident.id} style={{ flex: 1, padding: '14px', backgroundColor: '#059669', color: 'white', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', border: 'none' }}>
                       {processingId === incident.id ? '...' : 'RESOLVE'}
                     </button>
                   </div>
@@ -225,20 +266,20 @@ export default function PendingIncidents() {
           }}
         >
           <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {selectedImage.toLowerCase().includes('.mp4') ? (
+            {selectedImage.toLowerCase().includes('.mp4') || selectedImage.toLowerCase().includes('video') ? (
               <video 
                 src={selectedImage} 
                 controls 
                 autoPlay 
                 style={{ 
-                  width: '80vw',      /* Enlarged width */
-                  height: '80vh',     /* Enlarged height */
+                  width: '80vw',
+                  height: '80vh',
                   maxHeight: '90vh', 
                   maxWidth: '90vw', 
                   borderRadius: '24px', 
                   boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', 
                   backgroundColor: '#000',
-                  objectFit: 'contain' /* Ensures video aspect ratio is kept */
+                  objectFit: 'contain'
                 }} 
                 onClick={(e) => e.stopPropagation()} 
               />
