@@ -53,7 +53,7 @@ class LoginActivity : AppCompatActivity() {
         val body = json.toString().toRequestBody(mediaType)
 
         val request = Request.Builder()
-            .url("http://192.168.1.6:8090/api/collections/users/auth-with-password")
+            .url("http://192.168.0.131:8090/api/collections/users/auth-with-password")
             .post(body)
             .build()
 
