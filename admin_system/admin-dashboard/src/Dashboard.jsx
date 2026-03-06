@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { pb } from './pocketbase';
 import Sidebar from './Sidebar';
+import { getReadableAddress } from './utils';
+import { MapPin } from 'lucide-react'; // Added an icon for the location
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [reports, setReports] = useState([]);
+  const [addresses, setAddresses] = useState({}); // State to hold translated addresses
 
   useEffect(() => {
     const fetchData = async () => {
@@ -14,15 +17,31 @@ export default function Dashboard() {
         const userRecords = await pb.collection('users').getFullList({ requestKey: null });
         setUsers(userRecords);
 
+        // Added expand: 'users' so we can get the reporter's name
         const reportRecords = await pb.collection('incident_reports').getFullList({ 
           sort: '-created',
+          expand: 'users', 
           requestKey: null 
         });
         setReports(reportRecords);
+
+        // --- THE MAGIC: Translate addresses for the top 5 pending alerts ---
+        const pending = reportRecords.filter(r => r.status === 'new' || r.status === 'pending').slice(0, 5);
+        const fetchedAddresses = {};
+        
+        for (const report of pending) {
+          if (report.latitude && report.longitude) {
+             // We use your pure function tool here!
+             fetchedAddresses[report.id] = await getReadableAddress(report.latitude, report.longitude);
+          }
+        }
+        setAddresses(fetchedAddresses);
+
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
+    
     fetchData();
   }, []);
 
@@ -95,9 +114,10 @@ export default function Dashboard() {
           ) : (
             <table style={styles.table}>
               <thead>
-                <tr style={{ textAlign: 'left', backgroundColor: '#f9fafb' }}>
+               <tr style={{ textAlign: 'left', backgroundColor: '#f9fafb' }}>
                   <th style={styles.th}>Type</th>
                   <th style={styles.th}>Reporter</th>
+                  <th style={styles.th}>Location</th> 
                   <th style={styles.th}>Time</th>
                   <th style={styles.th}>Action</th>
                 </tr>
@@ -106,7 +126,13 @@ export default function Dashboard() {
                 {pendingIncidents.slice(0, 5).map((report) => (
                   <tr key={report.id} style={styles.tr}>
                     <td style={{ fontWeight: 'bold', color: '#d32f2f' }}>{report.type.toUpperCase()}</td>
-                    <td>{report.first_name} {report.last_name}</td>
+                    <td>{report.expand?.users?.first_name} {report.expand?.users?.last_name || 'Citizen'}</td>
+                    <td style={{ fontSize: '12px', color: '#4b5563', maxWidth: '250px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MapPin size={12} color="#d32f2f" />
+                        {addresses[report.id] || "Locating..."}
+                      </div>
+                    </td>
                     <td>{new Date(report.created).toLocaleTimeString()}</td>
                     <td>
                       <button style={styles.actionBtn} onClick={() => navigate('/pending-incidents')}>

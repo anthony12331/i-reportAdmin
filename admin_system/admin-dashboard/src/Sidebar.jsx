@@ -63,7 +63,7 @@ export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, 
         >
           <div style={styles.navLinkGroup}>
             <History size={18} /> 
-            <span>Resolved History</span>
+            <span>Resolved Incidents</span>
           </div>
         </div>
 
