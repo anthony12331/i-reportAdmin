@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dashboard_bg">#F5F7FA</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="card_bg_lighter">#F0F4F8</color>
+    <color name="accent_blue">#0052CC</color>
+    <color name="accent_blue_light">#E6F0FF</color>
+    <color name="accent_orange">#FF8B00</color>
+    <color name="accent_green">#36B37E</color>
+    <color name="accent_red">#FF5630</color>
+    <color name="text_white">#FFFFFF</color>
+    <color name="text_black">#172B4D</color>
+    <color name="text_gray">#6B778C</color>
+    <color name="nav_bg">#FFFFFF</color>
+    <color name="nav_icon_unselected">#7A869A</color>
+
+    <!-- Original Colors (Updated for Blue/White theme) -->
+    <color name="login_bg">#FFFFFF</color>
+    <color name="input_bg">#F4F5F7</color>
+    <color name="text_hint">#A5ADBA</color>
+    <color name="text_label">#5E6C84</color>
+    <color name="fire_red">#FF5630</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="status_pending">#FFAB00</color>
+    <color name="status_ongoing">#0052CC</color>
+    <color name="status_resolved">#36B37E</color>
+</resources>

@@ -1,0 +1,81 @@
+package com.example.incidentreports;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import java.util.HashSet;
+import java.util.Set;
+
+public class SessionManager {
+    private static final String PREF_NAME = "fire_app_session";
+    private static final String KEY_TOKEN = "auth_token";
+    private static final String KEY_USER_ID = "user_id";
+    private static final String KEY_FULL_NAME = "full_name";
+    private static final String KEY_NOTIFIED_INCIDENTS = "notified_incidents";
+    private static final String KEY_NOTIFIED_DB_NOTIFICATIONS = "notified_db_notifications";
+
+    private final SharedPreferences sharedPreferences;
+
+    public SessionManager(Context context) {
+        sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    }
+
+    public synchronized void saveSession(String token, String userId, String fullName) {
+        sharedPreferences.edit()
+                .putString(KEY_TOKEN, token)
+                .putString(KEY_USER_ID, userId)
+                .putString(KEY_FULL_NAME, fullName)
+                .commit(); 
+    }
+
+    public synchronized String getToken() {
+        return sharedPreferences.getString(KEY_TOKEN, "");
+    }
+
+    public synchronized String getUserId() {
+        return sharedPreferences.getString(KEY_USER_ID, "");
+    }
+
+    public synchronized String getFullName() {
+        return sharedPreferences.getString(KEY_FULL_NAME, "");
+    }
+
+    public synchronized boolean isLoggedIn() {
+        return !getToken().isEmpty() && !getUserId().isEmpty();
+    }
+
+    public synchronized boolean isIncidentNotified(String incidentId) {
+        Set<String> notified = sharedPreferences.getStringSet(KEY_NOTIFIED_INCIDENTS, new HashSet<>());
+        return notified != null && notified.contains(incidentId);
+    }
+
+    /**
+     * Marks an incident as notified. 
+     * @return true if it was newly marked, false if it was already notified.
+     */
+    public synchronized boolean markIncidentAsNotified(String incidentId) {
+        Set<String> current = sharedPreferences.getStringSet(KEY_NOTIFIED_INCIDENTS, new HashSet<>());
+        if (current != null && current.contains(incidentId)) return false;
+        
+        Set<String> updated = new HashSet<>(current != null ? current : new HashSet<>());
+        updated.add(incidentId);
+        return sharedPreferences.edit().putStringSet(KEY_NOTIFIED_INCIDENTS, updated).commit();
+    }
+
+    public synchronized boolean isDbNotificationNotified(String notificationId) {
+        Set<String> notified = sharedPreferences.getStringSet(KEY_NOTIFIED_DB_NOTIFICATIONS, new HashSet<>());
+        return notified != null && notified.contains(notificationId);
+    }
+
+    public synchronized boolean markDbNotificationAsNotified(String notificationId) {
+        Set<String> current = sharedPreferences.getStringSet(KEY_NOTIFIED_DB_NOTIFICATIONS, new HashSet<>());
+        if (current != null && current.contains(notificationId)) return false;
+
+        Set<String> updated = new HashSet<>(current != null ? current : new HashSet<>());
+        updated.add(notificationId);
+        return sharedPreferences.edit().putStringSet(KEY_NOTIFIED_DB_NOTIFICATIONS, updated).commit();
+    }
+
+    public void clearSession() {
+        sharedPreferences.edit().clear().commit();
+    }
+}
