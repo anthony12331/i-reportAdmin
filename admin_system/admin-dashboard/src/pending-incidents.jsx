@@ -91,8 +91,10 @@ export default function PendingIncidents() {
       let updateData = { status: newStatus };
 
       if (newStatus === 'ongoing') {
-        const typeToDept = { 'fire': 'Fire', 'accident': 'ambulance', 'landslide': 'MDRRMO' };
+        const typeToDept = { 'fire': 'Fire', 'accident': 'MDRRMO', 'landslide': 'MDRRMO' };
         const targetDept = typeToDept[incident.type.toLowerCase()] || 'Fire';
+        
+
 
         try {
           const responder = await pb.collection('responder_accounts').getFirstListItem(
@@ -106,6 +108,8 @@ export default function PendingIncidents() {
         } catch {
           console.warn(`No available ${targetDept} unit found.`);
         }
+
+        
       }
 
       await pb.collection('incident_reports').update(incident.id, updateData);

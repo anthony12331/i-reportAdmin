@@ -4,7 +4,9 @@ import Sidebar from './Sidebar';
 import { getReadableAddress } from './utils';
 import { 
   CheckCircle, MapPin, Search, Calendar, 
-  ShieldCheck, FileText, User, FolderOpen
+  ShieldCheck, User, FolderOpen,
+  ChevronLeft, ChevronRight, Phone, Map,
+  Filter, ClipboardList, IdCard, X
 } from 'lucide-react';
 
 export default function ResolvedIncidents() {
@@ -12,84 +14,93 @@ export default function ResolvedIncidents() {
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState(""); 
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0); 
+  const perPage = 10; 
 
-  // 1. Fetching ONLY "resolved" incidents
   const fetchIncidents = async () => {
     setLoading(true);
     try {
-      const records = await pb.collection('incident_reports').getFullList({
-        filter: 'status = "resolved"', 
+      let filterParts = ['status = "resolved"'];
+      if (typeFilter) filterParts.push(`type = "${typeFilter}"`);
+
+      // Search Logic: Citizen numeric ID, Name, or Barangay
+      if (searchTerm.trim() !== "") {
+        const s = searchTerm.trim();
+        filterParts.push(
+          `(` +
+          `users.user_id ~ "${s}" || ` +
+          `users.first_name ~ "${s}" || ` +
+          `users.last_name ~ "${s}" || ` +
+          `users.baranggay ~ "${s}"` +
+          `)`
+        );
+      }
+
+      const filterString = filterParts.join(' && ');
+
+      const result = await pb.collection('incident_reports').getList(currentPage, perPage, {
+        filter: filterString,
         sort: '-updated', 
-        expand: 'users,responders', 
-        requestKey: null
+        expand: 'users,responders',
       });
-      setIncidents(records);
-      await resolveAddresses(records);
+
+      setIncidents(result.items);
+      setTotalPages(result.totalPages);
+      setTotalItems(result.totalItems);
+      
+      resolveAddressesParallel(result.items);
     } catch (error) {
-      if (!error.isAbort) console.error("Fetch error:", error);
+      console.error("Fetch Error:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // 2. Address Resolver
-  const resolveAddresses = async (records) => {
-    const newAddresses = { ...addresses };
-    let hasChanged = false;
+  const resolveAddressesParallel = async (records) => {
+    const pendingRequests = records
+      .filter(r => r.latitude && r.longitude && !addresses[r.id])
+      .map(async (record) => {
+        const addr = await getReadableAddress(record.latitude, record.longitude);
+        return { id: record.id, addr };
+      });
 
-    for (const record of records) {
-      if (record.latitude && record.longitude && !newAddresses[record.id]) {
-        newAddresses[record.id] = await getReadableAddress(record.latitude, record.longitude);
-        hasChanged = true;
-      }
-    }
-    if (hasChanged) {
-      setAddresses(newAddresses);
+    const results = await Promise.all(pendingRequests);
+    if (results.length > 0) {
+      const newAddrs = {};
+      results.forEach(res => { newAddrs[res.id] = res.addr; });
+      setAddresses(prev => ({ ...prev, ...newAddrs }));
     }
   };
 
   useEffect(() => {
     fetchIncidents();
-  }, []);
+  }, [currentPage, searchTerm, typeFilter]);
 
-  // 3. Search Filter Logic
-  const filteredIncidents = incidents.filter(incident => {
-    const reporterName = `${incident.expand?.users?.first_name || ''} ${incident.expand?.users?.last_name || ''}`.toLowerCase();
-    const type = incident.type.toLowerCase();
-    const address = (addresses[incident.id] || "").toLowerCase();
-    const searchLower = searchTerm.toLowerCase();
-
-    return reporterName.includes(searchLower) || type.includes(searchLower) || address.includes(searchLower);
-  });
-
-  // 4. THE MAGIC: Grouping the data by Category
-  // This takes the filtered list and organizes it into an object: { "fire": [...], "accident": [...] }
-  const groupedIncidents = filteredIncidents.reduce((acc, incident) => {
-    // If the category doesn't exist in our object yet, create an empty array for it
-    const category = incident.type.toLowerCase();
-    if (!acc[category]) {
-      acc[category] = [];
+  // --- 🎨 DYNAMIC UNIT COLORS LOGIC ---
+  const getUnitStyles = (dept) => {
+    const normalized = dept?.toLowerCase() || 'mdrrmo';
+    switch (normalized) {
+      case 'police':
+        return { color: '#2563eb', bg: '#eff6ff' }; // Blue
+      case 'ambulance':
+        return { color: '#e11d48', bg: '#fff1f2' }; // Rose/Red
+      case 'fire':
+        return { color: '#ea580c', bg: '#fff7ed' }; // Orange
+      case 'mdrrmo':
+        return { color: '#059669', bg: '#ecfdf5' }; // Emerald/Green
+      default:
+        return { color: '#4b5563', bg: '#f3f4f6' }; // Gray
     }
-    // Push the incident into its specific category bucket
-    acc[category].push(incident);
-    return acc;
-  }, {});
-
-  // Helper function to format dates nicely
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Helper function to assign professional colors to categories
-  const getCategoryColor = (category) => {
-    const colors = {
-      fire: '#ef4444',       // Red
-      accident: '#f59e0b',   // Orange
-      landslide: '#8b5cf6',  // Purple
-      crime: '#1e40af',      // Dark Blue
-      medical: '#10b981'     // Green
-    };
-    return colors[category] || '#64748b'; // Default gray
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+    });
   };
 
   return (
@@ -97,112 +108,151 @@ export default function ResolvedIncidents() {
       <Sidebar />
       <main style={{ flex: 1, padding: '40px', marginLeft: '260px' }}>
         
-        {/* Header Section */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
-          <div>
-            <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a', letterSpacing: '-1px', margin: '0 0 8px 0' }}>INCIDENT HISTORY LOG</h1>
-            <p style={{ color: '#10b981', fontSize: '15px', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FolderOpen size={18} /> Categorized Record of Resolved Cases
-            </p>
+        <header style={{ marginBottom: '30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div>
+              <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a', letterSpacing: '-1.5px', margin: 0 }}>RESOLVED HISTORY</h1>
+              <p style={{ color: '#10b981', fontSize: '14px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ClipboardList size={18} /> Official Audit Record for Lagonglong
+              </p>
+            </div>
+
+            <div style={{ position: 'relative', width: '400px' }}>
+              <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="Search Citizen ID, Name, or Barangay..." 
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                style={{ width: '100%', padding: '12px 40px 12px 45px', borderRadius: '14px', border: '1px solid #e2e8f0', outline: 'none', backgroundColor: 'white', fontWeight: '600', fontSize: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+              />
+              {searchTerm && <X size={16} onClick={() => setSearchTerm("")} style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8' }} />}
+            </div>
           </div>
-          
-          {/* Search Bar */}
-          <div style={{ position: 'relative', width: '350px' }}>
-            <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="Search by name, type, or location..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}
-            />
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {['', 'fire', 'accident', 'landslide'].map((val) => (
+              <button
+                key={val}
+                onClick={() => { setTypeFilter(val); setCurrentPage(1); }}
+                style={{
+                  padding: '8px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '800', cursor: 'pointer',
+                  backgroundColor: typeFilter === val ? '#0f172a' : 'white',
+                  color: typeFilter === val ? 'white' : '#64748b', transition: '0.2s'
+                }}
+              >
+                {val === '' ? 'ALL CASES' : val.toUpperCase()}
+              </button>
+            ))}
           </div>
         </header>
 
-        {/* Dynamic Categorized Tables */}
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', backgroundColor: 'white', borderRadius: '24px' }}>Loading history records...</div>
-        ) : Object.keys(groupedIncidents).length === 0 ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', backgroundColor: 'white', borderRadius: '24px' }}>
-            <FileText size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
-            <h3>No Records Found</h3>
-            <p>Try adjusting your search terms.</p>
-          </div>
-        ) : (
-          /* Map through each category group and create a separate table for it */
-          Object.entries(groupedIncidents).map(([category, items]) => (
-            <div key={category} style={{ marginBottom: '40px' }}>
-              
-              {/* Category Section Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                <div style={{ width: '15px', height: '15px', borderRadius: '50%', backgroundColor: getCategoryColor(category) }}></div>
-                <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', margin: 0, textTransform: 'uppercase' }}>
-                  {category} INCIDENTS
-                </h2>
-                <span style={{ backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '800' }}>
-                  {items.length} Records
-                </span>
-              </div>
+        <div style={{ backgroundColor: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc', textAlign: 'left', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid #f1f5f9' }}>
+                <th style={{ padding: '20px' }}>Citizen ID</th>
+                <th style={{ padding: '20px' }}>Full Name</th>
+                <th style={{ padding: '20px' }}>Location / Barangay</th>
+                <th style={{ padding: '20px' }}>Unit Assigned</th>
+                <th style={{ padding: '20px' }}>Resolved Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && incidents.length === 0 ? (
+                <tr><td colSpan="5" style={{ padding: '80px', textAlign: 'center', color: '#4f46e5', fontWeight: '800' }}>⚡ LOADING HISTORY...</td></tr>
+              ) : incidents.length === 0 ? (
+                <tr><td colSpan="5" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>No records found.</td></tr>
+              ) : (
+                incidents.map((incident) => {
+                  const reporter = incident.expand?.users;
+                  const responder = incident.expand?.responders;
+                  const unitStyle = getUnitStyles(responder?.department);
 
-              {/* The Table for this specific category */}
-              <div style={{ backgroundColor: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  return (
+                    <tr key={incident.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       
-                      <th style={{ padding: '20px', fontWeight: '800' }}>Location</th>
-                      <th style={{ padding: '20px', fontWeight: '800' }}>Reporter & Responder</th>
-                      <th style={{ padding: '20px', fontWeight: '800' }}>Time Resolved</th>
+                      {/* Column 1: Citizen Numeric ID */}
+                      <td style={{ padding: '20px' }}>
+                        <div style={{ fontWeight: '900', color: '#0f172a', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <IdCard size={16} color="#4f46e5" /> {reporter?.user_id || "N/A"}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>VERIFIED ACCOUNT</div>
+                      </td>
+
+                      <td style={{ padding: '20px' }}>
+                        <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                          {reporter?.first_name} {reporter?.last_name}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Profile Verified</div>
+                      </td>
+
+                      <td style={{ padding: '20px', maxWidth: '280px' }}>
+                        <div style={{ display: 'flex', gap: '6px', fontSize: '12px', color: '#475569', lineHeight: '1.4', fontWeight: '600' }}>
+                          <MapPin size={14} color="#ef4444" style={{ flexShrink: 0 }} />
+                          {addresses[incident.id] || "Resolving..."}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginLeft: '20px', marginTop: '2px' }}>Brgy: {reporter?.baranggay}</div>
+                      </td>
+
+                      {/* Column 4: DYNAMIC UNIT COLORS */}
+                      <td style={{ padding: '20px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: '900', color: '#334155', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>
+                           {incident.type}
+                        </div>
+                        <div style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '5px', 
+                          fontSize: '11px', 
+                          fontWeight: '800', 
+                          color: unitStyle.color, 
+                          backgroundColor: unitStyle.bg, 
+                          padding: '5px 10px', 
+                          borderRadius: '8px',
+                          textTransform: 'uppercase'
+                        }}>
+                          <ShieldCheck size={14} /> {responder ? responder.department : "MDRRMO HQ"}
+                        </div>
+                      </td>
+
+                      <td style={{ padding: '20px' }}>
+                        <div style={{ color: '#0f172a', fontWeight: '800', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <CheckCircle size={14} color="#10b981" /> {formatDate(incident.updated)}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>Case: {incident.id}</div>
+                      </td>
+
                     </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((incident) => {
-                      const reporter = incident.expand?.users;
-                      const responder = incident.expand?.responders;
+                  );
+                })
+              )}
+            </tbody>
+          </table>
 
-                      return (
-                        <tr key={incident.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'white'}>
-                          
-                        
-
-                          {/* Column 2: Location */}
-                          <td style={{ padding: '20px', maxWidth: '300px' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: '#334155', fontSize: '14px', fontWeight: '500', lineHeight: '1.4' }}>
-                              <MapPin size={16} color="#64748b" style={{ flexShrink: 0, marginTop: '2px' }} />
-                              {addresses[incident.id] || "Locating..."}
-                            </div>
-                          </td>
-
-                          {/* Column 3: People Involved */}
-                          <td style={{ padding: '20px' }}>
-                            <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>
-                              <User size={14} color="#64748b" /> {reporter?.first_name} {reporter?.last_name || 'Unknown'}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '700', color: '#d97706', backgroundColor: '#fef3c7', padding: '4px 8px', borderRadius: '6px', width: 'fit-content' }}>
-                              <ShieldCheck size={12} /> Unit: {responder ? responder.department.toUpperCase() : "Local LGU"}
-                            </div>
-                          </td>
-
-                          {/* Column 4: Timestamps */}
-                          <td style={{ padding: '20px' }}>
-                            <div style={{ color: '#10b981', fontWeight: '700', fontSize: '14px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <CheckCircle size={14} /> {formatDate(incident.updated)}
-                            </div>
-                            <div style={{ color: '#94a3b8', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Calendar size={12} /> Reported: {new Date(incident.created).toLocaleDateString()}
-                            </div>
-                          </td>
-
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+          {/* Pagination */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '700' }}>
+              Showing {incidents.length} logs (Page {currentPage} of {totalPages})
+            </span>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                disabled={currentPage === 1} 
+                onClick={() => { setCurrentPage(p => p - 1); window.scrollTo(0,0); }}
+                style={{ padding: '10px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: 'white', cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}
+              >
+                <ChevronLeft size={18} /> PREV
+              </button>
+              <button 
+                disabled={currentPage === totalPages} 
+                onClick={() => { setCurrentPage(p => p + 1); window.scrollTo(0,0); }}
+                style={{ padding: '10px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: 'white', cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}
+              >
+                NEXT <ChevronRight size={18} />
+              </button>
             </div>
-          ))
-        )}
-
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { pb } from './pocketbase'; 
 
+// Page Imports
 import Login from './Login';
 import Register from './Register';
 import Dashboard from './Dashboard';
@@ -9,6 +10,8 @@ import OngoingIncidents from './ongoing-incidents';
 import ResolvedIncidents from './resolved-incidents';
 import PendingUserRegistration from './pending-users'; 
 import PendingIncidents from './pending-incidents'; 
+// 🚨 Updated filename to kebab-case below
+import VerifiedUsers from './verified-users'; 
 
 function App() {
   const [audioEnabled, setAudioEnabled] = useState(false);
@@ -16,17 +19,14 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    // The Global Background Listener
+    // The Global Background Listener for Emergency Reports
     pb.collection('incident_reports').subscribe('*', (e) => {
-      
-      // Listens for both brand new records AND updated records set to 'pending'
       if (isMounted && (e.action === 'create' || e.action === 'update') && e.record.status === 'pending') {
-        
-        console.log("🚨 EMERGENCY DETECTED! Playing alert sound...");
+        console.log("🚨 EMERGENCY DETECTED!");
         
         const alertSound = document.getElementById('emergency-alert-sound');
         if (alertSound) {
-          alertSound.currentTime = 0; // Reset sound to beginning if it's already playing
+          alertSound.currentTime = 0; 
           alertSound.play().catch(error => {
             console.warn("Autoplay blocked. Admin must click screen first.", error);
           });
@@ -40,7 +40,6 @@ function App() {
     };
   }, []);
 
-  // Browser Autoplay Workaround
   const enableAudio = () => {
     if (!audioEnabled) {
       setAudioEnabled(true);
@@ -55,10 +54,9 @@ function App() {
   };
 
   return (
-    // minHeight: '100vh' ensures the clickable area covers the whole screen!
     <div onClick={enableAudio} style={{ minHeight: '100vh', width: '100%' }}>
       
-      {/* INVISIBLE AUDIO ELEMENT - This is much more reliable in React */}
+      {/* INVISIBLE AUDIO ELEMENT */}
       <audio id="emergency-alert-sound" src="/notification_sound.mp3" preload="auto" />
 
       <Router>
@@ -67,6 +65,10 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/pending-users" element={<PendingUserRegistration />} />
+          
+          {/* 🚨 Updated Route for the new file */}
+          <Route path="/verified-users" element={<VerifiedUsers />} /> 
+          
           <Route path="/pending-incidents" element={<PendingIncidents />} />
           <Route path="/ongoing-incidents" element={<OngoingIncidents />} />
           <Route path="/resolved-incidents" element={<ResolvedIncidents />} />
