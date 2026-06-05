@@ -60,7 +60,7 @@ export default function Register() {
         <div style={styles.container}>
             <div style={styles.card}>
                 <div style={styles.brandBox}>
-                    <h2 style={{ margin: 0, color: '#1a1c23', fontSize: '22px' }}>Create Admin Profile</h2>
+                    <h2 style={{ margin: 0, color: '#1a1c23', fontSize: '24px' }}>Create Admin Profile</h2>
                     <p style={{ margin: '5px 0 0', color: '#666', fontSize: '14px' }}>Register for System Access</p>
                 </div>
 
@@ -153,8 +153,8 @@ const styles = {
     card: { 
         background: 'white', 
         padding: '40px', 
-        borderRadius: '10px', 
-        boxShadow: '0 2px 10px rgba(0,0,0,0.05)', 
+        borderRadius: '8px', 
+        boxShadow: '0 4px 10px rgba(0,0,0,0.06)', 
         width: '100%', 
         maxWidth: '480px' 
     },

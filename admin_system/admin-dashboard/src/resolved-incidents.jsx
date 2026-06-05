@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { pb } from './pocketbase';
 import Sidebar from './Sidebar';
 import { getReadableAddress } from './utils';
+import { ui } from './uiStyles';
 import { 
   CheckCircle, MapPin, Search, Calendar, 
   ShieldCheck, User, FolderOpen,
@@ -78,6 +79,21 @@ export default function ResolvedIncidents() {
 
   useEffect(() => {
     fetchIncidents();
+
+    let unsubscribe;
+    let timeout;
+    const setupSubscription = async () => {
+      unsubscribe = await pb.collection('incident_reports').subscribe('*', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fetchIncidents(true), 500);
+      });
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [currentPage, searchTerm, typeFilter]);
 
   // --- 🎨 DYNAMIC UNIT COLORS LOGIC ---
@@ -104,15 +120,15 @@ export default function ResolvedIncidents() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
+    <div style={ui.shell}>
       <Sidebar />
-      <main style={{ flex: 1, padding: '40px', marginLeft: '260px' }}>
+      <main style={ui.main}>
         
-        <header style={{ marginBottom: '30px' }}>
+        <header style={ui.headerStack}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
-              <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a', letterSpacing: '-1.5px', margin: 0 }}>RESOLVED HISTORY</h1>
-              <p style={{ color: '#10b981', fontSize: '14px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <h1 style={ui.pageTitle}>Resolved History</h1>
+              <p style={{ ...ui.subtitle, color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ClipboardList size={18} /> Official Audit Record for Lagonglong
               </p>
             </div>
@@ -147,7 +163,7 @@ export default function ResolvedIncidents() {
           </div>
         </header>
 
-        <div style={{ backgroundColor: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div style={{ ...ui.panel, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', textAlign: 'left', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid #f1f5f9' }}>

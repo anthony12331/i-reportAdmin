@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { pb } from './pocketbase';
 import Sidebar from './Sidebar';
 import { getReadableAddress } from './utils';
+import { useMessageBox } from './MessageBox';
+import { ui } from './uiStyles';
+import { getPriorityLabel, getPriorityStyles, getResponderDepartmentForIncident, sortIncidentReportsByPriority } from './incidentPriority';
+import { addAuditLog } from './auditLog';
+import { formatWaitTime } from './timeUtils';
+import { isIncidentReviewed, markIncidentReviewed } from './incidentReview';
 import { 
   AlertTriangle, MapPin, User, ImageIcon, 
   Activity, X, RefreshCw, Phone, Calendar, 
@@ -16,6 +22,12 @@ export default function PendingIncidents() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null); 
   const [processingId, setProcessingId] = useState(null);
+  const [filters, setFilters] = useState({ type: '', barangay: '', priority: '', time: '' });
+  const [clockTick, setClockTick] = useState(0);
+  const [, setReviewedVersion] = useState(0);
+  const { confirm } = useMessageBox();
+
+  const isOpenIncident = (record) => ['new', 'pending'].includes(record?.status);
 
   // 1. Mapping Logic: Identifies incidents with reliability pings
   const generateDuplicateMap = (records) => {
@@ -37,15 +49,17 @@ export default function PendingIncidents() {
     setLoading(true);
     try {
       const pendingRecords = await pb.collection('incident_reports').getFullList({
-        filter: 'status = "pending"',
+        filter: 'status = "pending" || status = "new"',
         sort: '-created',
         expand: 'users',
         requestKey: null 
       });
 
-      setIncidents(pendingRecords);
-      setDuplicateMap(generateDuplicateMap(pendingRecords)); 
-      await resolveAddresses(pendingRecords);
+      const prioritizedRecords = sortIncidentReportsByPriority(pendingRecords);
+
+      setIncidents(prioritizedRecords);
+      setDuplicateMap(generateDuplicateMap(prioritizedRecords)); 
+      await resolveAddresses(prioritizedRecords);
     } catch (error) {
       if (!error.isAbort) console.error("Fetch error:", error);
     }
@@ -53,37 +67,82 @@ export default function PendingIncidents() {
   };
 
   const resolveAddresses = async (records) => {
-    const newAddresses = { ...addresses };
-    let hasChanged = false;
+    const pendingAddresses = records.filter(
+      record => record.latitude != null && record.longitude != null && !addresses[record.id]
+    );
 
-    for (const record of records) {
-      if (record.latitude && record.longitude && !newAddresses[record.id]) {
-        newAddresses[record.id] = await getReadableAddress(record.latitude, record.longitude);
-        hasChanged = true;
-      }
-    }
-    
-    if (hasChanged) {
-      setAddresses(newAddresses);
-    }
+    if (pendingAddresses.length === 0) return;
+
+    const resolved = await Promise.all(
+      pendingAddresses.map(async (record) => [
+        record.id,
+        await getReadableAddress(record.latitude, record.longitude),
+      ])
+    );
+
+    const newAddresses = Object.fromEntries(resolved);
+    setAddresses(prev => ({ ...prev, ...newAddresses }));
   };
 
   // Real-time listener
   useEffect(() => {
     let isMounted = true;
+    let unsubscribe;
     if (isMounted) fetchIncidents();
+    const timer = setInterval(() => setClockTick(tick => tick + 1), 60000);
 
-    pb.collection('incident_reports').subscribe('*', (e) => {
-      if (isMounted && (e.action === 'create' || e.action === 'update' || e.action === 'delete')) {
-        fetchIncidents(); 
-      }
-    });
+    const startSubscription = async () => {
+      unsubscribe = await pb.collection('incident_reports').subscribe('*', (e) => {
+        if (!isMounted) return;
+
+        if (e.action === 'delete' || (e.action === 'update' && !isOpenIncident(e.record))) {
+           setIncidents(prev => prev.filter(i => i.id !== e.record.id));
+        } else if (isOpenIncident(e.record)) {
+           setIncidents(prev => {
+              const exists = prev.find(i => i.id === e.record.id);
+              let updated = exists ? prev.map(i => i.id === e.record.id ? e.record : i) : [e.record, ...prev];
+              return sortIncidentReportsByPriority(updated);
+           });
+           setDuplicateMap(prev => {
+              const count = e.record.reporters_count || 0;
+              if (count >= 1) return { ...prev, [e.record.id]: { count, isVerified: true } };
+              const newMap = { ...prev };
+              delete newMap[e.record.id];
+              return newMap;
+           });
+           resolveAddresses([e.record]);
+        }
+      }, { expand: 'users' });
+    };
+
+    startSubscription();
 
     return () => {
       isMounted = false;
-      pb.collection('incident_reports').unsubscribe('*');
+      clearInterval(timer);
+      unsubscribe?.();
     };
   }, []);
+
+  const filteredIncidents = incidents.filter((incident) => {
+    const reporter = incident.expand?.users;
+    const barangay = reporter?.baranggay || '';
+    const ageMinutes = Math.floor((Date.now() - new Date(incident.created).getTime()) / 60000);
+
+    if (filters.type && incident.type?.toLowerCase() !== filters.type) return false;
+    if (filters.barangay && !barangay.toLowerCase().includes(filters.barangay.toLowerCase())) return false;
+    if (filters.priority && getPriorityLabel(incident) !== filters.priority) return false;
+    if (filters.time === 'under15' && ageMinutes >= 15) return false;
+    if (filters.time === '15to60' && (ageMinutes < 15 || ageMinutes > 60)) return false;
+    if (filters.time === 'over60' && ageMinutes <= 60) return false;
+
+    return true;
+  });
+
+  const reviewIncident = (id) => {
+    markIncidentReviewed(id);
+    setReviewedVersion(version => version + 1);
+  };
 
   const updateStatus = async (incident, newStatus) => {
     setProcessingId(incident.id);
@@ -91,10 +150,8 @@ export default function PendingIncidents() {
       let updateData = { status: newStatus };
 
       if (newStatus === 'ongoing') {
-        const typeToDept = { 'fire': 'Fire', 'accident': 'MDRRMO', 'landslide': 'MDRRMO' };
-        const targetDept = typeToDept[incident.type.toLowerCase()] || 'Fire';
-        
-
+        const targetDept = getResponderDepartmentForIncident(incident);
+        let responderAssigned = false;
 
         try {
           const responder = await pb.collection('responder_accounts').getFirstListItem(
@@ -104,15 +161,26 @@ export default function PendingIncidents() {
           if (responder) {
             updateData.responders = responder.id;
             await pb.collection('responder_accounts').update(responder.id, { is_available: true });
+            responderAssigned = true;
           }
         } catch {
           console.warn(`No available ${targetDept} unit found.`);
         }
 
-        
+        if (!responderAssigned) {
+          alert(`No available ${targetDept} responder found. Incident will still move to ongoing, but it needs manual assignment.`);
+        }
       }
 
       await pb.collection('incident_reports').update(incident.id, updateData);
+      reviewIncident(incident.id);
+      window.dispatchEvent(new Event('incident-handled'));
+      addAuditLog({
+        action: 'Incident Status Updated',
+        target: incident.id,
+        details: `${incident.type} set to ${newStatus}`,
+        actor: pb.authStore.model?.username || 'Admin',
+      });
       setIncidents(prev => prev.filter(i => i.id !== incident.id));
       alert(`Incident successfully set to ${newStatus.toUpperCase()}.`);
       
@@ -123,32 +191,63 @@ export default function PendingIncidents() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>
+    <div style={ui.shell}>
       <Sidebar />
-      <main style={{ flex: 1, padding: '40px', marginLeft: '260px' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+      <main style={ui.main}>
+        <header style={ui.header}>
           <div>
-            <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a', letterSpacing: '-1px' }}>PENDING EMERGENCY FEED</h1>
-            <p style={{ color: '#64748b', fontSize: '15px', fontWeight: '500' }}>Lagonglong Emergency Management Dashboard</p>
+            <h1 style={ui.pageTitle}>Pending Emergency Feed</h1>
+            <p style={ui.subtitle}>Lagonglong Emergency Management Dashboard</p>
           </div>
-          <button onClick={fetchIncidents} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', padding: '14px 28px', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '800' }}>
+          <button onClick={fetchIncidents} style={ui.toolbarButton}>
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} /> REFRESH LIST
           </button>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(460px, 1fr))', gap: '30px' }}>
-          {incidents.map((incident) => {
+        <div style={styles.filterBar}>
+          <select value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value })} style={styles.filterInput}>
+            <option value="">All Types</option>
+            {[...new Set(incidents.map(incident => incident.type?.toLowerCase()).filter(Boolean))].map(type => (
+              <option key={type} value={type}>{type.toUpperCase()}</option>
+            ))}
+          </select>
+          <input value={filters.barangay} onChange={e => setFilters({ ...filters, barangay: e.target.value })} placeholder="Filter barangay..." style={styles.filterInput} />
+          <select value={filters.priority} onChange={e => setFilters({ ...filters, priority: e.target.value })} style={styles.filterInput}>
+            <option value="">All Priorities</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Elevated">Elevated</option>
+            <option value="Normal">Normal</option>
+          </select>
+          <select value={filters.time} onChange={e => setFilters({ ...filters, time: e.target.value })} style={styles.filterInput}>
+            <option value="">Any Wait Time</option>
+            <option value="under15">Under 15 minutes</option>
+            <option value="15to60">15-60 minutes</option>
+            <option value="over60">Over 1 hour</option>
+          </select>
+        </div>
+
+        {loading && filteredIncidents.length === 0 ? (
+          <div style={styles.emptyState}>Loading pending incident reports...</div>
+        ) : filteredIncidents.length === 0 ? (
+          <div style={styles.emptyState}>No pending incidents found right now.</div>
+        ) : null}
+
+        <div style={ui.contentGrid}>
+          {filteredIncidents.map((incident) => {
             const reporter = incident.expand?.users;
             const imgUrl = incident.incident_image ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}` : null;
             const videoUrl = incident.incident_video ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_video}` : null;
             const selfieUrl = reporter?.selfie ? `${pb.baseUrl}/api/files/_pb_users_auth_/${reporter.id}/${reporter.selfie}` : null;
             const duplicateInfo = duplicateMap[incident.id];
+            const priorityStyle = getPriorityStyles(incident);
+            const isNew = !isIncidentReviewed(incident.id);
 
             return (
-              <div key={incident.id} style={{ backgroundColor: 'white', border: duplicateInfo?.count >= 1 ? '2px solid #10b981' : '1px solid #e2e8f0', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column' }}>
+              <div key={incident.id} onClick={() => reviewIncident(incident.id)} style={{ ...ui.card, border: duplicateInfo?.count >= 1 ? '2px solid #10b981' : ui.card.border, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 
                 {/* 🚨 Emergency Header */}
-                <div style={{ backgroundColor: incident.type === 'fire' ? '#ef4444' : '#f59e0b', padding: '20px 30px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ backgroundColor: incident.type === 'fire' ? '#ef4444' : '#f59e0b', padding: '16px 22px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: '900', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <AlertTriangle size={24} /> {incident.type.toUpperCase()}
                   </span>
@@ -158,7 +257,14 @@ export default function PendingIncidents() {
                   </div>
                 </div>
 
-                <div style={{ padding: '30px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={styles.metaRow}>
+                    {isNew && <span style={styles.newBadge}>NEW</span>}
+                    <span style={{ ...styles.priorityBadge, color: priorityStyle.color, backgroundColor: priorityStyle.bg, borderColor: priorityStyle.border }}>
+                      {getPriorityLabel(incident)} Priority
+                    </span>
+                    <span style={styles.waitBadge}>{formatWaitTime(incident.created)} {clockTick >= 0 ? '' : ''}</span>
+                  </div>
                   
                   {/* 👤 Reporter Info with Selfie */}
                   <div style={{ border: '1px solid #f1f5f9', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '24px', marginBottom: '25px' }}>
@@ -255,12 +361,24 @@ export default function PendingIncidents() {
                     </button>
                     <button 
                       onClick={async () => {
-                        if(window.confirm("PERMANENTLY REJECT and DELETE this report?")) {
+                        if(await confirm("PERMANENTLY REJECT and DELETE this report?", {
+                          title: 'Reject Incident Report',
+                          primaryLabel: 'Reject & Delete',
+                          secondaryLabel: 'Cancel',
+                        })) {
                            setProcessingId(incident.id);
                            try {
                              await pb.collection('incident_reports').delete(incident.id);
+                             reviewIncident(incident.id);
+                             window.dispatchEvent(new Event('incident-handled'));
+                             addAuditLog({
+                               action: 'Incident Rejected',
+                               target: incident.id,
+                               details: `${incident.type} report deleted`,
+                               actor: pb.authStore.model?.username || 'Admin',
+                             });
                              setIncidents(prev => prev.filter(i => i.id !== incident.id));
-                           } catch (err) { alert("Failed to delete report."); }
+                             } catch { alert("Failed to delete report."); }
                            setProcessingId(null);
                         }
                       }} 
@@ -326,3 +444,58 @@ export default function PendingIncidents() {
     </div>
   );
 }
+
+const styles = {
+  filterBar: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '12px',
+    marginBottom: '20px',
+  },
+  filterInput: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    backgroundColor: 'white',
+    color: '#1f2937',
+    fontWeight: 700,
+  },
+  metaRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginBottom: '16px',
+  },
+  newBadge: {
+    padding: '5px 9px',
+    borderRadius: '8px',
+    backgroundColor: '#d32f2f',
+    color: 'white',
+    fontSize: '11px',
+    fontWeight: 900,
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '90px 20px',
+    color: '#64748b',
+    fontSize: '16px',
+    fontWeight: 700,
+  },
+  priorityBadge: {
+    padding: '5px 9px',
+    borderRadius: '8px',
+    border: '1px solid',
+    fontSize: '11px',
+    fontWeight: 900,
+  },
+  waitBadge: {
+    padding: '5px 9px',
+    borderRadius: '8px',
+    backgroundColor: '#f1f5f9',
+    color: '#334155',
+    fontSize: '11px',
+    fontWeight: 900,
+  },
+};

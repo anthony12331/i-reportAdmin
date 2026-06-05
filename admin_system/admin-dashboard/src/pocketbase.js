@@ -1,4 +1,5 @@
 import PocketBase from "pocketbase";
 
-// FIX: Make sure there is NO SPACE before http
-export const pb = new PocketBase("http://127.0.0.1:8090");
+// Use environment variable with fallback to local development URL
+const pbUrl = import.meta.env.VITE_POCKETBASE_URL || "http://127.0.0.1:8090";
+export const pb = new PocketBase(pbUrl);

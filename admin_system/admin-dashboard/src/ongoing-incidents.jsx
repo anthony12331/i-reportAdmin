@@ -14,6 +14,44 @@ export default function OngoingIncidents() {
   const [addresses, setAddresses] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
+  const [filters, setFilters] = useState({ type: '', department: '' });
+
+  const getIncidentTheme = (type) => {
+    const normalized = (type || '').toLowerCase();
+    if (normalized === 'fire') {
+      return {
+        header: '#ef4444',
+        border: '#dc2626',
+        soft: '#fef2f2',
+        softBorder: '#fecaca',
+        softText: '#991b1b',
+        icon: AlertTriangle,
+        label: 'ACTIVE FIRE',
+      };
+    }
+
+    if (normalized === 'landslide') {
+      return {
+        header: '#8b5cf6',
+        border: '#7c3aed',
+        soft: '#f5f3ff',
+        softBorder: '#ddd6fe',
+        softText: '#5b21b6',
+        icon: AlertTriangle,
+        label: 'ACTIVE LANDSLIDE',
+      };
+    }
+
+    return {
+      header: '#f59e0b',
+      border: '#d97706',
+      soft: '#fef3c7',
+      softBorder: '#fde68a',
+      softText: '#b45309',
+      icon: Activity,
+      label: 'ACTIVE INCIDENT',
+    };
+  };
 
 
   // 1. Fetching ONLY "ongoing" incidents
@@ -36,35 +74,50 @@ export default function OngoingIncidents() {
 
   // 2. NEW Address Resolver: Clean, fast, and uses the shared cache queue!
   const resolveAddresses = async (records) => {
-    const newAddresses = { ...addresses };
-    let hasChanged = false;
+    const pendingAddresses = records.filter(
+      record => record.latitude != null && record.longitude != null && !addresses[record.id]
+    );
 
-    for (const record of records) {
-      if (record.latitude && record.longitude && !newAddresses[record.id]) {
-        // Automatically queues the request to prevent 429 errors!
-        newAddresses[record.id] = await getReadableAddress(record.latitude, record.longitude);
-        hasChanged = true;
-      }
-    }
-    if (hasChanged) {
-      setAddresses(newAddresses);
-    }
+    if (pendingAddresses.length === 0) return;
+
+    const resolved = await Promise.all(
+      pendingAddresses.map(async (record) => [
+        record.id,
+        await getReadableAddress(record.latitude, record.longitude),
+      ])
+    );
+
+    setAddresses(prev => ({ ...prev, ...Object.fromEntries(resolved) }));
   };
+
+  const filteredIncidents = incidents.filter((incident) => {
+    const responderDept = incident.expand?.responders?.department || '';
+
+    if (filters.type && incident.type?.toLowerCase() !== filters.type) return false;
+    if (filters.department && responderDept.toLowerCase() !== filters.department.toLowerCase()) return false;
+
+    return true;
+  });
 
   // 3. Real-time listener for ongoing updates
   useEffect(() => {
     let isMounted = true;
+    let unsubscribe;
     if (isMounted) fetchIncidents();
 
-    pb.collection('incident_reports').subscribe('*', (e) => {
-      if (isMounted && (e.action === 'create' || e.record.status === 'ongoing')) {
-        fetchIncidents(); 
-      }
-    });
+    const startSubscription = async () => {
+      unsubscribe = await pb.collection('incident_reports').subscribe('*', (e) => {
+        if (isMounted && (e.action === 'create' || e.record.status === 'ongoing')) {
+          fetchIncidents();
+        }
+      });
+    };
+
+    startSubscription();
 
     return () => {
       isMounted = false;
-      pb.collection('incident_reports').unsubscribe('*');
+      unsubscribe?.();
     };
   }, []);
 
@@ -78,12 +131,23 @@ export default function OngoingIncidents() {
             <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a', letterSpacing: '-1px' }}>ONGOING DISPATCHES</h1>
             <p style={{ color: '#d97706', fontSize: '15px', fontWeight: '700' }}>Tracking active emergencies and deployed units in Lagonglong</p>
           </div>
-          <button onClick={fetchIncidents} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', padding: '14px 28px', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '800', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} /> REFRESH LIST
+          <button onClick={fetchIncidents} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', padding: '12px 18px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '800', fontSize: '13px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> REFRESH LIST
           </button>
         </header>
 
-        {incidents.length === 0 && !loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+          <select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: 'white', color: '#1f2937', fontWeight: 700 }}>
+            <option value="">All Types</option>
+            {[...new Set(incidents.map((incident) => incident.type?.toLowerCase()).filter(Boolean))].map((type) => (
+              <option key={type} value={type}>{type.toUpperCase()}</option>
+            ))}
+          </select>
+
+          
+        </div>
+
+        {filteredIncidents.length === 0 && !loading && (
            <div style={{ textAlign: 'center', padding: '100px 0', color: '#64748b' }}>
               <CheckCircle size={64} color="#10b981" style={{ marginBottom: '20px', opacity: 0.5 }} />
               <h2>No Ongoing Incidents</h2>
@@ -91,29 +155,31 @@ export default function OngoingIncidents() {
            </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(460px, 1fr))', gap: '30px' }}>
-          {incidents.map((incident) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '20px' }}>
+          {filteredIncidents.map((incident) => {
             const reporter = incident.expand?.users;
             const responder = incident.expand?.responders;
             const imgUrl = incident.incident_image ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}` : null;
             const videoUrl = incident.incident_video ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_video}` : null;
+            const theme = getIncidentTheme(incident.type);
+            const HeaderIcon = theme.icon;
 
             return (
-              <div key={incident.id} style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+              <div key={incident.id} style={{ backgroundColor: 'white', border: `2px solid ${theme.border}`, borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
                 
-                <div style={{ backgroundColor: '#f59e0b', padding: '20px 30px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: '900', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Activity size={24} className="animate-pulse" /> ACTIVE: {incident.type.toUpperCase()}
+                <div style={{ backgroundColor: theme.header, padding: '16px 22px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: '900', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <HeaderIcon size={20} className="animate-pulse" /> {theme.label}: {incident.type.toUpperCase()}
                   </span>
                   <span style={{ fontSize: '12px', fontWeight: '800', backgroundColor: 'rgba(0,0,0,0.2)', padding: '6px 12px', borderRadius: '12px' }}>
                     {new Date(incident.created).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
 
-                <div style={{ padding: '30px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   
                   {/* Reporter Box */}
-                  <div style={{ border: '1px solid #f1f5f9', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '24px', marginBottom: '15px' }}>
+                  <div style={{ border: '1px solid #f1f5f9', backgroundColor: '#f8fafc', padding: '18px', borderRadius: '20px', marginBottom: '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
                         <User size={28} />
@@ -131,9 +197,9 @@ export default function OngoingIncidents() {
                   </div>
 
                   {/* Deployed Responder Status */}
-                  <div style={{ backgroundColor: '#fef3c7', padding: '15px 20px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                     <AlertTriangle color="#d97706" size={20} />
-                     <span style={{ color: '#b45309', fontWeight: '800', fontSize: '14px' }}>
+                  <div style={{ backgroundColor: theme.soft, padding: '14px 18px', borderRadius: '14px', marginBottom: '20px', border: `1px solid ${theme.softBorder}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                     <AlertTriangle color={theme.softText} size={20} />
+                     <span style={{ color: theme.softText, fontWeight: '800', fontSize: '14px' }}>
                        UNIT DEPLOYED: {responder ? responder.department.toUpperCase() : "Local Responders"}
                      </span>
                   </div>
@@ -145,7 +211,7 @@ export default function OngoingIncidents() {
                       {addresses[incident.id] || "Locating..."}
                     </p>
                     
-                    <div onClick={() => setSelectedMap({ lat: incident.latitude, lng: incident.longitude, address: addresses[incident.id] })} style={{ width: '100%', height: '180px', borderRadius: '24px', overflow: 'hidden', border: '1px solid #dbeafe', position: 'relative', cursor: 'zoom-in' }}>
+                    <div onClick={() => setSelectedMap({ lat: incident.latitude, lng: incident.longitude, address: addresses[incident.id] })} style={{ width: '100%', height: '160px', borderRadius: '20px', overflow: 'hidden', border: '1px solid #dbeafe', position: 'relative', cursor: 'zoom-in' }}>
                       <iframe title="Map Preview" width="100%" height="100%" frameBorder="0" scrolling="no" src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=16&output=embed&iwloc=near`} style={{ border: 0, pointerEvents: 'none' }}></iframe>
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.01)' }}></div>
                       <div style={{ position: 'absolute', bottom: '12px', right: '12px', backgroundColor: 'white', padding: '8px 16px', borderRadius: '12px', fontSize: '11px', fontWeight: '900', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
@@ -155,11 +221,11 @@ export default function OngoingIncidents() {
                   </div>
 
                   {/* Media Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px' }}>
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '24px', overflow: 'hidden', height: '150px', position: 'relative', cursor: 'zoom-in', backgroundColor: '#f8fafc' }} onClick={() => setSelectedImage(imgUrl)}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '18px' }}>
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '18px', overflow: 'hidden', height: '140px', position: 'relative', cursor: 'zoom-in', backgroundColor: '#f8fafc' }} onClick={() => setSelectedImage(imgUrl)}>
                       {imgUrl ? <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Evidence" /> : <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><ImageIcon size={28} /><span style={{ fontSize: '10px', fontWeight: 'bold', marginTop: '5px' }}>NO PHOTO</span></div>}
                     </div>
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '24px', overflow: 'hidden', height: '150px', position: 'relative', cursor: 'zoom-in', backgroundColor: '#f8fafc' }} onClick={() => setSelectedImage(videoUrl)}>
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '18px', overflow: 'hidden', height: '140px', position: 'relative', cursor: 'zoom-in', backgroundColor: '#f8fafc' }} onClick={() => setSelectedImage(videoUrl)}>
                       {videoUrl ? <video src={videoUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted onMouseOver={e => e.target.play()} onMouseOut={e => e.target.pause()} /> : <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><Activity size={28} /><span style={{ fontSize: '10px', fontWeight: 'bold', marginTop: '5px' }}>NO VIDEO</span></div>}
                     </div>
                   </div>

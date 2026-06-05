@@ -1,13 +1,80 @@
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { pb } from './pocketbase';
-import { LayoutDashboard, Users, Clock, History, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, AlertTriangle, Activity, CheckCircle2, LogOut, ShieldCheck } from 'lucide-react';
+import { useMessageBox } from './MessageBox';
 
 export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, pendingUsersCount }) {
   const navigate = useNavigate();
   const location = useLocation();
   const admin = pb.authStore.model;
+  const { confirm } = useMessageBox();
+  const [liveCounts, setLiveCounts] = useState({
+    pendingIncidents: 0,
+    ongoingIncidents: 0,
+    pendingUsers: 0,
+  });
 
-  const handleLogout = () => {
+  useEffect(() => {
+    let isMounted = true;
+    let unsubscribeIncidents;
+    let unsubscribeUsers;
+
+    const fetchCounts = async () => {
+      try {
+        const [reports, users] = await Promise.all([
+          pb.collection('incident_reports').getFullList({ fields: 'id,status', requestKey: null }),
+          pb.collection('users').getFullList({ fields: 'id,status', requestKey: null }),
+        ]);
+
+        if (!isMounted) return;
+
+        setLiveCounts({
+          pendingIncidents: reports.filter(report => report.status === 'new' || report.status === 'pending').length,
+          ongoingIncidents: reports.filter(report => report.status === 'ongoing' || report.status === 'dispatched').length,
+          pendingUsers: users.filter(user => user.status === 'pending').length,
+        });
+      } catch (error) {
+        if (!error.isAbort) console.error('Sidebar count error:', error);
+      }
+    };
+
+    let fetchTimeout;
+    const debouncedFetchCounts = () => {
+      clearTimeout(fetchTimeout);
+      fetchTimeout = setTimeout(fetchCounts, 1000);
+    };
+
+    const startSubscriptions = async () => {
+      fetchCounts();
+      unsubscribeIncidents = await pb.collection('incident_reports').subscribe('*', debouncedFetchCounts);
+      unsubscribeUsers = await pb.collection('users').subscribe('*', debouncedFetchCounts);
+    };
+
+    startSubscriptions();
+
+    return () => {
+      isMounted = false;
+      unsubscribeIncidents?.();
+      unsubscribeUsers?.();
+    };
+  }, []);
+
+  const counts = {
+    pendingIncidents: pendingIncidentsCount ?? liveCounts.pendingIncidents,
+    ongoingIncidents: ongoingIncidentsCount ?? liveCounts.ongoingIncidents,
+    pendingUsers: pendingUsersCount ?? liveCounts.pendingUsers,
+  };
+
+  const handleLogout = async () => {
+    const shouldLogout = await confirm('Are you sure you want to logout from the command center?', {
+      title: 'Confirm Logout',
+      primaryLabel: 'Logout',
+      secondaryLabel: 'Stay Signed In',
+    });
+
+    if (!shouldLogout) return;
+
     pb.authStore.clear();
     navigate('/');
   };
@@ -21,7 +88,7 @@ export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, 
         <div style={styles.onlineBadge}>● System Online</div>
       </div>
 
-      <nav style={styles.nav}>
+      <nav className="sidebarNavNoScroll" style={styles.nav}>
         <p style={styles.sectionTitle}>MAIN</p>
         <div 
           style={isActive('/dashboard') ? styles.navItemActive : styles.navItem} 
@@ -40,10 +107,10 @@ export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, 
           onClick={() => navigate('/pending-incidents')}
         >
           <div style={styles.navLinkGroup}>
-            <Clock size={18} /> 
+            <AlertTriangle size={18} /> 
             <span>Pending Reports</span>
           </div>
-          {pendingIncidentsCount > 0 && <span style={styles.badgeRed}>{pendingIncidentsCount}</span>}
+          {counts.pendingIncidents > 0 && <span style={styles.badgeRed}>{counts.pendingIncidents}</span>}
         </div>
         
         <div 
@@ -51,10 +118,10 @@ export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, 
           onClick={() => navigate('/ongoing-incidents')}
         >
           <div style={styles.navLinkGroup}>
-            <Clock size={18} /> 
+            <Activity size={18} /> 
             <span>Ongoing Incidents</span>
           </div>
-          {ongoingIncidentsCount > 0 && <span style={styles.badgeOrange}>{ongoingIncidentsCount}</span>}
+          {counts.ongoingIncidents > 0 && <span style={styles.badgeOrange}>{counts.ongoingIncidents}</span>}
         </div>
 
         <div 
@@ -62,7 +129,7 @@ export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, 
           onClick={() => navigate('/resolved-incidents')}
         >
           <div style={styles.navLinkGroup}>
-            <History size={18} /> 
+            <CheckCircle2 size={18} /> 
             <span>Resolved Incidents</span>
           </div>
         </div>
@@ -77,7 +144,7 @@ export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, 
             <Users size={18} /> 
             <span>Pending Verification</span>
           </div>
-          {pendingUsersCount > 0 && <span style={styles.badgeBlue}>{pendingUsersCount}</span>}
+          {counts.pendingUsers > 0 && <span style={styles.badgeBlue}>{counts.pendingUsers}</span>}
         </div>
         
         <div 
@@ -89,6 +156,8 @@ export default function Sidebar({ pendingIncidentsCount, ongoingIncidentsCount, 
             <span>Verified Users</span>
           </div>
         </div>
+
+        <p style={styles.sectionTitle}>SYSTEM</p>
 
         <div style={styles.logoutSection}>
           <p style={{ fontSize: '12px', color: '#888', marginBottom: '10px' }}>

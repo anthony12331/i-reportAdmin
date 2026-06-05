@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { pb } from './pocketbase';
 import Sidebar from './Sidebar';
 import { getReadableAddress } from './utils';
+import { ui } from './uiStyles';
+import { getPriorityLabel, getPriorityStyles, sortIncidentReportsByPriority } from './incidentPriority';
+import { isIncidentReviewed } from './incidentReview';
+import { formatWaitTime } from './timeUtils';
 import { MapPin } from 'lucide-react'; // Added an icon for the location
 
 export default function Dashboard() {
@@ -26,14 +30,18 @@ export default function Dashboard() {
         setReports(reportRecords);
 
         // --- THE MAGIC: Translate addresses for the top 5 pending alerts ---
-        const pending = reportRecords.filter(r => r.status === 'new' || r.status === 'pending').slice(0, 5);
+        const pending = sortIncidentReportsByPriority(
+          reportRecords.filter(r => r.status === 'new' || r.status === 'pending')
+        ).slice(0, 5);
         const fetchedAddresses = {};
-        
-        for (const report of pending) {
-          if (report.latitude && report.longitude) {
-             // We use your pure function tool here!
-             fetchedAddresses[report.id] = await getReadableAddress(report.latitude, report.longitude);
-          }
+        const addressPairs = await Promise.all(
+          pending
+            .filter(report => report.latitude != null && report.longitude != null)
+            .map(async (report) => [report.id, await getReadableAddress(report.latitude, report.longitude)])
+        );
+
+        for (const [id, address] of addressPairs) {
+          fetchedAddresses[id] = address;
         }
         setAddresses(fetchedAddresses);
 
@@ -43,28 +51,62 @@ export default function Dashboard() {
     };
     
     fetchData();
+
+    let unsubscribeUsers;
+    let unsubscribeReports;
+
+    const setupSubscriptions = async () => {
+      unsubscribeUsers = await pb.collection('users').subscribe('*', (e) => {
+        setUsers(prev => {
+          if (e.action === 'create') return [...prev, e.record];
+          if (e.action === 'update') return prev.map(u => u.id === e.record.id ? e.record : u);
+          if (e.action === 'delete') return prev.filter(u => u.id !== e.record.id);
+          return prev;
+        });
+      });
+      unsubscribeReports = await pb.collection('incident_reports').subscribe('*', (e) => {
+        setReports(prev => {
+          if (e.action === 'create') return [e.record, ...prev];
+          if (e.action === 'update') return prev.map(r => r.id === e.record.id ? e.record : r);
+          if (e.action === 'delete') return prev.filter(r => r.id !== e.record.id);
+          return prev;
+        });
+
+        // Auto-resolve new addresses for live alerts
+        if ((e.action === 'create' || e.action === 'update') && 
+            (e.record.status === 'new' || e.record.status === 'pending') && 
+            e.record.latitude && e.record.longitude) {
+           getReadableAddress(e.record.latitude, e.record.longitude).then(addr => {
+             setAddresses(prev => ({ ...prev, [e.record.id]: addr }));
+           });
+        }
+      }, { expand: 'users' });
+    };
+
+    setupSubscriptions();
+
+    return () => {
+      if (unsubscribeUsers) unsubscribeUsers();
+      if (unsubscribeReports) unsubscribeReports();
+    };
   }, []);
 
   const pendingUsersCount = users.filter(u => u.status === 'pending').length;
   const verifiedUsersCount = users.filter(u => u.status === 'verified').length;
-  const pendingIncidents = reports.filter(r => r.status === 'new' || r.status === 'pending');
+  const pendingIncidents = sortIncidentReportsByPriority(reports.filter(r => r.status === 'new' || r.status === 'pending'));
   const ongoingIncidentsCount = reports.filter(r => r.status === 'ongoing' || r.status === 'dispatched').length;
   const resolvedIncidentsCount = reports.filter(r => r.status === 'resolved').length;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
+    <div style={ui.shell}>
       
       {/* --- IMPORTED SIDEBAR --- */}
-      <Sidebar 
-        pendingIncidentsCount={pendingIncidents.length}
-        ongoingIncidentsCount={ongoingIncidentsCount}
-        pendingUsersCount={pendingUsersCount}
-      />
+      <Sidebar />
 
-      <main style={{ marginLeft: '260px', flex: 1, padding: '30px' }}>
-        <header style={{ marginBottom: '30px' }}>
-          <h1>Command Center Overview</h1>
-          <p style={{ color: '#666' }}>Real-time monitoring and administration</p>
+      <main style={ui.main}>
+        <header style={ui.headerStack}>
+          <h1 style={ui.pageTitle}>Command Center Overview</h1>
+          <p style={ui.subtitle}>Real-time monitoring and administration</p>
         </header>
 
         {/* --- SUMMARY CARDS --- */}
@@ -125,7 +167,12 @@ export default function Dashboard() {
               <tbody>
                 {pendingIncidents.slice(0, 5).map((report) => (
                   <tr key={report.id} style={styles.tr}>
-                    <td style={{ fontWeight: 'bold', color: '#d32f2f' }}>{report.type.toUpperCase()}</td>
+                    <td style={{ fontWeight: 'bold', color: '#d32f2f' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {!isIncidentReviewed(report.id) && <span style={styles.newBadge}>NEW</span>}
+                        {report.type.toUpperCase()}
+                      </div>
+                    </td>
                     <td>{report.expand?.users?.first_name} {report.expand?.users?.last_name || 'Citizen'}</td>
                     <td style={{ fontSize: '12px', color: '#4b5563', maxWidth: '250px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -133,7 +180,13 @@ export default function Dashboard() {
                         {addresses[report.id] || "Locating..."}
                       </div>
                     </td>
-                    <td>{new Date(report.created).toLocaleTimeString()}</td>
+                    <td>
+                      <div>{new Date(report.created).toLocaleTimeString()}</div>
+                      <div style={styles.waitText}>{formatWaitTime(report.created)}</div>
+                      <span style={{ ...styles.priorityBadge, color: getPriorityStyles(report).color, backgroundColor: getPriorityStyles(report).bg, borderColor: getPriorityStyles(report).border }}>
+                        {getPriorityLabel(report)}
+                      </span>
+                    </td>
                     <td>
                       <button style={styles.actionBtn} onClick={() => navigate('/pending-incidents')}>
                         Dispatch Now
@@ -151,14 +204,17 @@ export default function Dashboard() {
 }
 
 const styles = {
-  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' },
-  card: { backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', cursor: 'pointer' },
-  bigNumber: { fontSize: '32px', fontWeight: 'bold', margin: '10px 0', color: '#1f2937' },
-  alertSection: { backgroundColor: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' },
+  cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '18px', marginBottom: '28px' },
+  card: { ...ui.card, padding: '20px', cursor: 'pointer' },
+  bigNumber: { fontSize: '30px', fontWeight: 'bold', margin: '10px 0', color: '#1f2937' },
+  alertSection: { ...ui.panel, padding: '22px' },
   alertBoxPlaceholder: { height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #ddd', borderRadius: '8px' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #eee', fontSize: '14px' },
   tr: { borderBottom: '1px solid #eee' },
-  actionBtn: { padding: '6px 12px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' },
-  viewAllBtn: { padding: '8px 16px', backgroundColor: 'transparent', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }
+  actionBtn: { padding: '8px 12px', backgroundColor: '#d32f2f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' },
+  viewAllBtn: { padding: '8px 14px', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 },
+  newBadge: { padding: '3px 7px', borderRadius: '8px', backgroundColor: '#d32f2f', color: 'white', fontSize: '10px', fontWeight: 900 },
+  priorityBadge: { display: 'inline-flex', marginTop: '4px', padding: '3px 7px', border: '1px solid', borderRadius: '8px', fontSize: '10px', fontWeight: 900 },
+  waitText: { marginTop: '2px', color: '#64748b', fontSize: '11px', fontWeight: 700 }
 };

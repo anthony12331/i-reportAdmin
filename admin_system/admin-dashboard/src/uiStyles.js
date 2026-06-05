@@ -1,0 +1,67 @@
+export const ui = {
+  shell: {
+    display: 'flex',
+    minHeight: '100vh',
+    backgroundColor: '#f4f6f8',
+    fontFamily: 'Inter, Arial, sans-serif',
+  },
+  main: {
+    marginLeft: '260px',
+    flex: 1,
+    padding: '32px',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '20px',
+    marginBottom: '28px',
+  },
+  headerStack: {
+    marginBottom: '28px',
+  },
+  pageTitle: {
+    fontSize: '28px',
+    lineHeight: 1.15,
+    fontWeight: 800,
+    color: '#111827',
+    letterSpacing: 0,
+    margin: 0,
+  },
+  subtitle: {
+    color: '#64748b',
+    fontSize: '14px',
+    fontWeight: 600,
+    margin: '6px 0 0',
+  },
+  panel: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 2px 10px rgba(15, 23, 42, 0.05)',
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 2px 10px rgba(15, 23, 42, 0.05)',
+  },
+  toolbarButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: 'white',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    cursor: 'pointer',
+    fontWeight: 800,
+    fontSize: '13px',
+    color: '#1f2937',
+  },
+  contentGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+    gap: '22px',
+  },
+};

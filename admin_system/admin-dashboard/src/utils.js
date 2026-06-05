@@ -46,9 +46,54 @@ const fetchWithQueue = (url) => {
   });
 };
 
+const pickFirstText = (...values) => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return '';
+};
+
+const formatLocationLabel = (data) => {
+  const addr = data.address || {};
+  const namedPlace = pickFirstText(
+    data.name,
+    data.namedetails?.name,
+    data.namedetails?.['name:en'],
+    data.namedetails?.['name:fil'],
+    addr.amenity,
+    addr.building,
+    addr.shop,
+    addr.office,
+    addr.tourism,
+    addr.leisure,
+    addr.place
+  );
+
+  const road = pickFirstText(addr.house_number && addr.road ? `${addr.house_number} ${addr.road}` : addr.road);
+  const barangay = pickFirstText(
+    addr.village,
+    addr.suburb,
+    addr.neighbourhood,
+    addr.city_district,
+    addr.poblacion,
+    addr.hamlet
+  );
+  const townCity = pickFirstText(addr.city, addr.town, addr.municipality, addr.county);
+  const province = pickFirstText(addr.state, addr.region);
+  const country = pickFirstText(addr.country);
+
+  const fullAddress = [road, barangay, townCity, province, country]
+    .filter(Boolean)
+    .join(', ');
+
+  return namedPlace || fullAddress || pickFirstText(data.display_name) || 'Location unavailable';
+};
 
 export const getReadableAddress = async (latitude, longitude) => {
-  if (!latitude || !longitude) return "Unknown Location";
+  if (latitude == null || longitude == null) return "Unknown Location";
 
   const cacheKey = `${latitude},${longitude}`;
 
@@ -61,24 +106,12 @@ export const getReadableAddress = async (latitude, longitude) => {
   // Otherwise, put it in the Queue
   addressPromises[cacheKey] = (async () => {
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1&namedetails=1&accept-language=en`;
       
       // Use our safe queue instead of standard fetch
       const data = await fetchWithQueue(url);
-      
-      const addr = data.address || {};
-      
-      // Philippine addressing logic (Added 'hamlet' as OSM often puts sitios/puroks here)
-      const road = addr.road || "";
-      const barangay = addr.village || addr.suburb || addr.neighbourhood || addr.poblacion || addr.hamlet || "";
-      const townCity = addr.city || addr.town || addr.municipality || "";
-      const province = addr.state || "";
-      
-      const fullAddress = [road, barangay, townCity, province]
-        .filter(part => part !== "" && part !== undefined)
-        .join(', ');
 
-      const finalAddress = fullAddress || "Exact Location Identified";
+      const finalAddress = formatLocationLabel(data);
       
       // Save to instant memory bank for next time
       addressCache[cacheKey] = finalAddress;
@@ -86,8 +119,9 @@ export const getReadableAddress = async (latitude, longitude) => {
 
     } catch (error) {
       console.error("Geocoding failed:", error);
-      delete addressPromises[cacheKey]; 
-      return "Precision Coordinates Pinpointed";
+      return "Location unavailable";
+    } finally {
+      delete addressPromises[cacheKey];
     }
   })();
 
