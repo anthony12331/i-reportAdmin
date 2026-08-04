@@ -1,4 +1,7 @@
-import { DEFAULT_RESPONDER_DEPARTMENTS, INCIDENT_TYPE_PRIORITY } from './incidentPriority';
+import {
+  DEFAULT_RESPONDER_DEPARTMENTS,
+  INCIDENT_TYPE_PRIORITY,
+} from "./incidentPriority";
 
 export const DEFAULT_SETTINGS = {
   soundEnabled: true,
@@ -8,8 +11,8 @@ export const DEFAULT_SETTINGS = {
   responderDepartments: { ...DEFAULT_RESPONDER_DEPARTMENTS },
 };
 
-const SETTINGS_KEY = 'lagonglong-system-settings';
-export const SETTINGS_EVENT = 'lagonglong-settings-updated';
+const SETTINGS_KEY = "lagonglong-system-settings";
+export const SETTINGS_EVENT = "lagonglong-settings-updated";
 
 export function getSystemSettings() {
   try {
@@ -36,7 +39,7 @@ export function saveSystemSettings(settings) {
     ...DEFAULT_SETTINGS,
     ...settings,
     incidentPriority: {
-      ...DEFAULT_SETTINGS.incidentPriority,
+      ...DEFAULT_SETTINGS.incidentPriority, 
       ...(settings.incidentPriority || {}),
     },
     responderDepartments: {
@@ -46,17 +49,19 @@ export function saveSystemSettings(settings) {
   };
 
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(nextSettings));
-  window.dispatchEvent(new CustomEvent(SETTINGS_EVENT, { detail: nextSettings }));
+  window.dispatchEvent(
+    new CustomEvent(SETTINGS_EVENT, { detail: nextSettings }),
+  );
   return nextSettings;
 }
 
 export function subscribeToSettings(callback) {
   const handleUpdate = (event) => callback(event.detail || getSystemSettings());
   window.addEventListener(SETTINGS_EVENT, handleUpdate);
-  window.addEventListener('storage', handleUpdate);
+  window.addEventListener("storage", handleUpdate);
 
   return () => {
     window.removeEventListener(SETTINGS_EVENT, handleUpdate);
-    window.removeEventListener('storage', handleUpdate);
+    window.removeEventListener("storage", handleUpdate);
   };
 }

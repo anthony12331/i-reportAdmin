@@ -1,391 +1,443 @@
-import React, { useState, useEffect } from 'react';
-import { pb } from './pocketbase';
-import Sidebar from './Sidebar';
-import { getReadableAddress } from './utils';
-import { useMessageBox } from './MessageBox';
-import { ui } from './uiStyles';
-import { getPriorityLabel, getPriorityStyles, getResponderDepartmentForIncident, sortIncidentReportsByPriority } from './incidentPriority';
-import { addAuditLog } from './auditLog';
-import { formatWaitTime } from './timeUtils';
-import { isIncidentReviewed, markIncidentReviewed } from './incidentReview';
-import { 
-  AlertTriangle, MapPin, User, ImageIcon, 
-  Activity, X, RefreshCw, Phone, Calendar, 
-  ShieldCheck, Maximize2, Map as MapIcon, PlayCircle
-} from 'lucide-react';
+﻿import React, { useState, useEffect, useCallback, useRef } from "react";
+import { pb } from "./pocketbase";
+import Sidebar from "./Sidebar";
+import { getReadableAddress } from "./utils";
+import { useMessageBox } from "./MessageBox";
+import {
+  getPriorityLabel,
+  getResponderDepartmentForIncident,
+  sortIncidentReportsByPriority,
+} from "./incidentPriority";
+import { addAuditLog } from "./auditLog";
+import { formatWaitTime } from "./timeUtils";
+import { isIncidentReviewed, markIncidentReviewed } from "./incidentReview";
+import {
+  getResponderOptionLabel,
+  getRespondersForDepartment,
+} from "./responderOptions";
+import {
+  MapPin,
+  User,
+  ImageIcon,
+  Activity,
+  X,
+  Phone,
+  Map as MapIcon,
+  PlayCircle,
+  Clock,
+  Send,
+  Trash2,
+  SlidersHorizontal,
+  Flame,
+  Ambulance,
+  Car,
+  AlertOctagon,
+} from "lucide-react";
 
 export default function PendingIncidents() {
   const [incidents, setIncidents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [addresses, setAddresses] = useState({});
   const [duplicateMap, setDuplicateMap] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedMap, setSelectedMap] = useState(null); 
+  const [selectedMap, setSelectedMap] = useState(null);
   const [processingId, setProcessingId] = useState(null);
-  const [filters, setFilters] = useState({ type: '', barangay: '', priority: '', time: '' });
-  const [clockTick, setClockTick] = useState(0);
-  const [, setReviewedVersion] = useState(0);
+  const [availableResponders, setAvailableResponders] = useState([]);
+  const [, setRespondersLoading] = useState(false);
+  const [selectedResponderIds, setSelectedResponderIds] = useState({});
+  const [filters, setFilters] = useState({
+    type: "",
+    barangay: "",
+    priority: "",
+    time: "",
+  });
+  const [, setClockTick] = useState(0);
   const { confirm } = useMessageBox();
 
-  const isOpenIncident = (record) => ['new', 'pending'].includes(record?.status);
+  const fetchedAddressIds = useRef(new Set());
 
-  // 1. Mapping Logic: Identifies incidents with reliability pings
-  const generateDuplicateMap = (records) => {
+  const isOpenIncident = useCallback((record) => ["new", "pending"].includes(record?.status), []);
+
+  const generateDuplicateMap = useCallback((records) => {
     const result = {};
-    records.forEach(record => {
-      const count = record.reporters_count || 0; 
-      if (count >= 1) {
-        result[record.id] = {
-          count: count,
-          isVerified: true
-        };
-      }
+    records.forEach((record) => {
+      const count = record.reporters_count || 0;
+      if (count >= 1) result[record.id] = { count, isVerified: true };
     });
     return result;
-  };
+  }, []);
 
-  // 2. Fetching Logic: Retrieves data and populates the duplicate map
-  const fetchIncidents = async () => {
+  const resolveAddresses = useCallback(async (records) => {
+    const pendingAddresses = records.filter(
+      (record) => record.latitude != null && record.longitude != null && !fetchedAddressIds.current.has(record.id)
+    );
+    if (pendingAddresses.length === 0) return;
+
+    pendingAddresses.forEach((r) => fetchedAddressIds.current.add(r.id));
+
+    const resolved = await Promise.all(
+      pendingAddresses.map(async (record) => {
+        try {
+          const addr = await getReadableAddress(record.latitude, record.longitude);
+          return [record.id, addr];
+        } catch {
+          return [record.id, "GPS Telemetry Acquired"];
+        }
+      })
+    );
+
+    setAddresses((prev) => ({ ...prev, ...Object.fromEntries(resolved) }));
+  }, []);
+
+  const fetchIncidents = useCallback(async () => {
     setLoading(true);
     try {
-      const pendingRecords = await pb.collection('incident_reports').getFullList({
+      const pendingRecords = await pb.collection("incident_reports").getFullList({
         filter: 'status = "pending" || status = "new"',
-        sort: '-created',
-        expand: 'users',
-        requestKey: null 
+        sort: "-created",
+        expand: "users",
+        requestKey: null,
       });
 
       const prioritizedRecords = sortIncidentReportsByPriority(pendingRecords);
-
       setIncidents(prioritizedRecords);
-      setDuplicateMap(generateDuplicateMap(prioritizedRecords)); 
+      setDuplicateMap(generateDuplicateMap(prioritizedRecords));
       await resolveAddresses(prioritizedRecords);
     } catch (error) {
       if (!error.isAbort) console.error("Fetch error:", error);
     }
     setLoading(false);
-  };
+  }, [generateDuplicateMap, resolveAddresses]);
 
-  const resolveAddresses = async (records) => {
-    const pendingAddresses = records.filter(
-      record => record.latitude != null && record.longitude != null && !addresses[record.id]
-    );
+  const fetchAvailableResponders = useCallback(async () => {
+    setRespondersLoading(true);
+    try {
+      const responders = await pb.collection("responder_accounts").getFullList({
+        filter: "is_available = true",
+        sort: "department, first_name, last_name",
+        requestKey: null,
+      });
+      setAvailableResponders(responders);
+    } catch (error) {
+      if (!error.isAbort) console.error("Responder fetch error:", error);
+    }
+    setRespondersLoading(false);
+  }, []);
 
-    if (pendingAddresses.length === 0) return;
-
-    const resolved = await Promise.all(
-      pendingAddresses.map(async (record) => [
-        record.id,
-        await getReadableAddress(record.latitude, record.longitude),
-      ])
-    );
-
-    const newAddresses = Object.fromEntries(resolved);
-    setAddresses(prev => ({ ...prev, ...newAddresses }));
-  };
-
-  // Real-time listener
   useEffect(() => {
     let isMounted = true;
     let unsubscribe;
-    if (isMounted) fetchIncidents();
-    const timer = setInterval(() => setClockTick(tick => tick + 1), 60000);
 
-    const startSubscription = async () => {
-      unsubscribe = await pb.collection('incident_reports').subscribe('*', (e) => {
-        if (!isMounted) return;
+    const loadAndSubscribe = async () => {
+      await fetchIncidents();
 
-        if (e.action === 'delete' || (e.action === 'update' && !isOpenIncident(e.record))) {
-           setIncidents(prev => prev.filter(i => i.id !== e.record.id));
-        } else if (isOpenIncident(e.record)) {
-           setIncidents(prev => {
-              const exists = prev.find(i => i.id === e.record.id);
-              let updated = exists ? prev.map(i => i.id === e.record.id ? e.record : i) : [e.record, ...prev];
+      unsubscribe = await pb.collection("incident_reports").subscribe(
+        "*",
+        (e) => {
+          if (!isMounted) return;
+          if (e.action === "delete" || (e.action === "update" && !isOpenIncident(e.record))) {
+            setIncidents((prev) => prev.filter((i) => i.id !== e.record.id));
+          } else if (isOpenIncident(e.record)) {
+            setIncidents((prev) => {
+              const exists = prev.find((i) => i.id === e.record.id);
+              const updated = exists ? prev.map((i) => (i.id === e.record.id ? e.record : i)) : [e.record, ...prev];
               return sortIncidentReportsByPriority(updated);
-           });
-           setDuplicateMap(prev => {
-              const count = e.record.reporters_count || 0;
-              if (count >= 1) return { ...prev, [e.record.id]: { count, isVerified: true } };
-              const newMap = { ...prev };
-              delete newMap[e.record.id];
-              return newMap;
-           });
-           resolveAddresses([e.record]);
-        }
-      }, { expand: 'users' });
+            });
+            resolveAddresses([e.record]);
+          }
+        },
+        { expand: "users" }
+      );
     };
 
-    startSubscription();
+    loadAndSubscribe();
+    const timer = setInterval(() => setClockTick((t) => t + 1), 60000);
 
     return () => {
       isMounted = false;
       clearInterval(timer);
       unsubscribe?.();
     };
-  }, []);
+  }, [fetchIncidents, isOpenIncident, resolveAddresses]);
+
+  useEffect(() => {
+    fetchAvailableResponders();
+    let unsubscribe;
+    const startResponderSubscription = async () => {
+      unsubscribe = await pb.collection("responder_accounts").subscribe("*", () => {
+        fetchAvailableResponders();
+      });
+    };
+    startResponderSubscription();
+    return () => unsubscribe?.();
+  }, [fetchAvailableResponders]);
 
   const filteredIncidents = incidents.filter((incident) => {
     const reporter = incident.expand?.users;
-    const barangay = reporter?.baranggay || '';
+    const barangay = reporter?.baranggay || "";
     const ageMinutes = Math.floor((Date.now() - new Date(incident.created).getTime()) / 60000);
 
     if (filters.type && incident.type?.toLowerCase() !== filters.type) return false;
     if (filters.barangay && !barangay.toLowerCase().includes(filters.barangay.toLowerCase())) return false;
     if (filters.priority && getPriorityLabel(incident) !== filters.priority) return false;
-    if (filters.time === 'under15' && ageMinutes >= 15) return false;
-    if (filters.time === '15to60' && (ageMinutes < 15 || ageMinutes > 60)) return false;
-    if (filters.time === 'over60' && ageMinutes <= 60) return false;
+    if (filters.time === "under15" && ageMinutes >= 15) return false;
+    if (filters.time === "15to60" && (ageMinutes < 15 || ageMinutes > 60)) return false;
+    if (filters.time === "over60" && ageMinutes <= 60) return false;
 
     return true;
   });
 
-  const reviewIncident = (id) => {
+  const reviewIncident = useCallback((id) => {
     markIncidentReviewed(id);
-    setReviewedVersion(version => version + 1);
-  };
+    setIncidents((prev) => [...prev]);
+  }, []);
 
-  const updateStatus = async (incident, newStatus) => {
+  const updateStatus = async (incident, newStatus, responderId = selectedResponderIds[incident.id]) => {
     setProcessingId(incident.id);
+    let reservedResponder = null;
     try {
-      let updateData = { status: newStatus };
+      const updateData = { status: newStatus };
 
-      if (newStatus === 'ongoing') {
+      if (newStatus === "ongoing") {
         const targetDept = getResponderDepartmentForIncident(incident);
-        let responderAssigned = false;
+        const responderOptions = getRespondersForDepartment(availableResponders, targetDept);
+        const chosenResponderId = String(responderId || "").trim();
+        const selectedResponder =
+          responderOptions.find((r) => r.id === chosenResponderId) ||
+          availableResponders.find((r) => r.id === chosenResponderId);
 
-        try {
-          const responder = await pb.collection('responder_accounts').getFirstListItem(
-            `department = "${targetDept}" && is_available = true`, { requestKey: null }
-          );
-
-          if (responder) {
-            updateData.responders = responder.id;
-            await pb.collection('responder_accounts').update(responder.id, { is_available: true });
-            responderAssigned = true;
-          }
-        } catch {
-          console.warn(`No available ${targetDept} unit found.`);
+        if (!selectedResponder) {
+          alert(`Assign an available responder unit for ${targetDept} before dispatching.`);
+          setProcessingId(null);
+          return;
         }
 
-        if (!responderAssigned) {
-          alert(`No available ${targetDept} responder found. Incident will still move to ongoing, but it needs manual assignment.`);
-        }
+        await pb.collection("responder_accounts").update(selectedResponder.id, { is_available: false });
+        reservedResponder = selectedResponder;
+        updateData.responders = selectedResponder.id;
       }
 
-      await pb.collection('incident_reports').update(incident.id, updateData);
+      await pb.collection("incident_reports").update(incident.id, updateData);
       reviewIncident(incident.id);
-      window.dispatchEvent(new Event('incident-handled'));
+      window.dispatchEvent(new Event("incident-handled"));
       addAuditLog({
-        action: 'Incident Status Updated',
+        action: "Incident Dispatched",
         target: incident.id,
-        details: `${incident.type} set to ${newStatus}`,
-        actor: pb.authStore.model?.username || 'Admin',
+        details: `${incident.type} assigned to responder`,
+        actor: pb.authStore.model?.username || "Admin",
       });
-      setIncidents(prev => prev.filter(i => i.id !== incident.id));
-      alert(`Incident successfully set to ${newStatus.toUpperCase()}.`);
-      
-    } catch (error) {
-      console.error("Update Failure:", error);
+      setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
+      await fetchAvailableResponders();
+    }  catch (error) {
+      console.error("Failed to update status:", error);
+      if (reservedResponder) {
+        await pb.collection("responder_accounts").update(reservedResponder.id, { is_available: true }).catch(() => {});
+      }
+      alert("Failed to update status.");
     }
     setProcessingId(null);
   };
 
+  const getCategoryIcon = (type = "") => {
+    const t = type.toLowerCase();
+    if (t.includes("fire")) return <Flame size={18} color="#ef4444" />;
+    if (t.includes("medical")) return <Ambulance size={18} color="#f97316" />;
+    if (t.includes("traffic")) return <Car size={18} color="#38bdf8" />;
+    return <AlertOctagon size={18} color="#a855f7" />;
+  };
+
   return (
-    <div style={ui.shell}>
+    <div style={tStyle.shell}>
       <Sidebar />
-      <main style={ui.main}>
-        <header style={ui.header}>
+      <main style={tStyle.main}>
+        {/* HEADER */}
+        <header style={tStyle.header}>
           <div>
-            <h1 style={ui.pageTitle}>Pending Emergency Feed</h1>
-            <p style={ui.subtitle}>Lagonglong Emergency Management Dashboard</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <h1 style={tStyle.pageTitle}>Pending Emergency Feed</h1>
+              <span style={tStyle.badgeTag}>ACTIVE FEED: {filteredIncidents.length}</span>
+            </div>
+            <p style={tStyle.subtitle}>Tactical incident queue & real-time dispatch control</p>
           </div>
-          <button onClick={fetchIncidents} style={ui.toolbarButton}>
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} /> REFRESH LIST
-          </button>
         </header>
 
-        <div style={styles.filterBar}>
-          <select value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value })} style={styles.filterInput}>
+        {/* TACTICAL FILTER BAR */}
+        <div style={tStyle.filterBar}>
+          <div style={tStyle.filterLabel}>
+            <SlidersHorizontal size={14} color="#38bdf8" />
+            <span>FILTER QUEUE</span>
+          </div>
+          <select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} style={tStyle.filterSelect}>
             <option value="">All Types</option>
-            {[...new Set(incidents.map(incident => incident.type?.toLowerCase()).filter(Boolean))].map(type => (
+            {[...new Set(incidents.map((i) => i.type?.toLowerCase()).filter(Boolean))].map((type) => (
               <option key={type} value={type}>{type.toUpperCase()}</option>
             ))}
           </select>
-          <input value={filters.barangay} onChange={e => setFilters({ ...filters, barangay: e.target.value })} placeholder="Filter barangay..." style={styles.filterInput} />
-          <select value={filters.priority} onChange={e => setFilters({ ...filters, priority: e.target.value })} style={styles.filterInput}>
+          <input
+            value={filters.barangay}
+            onChange={(e) => setFilters({ ...filters, barangay: e.target.value })}
+            placeholder="Search Barangay..."
+            style={tStyle.filterInput}
+          />
+          <select value={filters.priority} onChange={(e) => setFilters({ ...filters, priority: e.target.value })} style={tStyle.filterSelect}>
             <option value="">All Priorities</option>
             <option value="Critical">Critical</option>
             <option value="High">High</option>
             <option value="Elevated">Elevated</option>
             <option value="Normal">Normal</option>
           </select>
-          <select value={filters.time} onChange={e => setFilters({ ...filters, time: e.target.value })} style={styles.filterInput}>
-            <option value="">Any Wait Time</option>
-            <option value="under15">Under 15 minutes</option>
-            <option value="15to60">15-60 minutes</option>
-            <option value="over60">Over 1 hour</option>
-          </select>
         </div>
 
-        {loading && filteredIncidents.length === 0 ? (
-          <div style={styles.emptyState}>Loading pending incident reports...</div>
-        ) : filteredIncidents.length === 0 ? (
-          <div style={styles.emptyState}>No pending incidents found right now.</div>
-        ) : null}
-
-        <div style={ui.contentGrid}>
+        {/* INCIDENT CARDS GRID */}
+        <div style={tStyle.cardGrid}>
           {filteredIncidents.map((incident) => {
             const reporter = incident.expand?.users;
             const imgUrl = incident.incident_image ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}` : null;
             const videoUrl = incident.incident_video ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_video}` : null;
-            const selfieUrl = reporter?.selfie ? `${pb.baseUrl}/api/files/_pb_users_auth_/${reporter.id}/${reporter.selfie}` : null;
             const duplicateInfo = duplicateMap[incident.id];
-            const priorityStyle = getPriorityStyles(incident);
             const isNew = !isIncidentReviewed(incident.id);
+            const targetDept = getResponderDepartmentForIncident(incident);
+            const responderOptions = getRespondersForDepartment(availableResponders, targetDept);
+            const selectedResponderId = selectedResponderIds[incident.id] || responderOptions[0]?.id || "";
+            const isFire = incident.type?.toLowerCase().includes("fire");
 
             return (
-              <div key={incident.id} onClick={() => reviewIncident(incident.id)} style={{ ...ui.card, border: duplicateInfo?.count >= 1 ? '2px solid #10b981' : ui.card.border, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                
-                {/* 🚨 Emergency Header */}
-                <div style={{ backgroundColor: incident.type === 'fire' ? '#ef4444' : '#f59e0b', padding: '16px 22px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: '900', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <AlertTriangle size={24} /> {incident.type.toUpperCase()}
-                  </span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '700', opacity: 0.9 }}>{new Date(incident.created).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-                    <div style={{ fontSize: '14px', fontWeight: '900' }}>{new Date(incident.created).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+              <div
+                key={incident.id}
+                onClick={() => reviewIncident(incident.id)}
+                style={{
+                  ...tStyle.card,
+                  borderColor: isFire ? "#ef4444" : "#f97316",
+                  boxShadow: isFire ? "0 0 15px rgba(239, 68, 68, 0.2)" : "0 0 15px rgba(249, 115, 22, 0.15)",
+                }}
+              >
+                {/* CARD TOP BANNER */}
+                <div style={tStyle.cardTopBar}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {getCategoryIcon(incident.type)}
+                    <span style={tStyle.incidentTitle}>{incident.type?.toUpperCase()}</span>
+                  </div>
+                  <div style={tStyle.timeText}>
+                    <Clock size={12} /> {formatWaitTime(incident.created)}
                   </div>
                 </div>
 
-                <div style={{ padding: '22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={styles.metaRow}>
-                    {isNew && <span style={styles.newBadge}>NEW</span>}
-                    <span style={{ ...styles.priorityBadge, color: priorityStyle.color, backgroundColor: priorityStyle.bg, borderColor: priorityStyle.border }}>
-                      {getPriorityLabel(incident)} Priority
-                    </span>
-                    <span style={styles.waitBadge}>{formatWaitTime(incident.created)} {clockTick >= 0 ? '' : ''}</span>
+                <div style={tStyle.cardContent}>
+                  {/* META TAGS */}
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    {isNew && <span style={tStyle.newBadge}>NEW</span>}
+                    <span style={tStyle.priorityTag}>{getPriorityLabel(incident)} Priority</span>
+                    {duplicateInfo && <span style={tStyle.verifiedTag}>{duplicateInfo.count}+ REPORTERS</span>}
                   </div>
-                  
-                  {/* 👤 Reporter Info with Selfie */}
-                  <div style={{ border: '1px solid #f1f5f9', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '24px', marginBottom: '25px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-                      <div style={{ width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', backgroundColor: '#eef2ff' }}>
-                        {selfieUrl ? (
-                          <img src={selfieUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Reporter" />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}><User size={30} /></div>
-                        )}
-                      </div>
-                      <div>
-                        <span style={{ display: 'block', fontWeight: '900', fontSize: '18px', color: '#1e293b' }}>{reporter?.first_name} {reporter?.last_name || 'Citizen'}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#10b981', fontSize: '12px', fontWeight: '700' }}>
-                          <ShieldCheck size={14} /> Verified Citizen
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px', color: '#475569', fontWeight: '600' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Phone size={16} color="#4f46e5" /> {reporter?.contact_number || 'N/A'}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={16} color="#4f46e5" /> Age: {reporter?.age || 'N/A'}</div>
+
+                  {/* REPORTER MINI CARD */}
+                  <div style={tStyle.reporterStrip}>
+                    <User size={16} color="#38bdf8" />
+                    <div>
+                      <span style={tStyle.reporterName}>{reporter?.first_name} {reporter?.last_name || "Citizen"}</span>
+                      <span style={tStyle.reporterSub}><Phone size={10} /> {reporter?.contact_number || "N/A"}</span>
                     </div>
                   </div>
 
-                  {/* 🟢 Reliability Badge */}
-                  {duplicateInfo && (
-                    <div style={{ backgroundColor: '#ecfdf5', border: '2px solid #10b981', color: '#065f46', padding: '16px 20px', borderRadius: '24px', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <div style={{ backgroundColor: '#10b981', color: 'white', width: '42px', height: '42px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '20px' }}>{duplicateInfo.count}</div>
-                        <div>
-                            <span style={{ fontWeight: '900', fontSize: '15px', display: 'block' }}>HIGH-RELIABILITY REPORT</span>
-                            <span style={{ fontSize: '13px', fontWeight: '600', opacity: 0.8 }}>Verified by {duplicateInfo.count} additional citizen(s).</span>
-                        </div>
+                  {/* MEDIA PREVIEWS */}
+                  <div style={tStyle.mediaRow}>
+                    <div style={tStyle.mediaTile} onClick={(e) => { e.stopPropagation(); if (imgUrl) setSelectedImage(imgUrl); }}>
+                      {imgUrl ? <img src={imgUrl} alt="Evidence" style={tStyle.tileImg} /> : <div style={tStyle.noMediaText}><ImageIcon size={16} /> NO PHOTO</div>}
                     </div>
-                  )}
-
-                  {/* 📸 Media Evidence Section (TOP) - Hover to Play implemented */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                    {/* Image Thumbnail */}
-                    <div 
-                      style={{ border: '1px solid #e2e8f0', borderRadius: '24px', overflow: 'hidden', height: '180px', position: 'relative', cursor: 'zoom-in', backgroundColor: '#f8fafc' }} 
-                      onClick={() => setSelectedImage(imgUrl)}
-                    >
-                      {imgUrl ? <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Evidence" /> : <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><ImageIcon size={28} /><span style={{ fontSize: '10px', fontWeight: 'bold' }}>NO PHOTO</span></div>}
-                    </div>
-
-                    {/* Video Thumbnail with Hover-to-Play and Click-to-Enlarge */}
-                    <div 
-                      style={{ border: '1px solid #e2e8f0', borderRadius: '24px', overflow: 'hidden', height: '180px', position: 'relative', cursor: 'zoom-in', backgroundColor: '#f8fafc' }} 
-                      onClick={() => setSelectedImage(videoUrl)}
-                    >
+                    <div style={tStyle.mediaTile} onClick={(e) => { e.stopPropagation(); if (videoUrl) setSelectedImage(videoUrl); }}>
                       {videoUrl ? (
-                        <div style={{ position: 'relative', height: '100%' }}>
+                        <div style={{ position: "relative", width: "100%", height: "100%" }}>
                           <video 
                             src={videoUrl} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            style={tStyle.tileImg} 
                             muted 
-                            loop
-                            onMouseEnter={(e) => e.target.play()} 
-                            onMouseLeave={(e) => { e.target.pause(); e.target.currentTime = 0; }} 
+                            loop 
+                            onMouseEnter={(e) => {
+                              const video = e.currentTarget;
+                              video.play().catch(() => {});
+                            }} 
+                            onMouseLeave={(e) => {
+                              const video = e.currentTarget;
+                              video.pause();
+                              video.currentTime = 0;
+                            }} 
                           />
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.2)', pointerEvents: 'none' }}>
-                            <PlayCircle size={48} color="white" style={{ opacity: 0.8 }} />
-                          </div>
-                          <div style={{ position: 'absolute', bottom: '10px', right: '10px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: 'bold' }}>HOVER TO PLAY</div>
+                          <PlayCircle size={24} color="white" style={tStyle.playOverlay} />
                         </div>
                       ) : (
-                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><Activity size={28} /><span style={{ fontSize: '10px', fontWeight: 'bold' }}>NO VIDEO</span></div>
+                        <div style={tStyle.noMediaText}><Activity size={16} /> NO VIDEO</div>
                       )}
                     </div>
                   </div>
 
-                  {/* 📍 Location Section (BELOW MEDIA) - Fixed Google Maps URL */}
-                  <div style={{ marginBottom: '25px' }}>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '800', color: '#1e40af', display: 'flex', alignItems: 'start', gap: '8px' }}>
-                      <MapPin size={18} color="#2563eb" /> {addresses[incident.id] || "Locating..."}
+                  {/* LOCATION & MINI MAP */}
+                  <div style={tStyle.locationBox}>
+                    <p style={tStyle.addressText}>
+                      <MapPin size={14} color="#38bdf8" /> {addresses[incident.id] || "GPS Telemetry Locating..."}
                     </p>
-                    <div onClick={() => setSelectedMap({ lat: incident.latitude, lng: incident.longitude, address: addresses[incident.id] })} style={{ width: '100%', height: '150px', borderRadius: '24px', overflow: 'hidden', border: '1px solid #dbeafe', position: 'relative', cursor: 'zoom-in' }}>
-                      <iframe 
-                        title="Map Preview" 
-                        width="100%" 
-                        height="100%" 
-                        frameBorder="0" 
-                        src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=16&output=embed`} 
-                        style={{ border: 0, pointerEvents: 'none' }}
-                      ></iframe>
-                      <div style={{ position: 'absolute', bottom: '10px', right: '10px', backgroundColor: 'white', padding: '6px 12px', borderRadius: '10px', fontSize: '10px', fontWeight: '900', color: '#2563eb', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>ENLARGE MAP</div>
-                    </div>
+                    {incident.latitude && (
+                      <div
+                        style={tStyle.miniMapContainer}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMap({ lat: incident.latitude, lng: incident.longitude, address: addresses[incident.id] });
+                        }}
+                      >
+                        <iframe
+                          title="Map Preview"
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=15&output=embed`}
+                          style={{ pointerEvents: "none" }}
+                        />
+                        <span style={tStyle.mapHoverTag}>ENLARGE MAP</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* 🎮 Action Buttons - Reject now deletes */}
-                  <div style={{ display: 'flex', gap: '15px', marginTop: 'auto' }}>
-                    <button onClick={() => updateStatus(incident, 'ongoing')} disabled={processingId === incident.id} style={{ flex: 2, padding: '18px', backgroundColor: '#0f172a', color: 'white', borderRadius: '20px', fontWeight: '900', cursor: 'pointer', border: 'none' }}>
-                      {processingId === incident.id ? 'DEPLOYING...' : 'DEPLOY HELP'}
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        if(await confirm("PERMANENTLY REJECT and DELETE this report?", {
-                          title: 'Reject Incident Report',
-                          primaryLabel: 'Reject & Delete',
-                          secondaryLabel: 'Cancel',
-                        })) {
-                           setProcessingId(incident.id);
-                           try {
-                             await pb.collection('incident_reports').delete(incident.id);
-                             reviewIncident(incident.id);
-                             window.dispatchEvent(new Event('incident-handled'));
-                             addAuditLog({
-                               action: 'Incident Rejected',
-                               target: incident.id,
-                               details: `${incident.type} report deleted`,
-                               actor: pb.authStore.model?.username || 'Admin',
-                             });
-                             setIncidents(prev => prev.filter(i => i.id !== incident.id));
-                             } catch { alert("Failed to delete report."); }
-                           setProcessingId(null);
-                        }
-                      }} 
-                      disabled={processingId === incident.id} 
-                      style={{ flex: 1, padding: '18px', backgroundColor: '#fd0909', color: 'white', borderRadius: '20px', fontWeight: '900', cursor: 'pointer', border: 'none' }}
+                  {/* RESPONDER DISPATCH SELECTOR */}
+                  <div style={tStyle.dispatchBox}>
+                    <div style={tStyle.dispatchLabel}>
+                      <span>ASSIGN RESPONDER ({targetDept})</span>
+                    </div>
+                    <select
+                      value={selectedResponderId}
+                      onChange={(e) => setSelectedResponderIds((prev) => ({ ...prev, [incident.id]: e.target.value }))}
+                      style={tStyle.dispatchSelect}
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      REJECT
+                      <option value="">{responderOptions.length === 0 ? "No Standby Responders" : "Select Dispatch Unit..."}</option>
+                      {responderOptions.map((r) => (
+                        <option key={r.id} value={r.id}>{getResponderOptionLabel(r)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* DISPATCH / REJECT ACTION BUTTONS */}
+                  <div style={tStyle.actionRow}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); updateStatus(incident, "ongoing", selectedResponderId); }}
+                      disabled={processingId === incident.id || responderOptions.length === 0}
+                      style={tStyle.deployBtn}
+                    >
+                      <Send size={14} /> {processingId === incident.id ? "DEPLOYING..." : "DISPATCH UNIT"}
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (await confirm("Permanently reject this emergency report?", { title: "Reject Report" })) {
+                          setProcessingId(incident.id);
+                          try {
+                            await pb.collection("incident_reports").delete(incident.id);
+                            setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
+                          } catch { alert("Delete failed."); }
+                          setProcessingId(null);
+                        }
+                      }}
+                      style={tStyle.rejectBtn}
+                    >
+                      <Trash2 size={14} /> REJECT
                     </button>
                   </div>
                 </div>
@@ -395,49 +447,35 @@ export default function PendingIncidents() {
         </div>
       </main>
 
-      {/* 🗺️ MODAL: FULL SCREEN MAP */}
+      {/* MODAL: MAP FULLSCREEN */}
       {selectedMap && (
-        <div onClick={() => setSelectedMap(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.95)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px', backdropFilter: 'blur(12px)', cursor: 'zoom-out' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '90vw', maxWidth: '1100px', backgroundColor: 'white', borderRadius: '40px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-            <div style={{ padding: '25px 40px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div><h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900' }}><MapIcon size={24} color="#2563eb" /> INTERACTIVE LOCATION</h2><p style={{ margin: '4px 0 0 0', color: '#64748b' }}>{selectedMap.address}</p></div>
-              <button onClick={() => setSelectedMap(null)} style={{ backgroundColor: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '15px', cursor: 'pointer' }}><X size={24} color="#64748b" /></button>
+        <div style={tStyle.modalBackdrop} onClick={() => setSelectedMap(null)}>
+          <div style={tStyle.modalWindow} onClick={(e) => e.stopPropagation()}>
+            <div style={tStyle.modalHead}>
+              <h3><MapIcon size={18} color="#38bdf8" /> {selectedMap.address}</h3>
+              <button onClick={() => setSelectedMap(null)} style={tStyle.closeBtn}><X size={18} /></button>
             </div>
-            <div style={{ width: '100%', height: '65vh' }}>
-              <iframe 
-                title="Full Map" 
-                width="100%" 
-                height="100%" 
-                frameBorder="0" 
-                src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`} 
-                style={{ border: 0 }} 
-                allowFullScreen
-              ></iframe>
-            </div>
+            <iframe
+              title="Full Map"
+              width="100%"
+              height="500px"
+              frameBorder="0"
+              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+            />
           </div>
         </div>
       )}
 
-      {/* 🎬 MODAL: ENLARGE MEDIA (PHOTO/VIDEO) */}
+      {/* MODAL: MEDIA ENLARGE */}
       {selectedImage && (
-        <div onClick={() => setSelectedImage(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.98)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px', backdropFilter: 'blur(10px)', cursor: 'zoom-out' }}>
-          <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {selectedImage.match(/\.(mp4|mov|avi|wmv)/i) || selectedImage.includes('video') ? (
-              <video 
-                src={selectedImage} 
-                controls 
-                autoPlay 
-                style={{ maxWidth: '100%', maxHeight: '100vh', borderRadius: '12px' }} 
-                onClick={(e) => e.stopPropagation()} 
-              />
+        <div style={tStyle.modalBackdrop} onClick={() => setSelectedImage(null)}>
+          <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }}>
+            {selectedImage.match(/\.(mp4|mov|avi)/i) ? (
+              <video src={selectedImage} controls autoPlay style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "8px" }} />
             ) : (
-              <img 
-                src={selectedImage} 
-                style={{ maxWidth: '95%', maxHeight: '95vh', borderRadius: '12px', objectFit: 'contain' }} 
-                alt="Evidence" 
-              />
+              <img src={selectedImage} alt="Media Preview" style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "8px" }} />
             )}
-            <button onClick={() => setSelectedImage(null)} style={{ position: 'absolute', top: '20px', right: '20px', backgroundColor: '#ef4444', color: 'white', border: 'none', width: '60px', height: '60px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={32} strokeWidth={3} /></button>
+            <button onClick={() => setSelectedImage(null)} style={tStyle.closeFloatBtn}><X size={20} /></button>
           </div>
         </div>
       )}
@@ -445,57 +483,57 @@ export default function PendingIncidents() {
   );
 }
 
-const styles = {
-  filterBar: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '12px',
-    marginBottom: '20px',
-  },
-  filterInput: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    backgroundColor: 'white',
-    color: '#1f2937',
-    fontWeight: 700,
-  },
-  metaRow: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '8px',
-    marginBottom: '16px',
-  },
-  newBadge: {
-    padding: '5px 9px',
-    borderRadius: '8px',
-    backgroundColor: '#d32f2f',
-    color: 'white',
-    fontSize: '11px',
-    fontWeight: 900,
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '90px 20px',
-    color: '#64748b',
-    fontSize: '16px',
-    fontWeight: 700,
-  },
-  priorityBadge: {
-    padding: '5px 9px',
-    borderRadius: '8px',
-    border: '1px solid',
-    fontSize: '11px',
-    fontWeight: 900,
-  },
-  waitBadge: {
-    padding: '5px 9px',
-    borderRadius: '8px',
-    backgroundColor: '#f1f5f9',
-    color: '#334155',
-    fontSize: '11px',
-    fontWeight: 900,
-  },
+const tStyle = {
+  shell: { display: "flex", minHeight: "100vh", backgroundColor: "#080c14", color: "#f8fafc", fontFamily: "Inter, system-ui, sans-serif" },
+  main: { marginLeft: "260px", flex: 1, padding: "28px", backgroundColor: "#080c14" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },
+  pageTitle: { fontSize: "24px", fontWeight: 800, margin: 0, color: "#f8fafc", letterSpacing: "-0.5px" },
+  subtitle: { color: "#64748b", fontSize: "12px", margin: "4px 0 0 0" },
+  badgeTag: { backgroundColor: "#1e293b", color: "#38bdf8", padding: "3px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 800, border: "1px solid #0284c7" },
+  refreshBtn: { display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#0f172a", border: "1px solid #334155", color: "#f8fafc", padding: "8px 14px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, cursor: "pointer" },
+
+  filterBar: { display: "grid", gridTemplateColumns: "130px repeat(auto-fit, minmax(160px, 1fr))", gap: "10px", backgroundColor: "#0f172a", padding: "10px 14px", borderRadius: "8px", border: "1px solid #1e293b", marginBottom: "24px" },
+  filterLabel: { display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 800, color: "#94a3b8" },
+  filterSelect: { backgroundColor: "#1e293b", border: "1px solid #334155", color: "#f8fafc", padding: "6px 10px", borderRadius: "6px", fontSize: "12px" },
+  filterInput: { backgroundColor: "#1e293b", border: "1px solid #334155", color: "#f8fafc", padding: "6px 10px", borderRadius: "6px", fontSize: "12px" },
+
+  cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "20px" },
+  card: { backgroundColor: "#0f172a", borderRadius: "10px", border: "1px solid #1e293b", overflow: "hidden", display: "flex", flexDirection: "column" },
+  cardTopBar: { display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#1e293b", padding: "10px 14px", borderBottom: "1px solid #334155" },
+  incidentTitle: { fontSize: "14px", fontWeight: 800, color: "#f8fafc" },
+  timeText: { display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: "#94a3b8", fontWeight: 700 },
+
+  cardContent: { padding: "14px", display: "flex", flexDirection: "column", gap: "12px", flex: 1 },
+  newBadge: { backgroundColor: "#dc2626", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: 900 },
+  priorityTag: { backgroundColor: "#334155", color: "#f8fafc", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700 },
+  verifiedTag: { backgroundColor: "#065f46", color: "#34d399", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 800 },
+
+  reporterStrip: { display: "flex", alignItems: "center", gap: "10px", backgroundColor: "#1e293b", padding: "8px 12px", borderRadius: "6px", border: "1px solid #334155" },
+  reporterName: { display: "block", fontSize: "13px", fontWeight: 700, color: "#f8fafc" },
+  reporterSub: { fontSize: "11px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "4px" },
+
+  mediaRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" },
+  mediaTile: { height: "90px", backgroundColor: "#1e293b", borderRadius: "6px", border: "1px solid #334155", overflow: "hidden", cursor: "pointer", position: "relative" },
+  tileImg: { width: "100%", height: "100%", objectFit: "cover" },
+  noMediaText: { height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#64748b", fontSize: "10px", fontWeight: 700, gap: "4px" },
+  playOverlay: { position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", opacity: 0.8 },
+
+  locationBox: { display: "flex", flexDirection: "column", gap: "6px" },
+  addressText: { fontSize: "12px", color: "#cbd5e1", margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" },
+  miniMapContainer: { height: "80px", borderRadius: "6px", overflow: "hidden", position: "relative", cursor: "pointer", border: "1px solid #334155" },
+  mapHoverTag: { position: "absolute", bottom: "4px", right: "4px", backgroundColor: "rgba(8, 12, 20, 0.85)", color: "#38bdf8", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontWeight: 800 },
+
+  dispatchBox: { backgroundColor: "#1e1b4b", border: "1px solid #4338ca", padding: "8px 10px", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "4px" },
+  dispatchLabel: { fontSize: "10px", color: "#a5b4fc", fontWeight: 800 },
+  dispatchSelect: { backgroundColor: "#0f172a", border: "1px solid #4338ca", color: "#f8fafc", padding: "6px", borderRadius: "4px", fontSize: "12px", outline: "none" },
+
+  actionRow: { display: "flex", gap: "8px", marginTop: "auto" },
+  deployBtn: { flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "8px", backgroundColor: "#38bdf8", color: "#080c14", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 800, cursor: "pointer" },
+  rejectBtn: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "8px", backgroundColor: "#ef4444", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: 800, cursor: "pointer" },
+
+  modalBackdrop: { position: "fixed", inset: 0, backgroundColor: "rgba(8, 12, 20, 0.9)", zIndex: 9999, display: "flex", justifyContent: "center", alignItems: "center", padding: "20px" },
+  modalWindow: { width: "100%", maxWidth: "800px", backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: "8px", overflow: "hidden" },
+  modalHead: { padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #334155" },
+  closeBtn: { backgroundColor: "transparent", border: "none", color: "#f8fafc", cursor: "pointer" },
+  closeFloatBtn: { position: "absolute", top: "-10px", right: "-10px", backgroundColor: "#ef4444", color: "#fff", border: "none", width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
 };

@@ -1,8 +1,10 @@
-const REVIEWED_INCIDENTS_KEY = 'lagonglong-reviewed-incidents';
+const REVIEWED_INCIDENTS_KEY = "lagonglong-reviewed-incidents";
 
 export function getReviewedIncidentIds() {
   try {
-    return new Set(JSON.parse(localStorage.getItem(REVIEWED_INCIDENTS_KEY)) || []);
+    return new Set(
+      JSON.parse(localStorage.getItem(REVIEWED_INCIDENTS_KEY)) || [],
+    );
   } catch {
     return new Set();
   }
@@ -18,5 +20,7 @@ export function markIncidentReviewed(id) {
   const reviewed = getReviewedIncidentIds();
   reviewed.add(id);
   localStorage.setItem(REVIEWED_INCIDENTS_KEY, JSON.stringify([...reviewed]));
-  window.dispatchEvent(new CustomEvent('lagonglong-incident-reviewed', { detail: id }));
+  window.dispatchEvent(
+    new CustomEvent("lagonglong-incident-reviewed", { detail: id }),
+  );
 }
