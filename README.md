@@ -1,32 +1,35 @@
 # i-Report Admin System
 
-An enterprise-grade administrative dashboard and API backend for the **i-Report** incident management platform.
+administrative dashboard, security proxy gateway, and telemetry backend for the **i-Report** incident management platform.
 
 ## System Architecture
-- **Backend:** Node.js / Express (server.js)
-- **Database/Auth:** PocketBase (pocketbase.exe)
-- **Frontend Dashboard:** React + Vite (/admin-dashboard)
-- **Security & Testing:** Python simulation scripts (simulate_attack.py)
+
+- **Primary Backend & Database:** PocketBase (`pocketbase.exe` - Port 8090)
+  - Core BaaS managing SQLite database collections (`incidents`, `users`, `admins`, `sos_reports`) and real-time WebSocket streams.
+- **Security Proxy & API Gateway:** Node.js (`server.js` - Port 5001)
+  - Handles unified admin authentication, secure user verification, and strict HTTP security header enforcement (`X-Frame-Options`, `CSP`, `nosniff`).
+- **Email Telemetry Microservice:** Node.js (`email_server/server.js` - Port 5002)
+  - Isolated worker for asynchronous notification dispatches without blocking primary database operations.
+- **Frontend Dashboard:** React + Vite (`/admin-dashboard` - Port 5173)
+  - Single Page Application for incident triage, live tracking, and user administration.
+- **Security & Testing:** Python scripts (`/scripts/simulate_attack.py`)
+  - Automated penetration testing and vulnerability simulation suite.
 
 ## Quick Start
 
 ### Prerequisites
-- Node.js >= 18.x
-- PocketBase Server
+- **Node.js:** >= 18.x
+- **Database Engine:** PocketBase (`pocketbase.exe` running on Port 8090)
 
-### Local Setup
-1. Clone repository:
-   git clone [https://github.com/anthony12331/i-reportAdmin.git](https://github.com/anthony12331/i-reportAdmin.git)
-   cd i-reportAdmin
+### Local Setup & Installation
 
-2. Configure Environment:
-   Copy .env.example to .env and fill in your local configurations:
-   cp .env.example .env
+```bash
+# 1. Install root dependencies
+npm install
 
-3. Install Dependencies:
-   npm install
-   cd admin-dashboard && npm install
+# 2. Install frontend dependencies
+cd admin-dashboard && npm install
 
-4. Run Services:
-   - Start PocketBase: ./pocketbase.exe serve
-   - Start Backend: node server.js
+# 3. Install email microservice dependencies
+cd ../email_server && npm install
+cd ..
