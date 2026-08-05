@@ -1,23 +1,32 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { pb } from "./pocketbase";
-import Login from "./Login";
-import Register from "./Register";
-import Dashboard from "./Dashboard";
-import OngoingIncidents from "./ongoing-incidents";
-import ResolvedIncidents from "./resolved-incidents";
-import PendingUserRegistration from "./pending-users";
-import PendingSos from "./PendingSos";
-import PendingIncidents from "./pending-incidents";
-import VerifiedUsers from "./verified-users";
-import { MessageBoxProvider } from "./MessageBox";
-import { addAuditLog } from "./auditLog";
-import { getPriorityLabel } from "./incidentPriority";
-import { getSystemSettings, subscribeToSettings } from "./systemSettings";
-import ProtectedRoute from "./ProtectedRoute";
-import RBACManager from "./RBACManager";
-import Report from "./Report";
-import AuditLogs from "./Audit";
+
+// Config
+import { pb } from "./config/pocketbase";
+
+// Pages
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import OngoingIncidents from "./pages/OngoingIncidents";
+import ResolvedIncidents from "./pages/ResolvedIncidents";
+import PendingUserRegistration from "./pages/PendingUsers";
+import PendingSos from "./pages/PendingSos";
+import PendingIncidents from "./pages/PendingIncidents";
+import VerifiedUsers from "./pages/VerifiedUsers";
+import RBACManager from "./pages/RBACManager";
+import Report from "./pages/Report";
+import AuditLogs from "./pages/Audit";
+
+// Components
+import { MessageBoxProvider } from "./components/MessageBox";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Utils
+import { addAuditLog } from "./utils/auditLog";
+import { getPriorityLabel } from "./utils/incidentPriority";
+import { getSystemSettings, subscribeToSettings } from "./utils/systemSettings";
+
 const alertedIncidentIds = new Set();
 const alertedSosIds = new Set();
 const AUDIO_ARMED_KEY = "lagonglong-alarm-armed";
@@ -65,19 +74,19 @@ function App() {
     return `alarm-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   };
 
-  // 1. Wrapped Helper Functions
+  // Helper Functions
   const isOpenIncident = useCallback(
     (record) => ["new", "pending"].includes(record?.status),
-    [],
+    []
   );
   const isOpenSos = useCallback(
     (record) =>
       record?.status !== "resolved" && record?.dispatch_status !== "assigned",
-    [],
+    []
   );
   const getAlertKey = useCallback(
     (collectionName, recordId) => `${collectionName}:${recordId}`,
-    [],
+    []
   );
 
   const isAuthorizedAdmin = useCallback(() => {
@@ -161,9 +170,9 @@ function App() {
     settings.soundEnabled,
     alarmPulse,
     playAlarmSound,
-  ]); // Added playAlarmSound
+  ]);
 
-  // 2. Wrapped Main Alarm Handlers
+  // Alarm Handlers
   const syncSignalStateFromRecord = useCallback(
     (collectionName, record, action) => {
       if (!record?.id || !isAuthorizedAdmin()) return false;
@@ -218,7 +227,7 @@ function App() {
 
       return shouldPulse;
     },
-    [isAuthorizedAdmin, isOpenIncident, isOpenSos],
+    [isAuthorizedAdmin, isOpenIncident, isOpenSos]
   );
 
   const reconcileAlarmState = useCallback(async () => {
@@ -249,11 +258,11 @@ function App() {
       const previousIncidentIds = openIncidentIdsRef.current;
       const previousSosIds = openSosIdsRef.current;
       const nextIncidentIds = new Set(
-        openIncidentRecords.map((record) => record.id),
+        openIncidentRecords.map((record) => record.id)
       );
       const nextSosIds = new Set(openSosRecords.map((record) => record.id));
       const hasNewIncident = [...nextIncidentIds].some(
-        (id) => !previousIncidentIds.has(id),
+        (id) => !previousIncidentIds.has(id)
       );
       const hasNewSos = [...nextSosIds].some((id) => !previousSosIds.has(id));
 
@@ -282,7 +291,7 @@ function App() {
     }
   }, [isAuthorizedAdmin]);
 
-  // 3. Fully Satisfied useEffects
+  // Subscriptions & Listeners
   useEffect(() => {
     let incidentUnsubscribe;
     let sosUnsubscribe;
@@ -294,7 +303,7 @@ function App() {
       const shouldAlert = syncSignalStateFromRecord(
         "incident_reports",
         record,
-        action,
+        action
       );
       if (!shouldAlert) return;
 
@@ -317,11 +326,11 @@ function App() {
                 message: "New incident report requires review.",
               },
               ...prev.filter((alert) => alert.alertKey !== alertKey),
-            ].slice(0, 3),
+            ].slice(0, 3)
           );
           setTimeout(() => {
             setIncidentAlerts((prev) =>
-              prev.filter((alert) => alert.alertKey !== alertKey),
+              prev.filter((alert) => alert.alertKey !== alertKey)
             );
           }, 9000);
         }
@@ -344,7 +353,7 @@ function App() {
       const shouldAlert = syncSignalStateFromRecord(
         "sos_tracking",
         record,
-        action,
+        action
       );
       if (!shouldAlert) return;
 
@@ -367,11 +376,11 @@ function App() {
                 message: "New SOS distress call requires response.",
               },
               ...prev.filter((alert) => alert.alertKey !== alertKey),
-            ].slice(0, 3),
+            ].slice(0, 3)
           );
           setTimeout(() => {
             setIncidentAlerts((prev) =>
-              prev.filter((alert) => alert.alertKey !== alertKey),
+              prev.filter((alert) => alert.alertKey !== alertKey)
             );
           }, 9000);
         }
@@ -410,7 +419,7 @@ function App() {
       } catch (subError) {
         console.error(
           "Real-time telemetry streaming failed to mount:",
-          subError,
+          subError
         );
       }
     };
@@ -428,7 +437,7 @@ function App() {
     reconcileAlarmState,
     syncSignalStateFromRecord,
     getAlertKey,
-  ]); // Added ALL missing dependencies
+  ]);
 
   useEffect(() => {
     const handleIncidentHandled = () => reconcileAlarmState();
@@ -441,7 +450,7 @@ function App() {
       window.removeEventListener("incident-handled", handleIncidentHandled);
       window.removeEventListener("sos-handled", handleSosHandled);
     };
-  }, [reconcileAlarmState]); // Added missing dependency
+  }, [reconcileAlarmState]);
 
   useEffect(() => {
     const refreshSessionData = async () => {
@@ -452,7 +461,7 @@ function App() {
             .collection(pb.authStore.model.collectionName)
             .authRefresh({ requestKey: null });
           console.log(
-            "Security token successfully updated. New permissions loaded.",
+            "Security token successfully updated. New permissions loaded."
           );
         } catch (err) {
           console.error("Failed to silently refresh auth token:", err);
@@ -472,7 +481,7 @@ function App() {
     }, 5000);
 
     return () => window.clearInterval(pollingTimer);
-  }, [reconcileAlarmState]); // Added missing dependency
+  }, [reconcileAlarmState]);
 
   const enableAudio = useCallback(() => {
     if (!audioEnabled) {
@@ -490,7 +499,7 @@ function App() {
           .play()
           .then(() => {
             alertSound.pause();
-
+           
             alertSound.currentTime = 0;
           })
           .catch((e) => console.log("Audio unlock failed:", e));
@@ -620,7 +629,6 @@ function App() {
                   <Report />
                 </ProtectedRoute>
               }
-              
             />
             <Route
               path="/audit-logs"

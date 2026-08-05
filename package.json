@@ -1,4 +1,7 @@
 {
+  "name": "admin_system",
+  "version": "1.0.0",
+  "main": "server.js",
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
     "chart.js": "^4.5.1",
@@ -18,6 +21,13 @@
     "react-leaflet": "^4.2.1"
   },
   "scripts": {
-    "verify-server": "node server.js"
+    "start": "node server.js",
+    "verify-server": "node server.js",
+    "dev": "concurrently --names \"ADMIN,EMAIL,DASHBOARD\" -c \"bgBlue.bold,bgMagenta.bold,bgCyan.bold\" \"node server.js\" \"node email_server/server.js\" \"npm run dev --prefix admin-dashboard\"",
+    "build": "npm run build --prefix admin-dashboard",
+    "preview": "npm run preview --prefix admin-dashboard"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
   }
 }

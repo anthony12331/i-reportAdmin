@@ -1,0 +1,56 @@
+// admin-dashboard/src/loginStyles.js
+
+export const loginStyles = {
+  container: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f3f4f6",
+    padding: "20px",
+  },
+  card: {
+    background: "white",
+    padding: "40px",
+    borderRadius: "8px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.06)",
+    width: "100%",
+    maxWidth: "450px",
+  },
+  brandBox: { textAlign: "center", marginBottom: "20px" },
+  label: {
+    fontSize: "11px",
+    color: "#9ca3af",
+    fontWeight: "bold",
+    letterSpacing: "0.5px",
+    marginBottom: "8px",
+    display: "block",
+  },
+  input: {
+    width: "100%",
+    padding: "12px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "6px",
+    fontSize: "14px",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  button: {
+    width: "100%",
+    padding: "12px",
+    background: "#1a1c23",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "bold",
+    marginTop: "10px",
+  },
+  footer: {
+    textAlign: "center",
+    marginTop: "25px",
+    borderTop: "1px solid #f3f4f6",
+    paddingTop: "20px",
+  },
+  link: { color: "#d32f2f", textDecoration: "none", fontWeight: "bold" },
+};

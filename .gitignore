@@ -18,3 +18,6 @@ audit.text
 # Operating System files
 .DS_Store
 Thumbs.db
+email_server/.env
+
+email_server/.env

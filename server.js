@@ -6,7 +6,7 @@ const POCKETBASE_URL = process.env.POCKETBASE_URL || "http://127.0.0.1:8090";
 const PB_ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL;
 const PB_ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD;
 
-// Change this to  exact frontend domain for production security
+// Change this to exact frontend domain for production security
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
 let adminCache = { token: "", expires: 0 };
@@ -28,6 +28,24 @@ const SECURITY_HEADERS = {
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, SECURITY_HEADERS);
   res.end(JSON.stringify(payload));
+}
+
+// Helper to safely parse incoming JSON body from POST requests
+function parseJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+    req.on("end", () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch (err) {
+        reject(new Error("Invalid JSON payload."));
+      }
+    });
+    req.on("error", (err) => reject(err));
+  });
 }
 
 async function getAdminToken() {
@@ -87,6 +105,52 @@ async function verifyUserRecord(userId) {
   return response.json();
 }
 
+// Server-side authentication routine (checks super_admins first, then admins)
+async function handleAdminLogin(email, password) {
+  const cleanEmail = email.trim();
+
+  // 1. Check super_admins collection
+  try {
+    const superAdminRes = await fetch(
+      `${POCKETBASE_URL}/api/collections/super_admins/auth-with-password`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identity: cleanEmail, password }),
+      },
+    );
+
+    if (superAdminRes.ok) {
+      const data = await superAdminRes.json();
+      return { token: data.token, record: data.record, role: "super_admin" };
+    }
+  } catch (e) {
+    // Silent catch on server - prevents 400 logs in browser console
+  }
+
+  // 2. Check regular admins collection
+  try {
+    const adminRes = await fetch(
+      `${POCKETBASE_URL}/api/collections/admins/auth-with-password`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identity: cleanEmail, password }),
+      },
+    );
+
+    if (adminRes.ok) {
+      const data = await adminRes.json();
+      return { token: data.token, record: data.record, role: "admin" };
+    }
+  } catch (e) {
+    // Silent catch on server
+  }
+
+  // Both auth attempts failed
+  return null;
+}
+
 const server = http.createServer(async (req, res) => {
   // Defensive check against HTTP parameter pollution / unexpected payloads
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
@@ -104,6 +168,36 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && url.pathname === "/health") {
     return sendJson(res, 200, { ok: true });
+  }
+
+  // Unified Admin Login Endpoint
+  if (req.method === "POST" && url.pathname === "/api/admin-login") {
+    try {
+      const { email, password } = await parseJsonBody(req);
+
+      if (!email || !password) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: "Email and password are required.",
+        });
+      }
+
+      const authResult = await handleAdminLogin(email, password);
+
+      if (!authResult) {
+        return sendJson(res, 401, {
+          ok: false,
+          error: "Invalid email or password.",
+        });
+      }
+
+      return sendJson(res, 200, { ok: true, ...authResult });
+    } catch (err) {
+      return sendJson(res, 400, {
+        ok: false,
+        error: "Invalid request payload.",
+      });
+    }
   }
 
   // Robust path verification using a Regular Expression instead of raw splitting
