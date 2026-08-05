@@ -5,7 +5,9 @@ node_modules/
 # Environment variables / Secrets
 .env
 .env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
 
 # Build outputs
 dist/
@@ -13,11 +15,9 @@ build/
 
 # Logs & Audit dumps
 *.log
+audit.txt
 audit.text
 
 # Operating System files
 .DS_Store
 Thumbs.db
-email_server/.env
-
-email_server/.env
