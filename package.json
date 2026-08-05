@@ -25,7 +25,7 @@
     "verify-server": "node server.js",
     "dev": "concurrently --names \"ADMIN,EMAIL,DASHBOARD\" -c \"bgBlue.bold,bgMagenta.bold,bgCyan.bold\" \"node server.js\" \"node email_server/server.js\" \"npm run dev --prefix admin-dashboard\"",
     "build": "npm run build --prefix admin-dashboard",
-    "preview": "npm run preview --prefix admin-dashboard"
+    "preview": "concurrently --names \"ADMIN,EMAIL,PREVIEW\" -c \"bgBlue.bold,bgMagenta.bold,bgGreen.bold\" \"node server.js\" \"node email_server/server.js\" \"npm run preview --prefix admin-dashboard\""
   },
   "devDependencies": {
     "concurrently": "^10.0.4"

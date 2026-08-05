@@ -42,11 +42,11 @@ export default function Login() {
       // 3. Save auth token and account record to PocketBase client session
       pb.authStore.save(data.token, data.record);
 
-      console.log(`✅ Logged in successfully as ${data.role}`);
+      console.log(` Logged in successfully as ${data.role}`);
       navigate("/dashboard");
     } catch (err) {
       console.warn("Security Block:", err.message);
-      alert("❌ Access Denied: Invalid Email or Password.");
+      alert(" Access Denied: Invalid Email or Password.");
     } finally {
       setLoading(false);
     }
