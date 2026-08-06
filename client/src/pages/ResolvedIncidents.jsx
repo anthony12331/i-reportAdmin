@@ -73,7 +73,8 @@ export default function ResolvedIncidents() {
   }, [currentPage, perPage, searchTerm, typeFilter, addresses]);
 
   useEffect(() => {
-    fetchIncidents();
+    const load = async () => { await fetchIncidents(); };
+    load();
   }, [fetchIncidents]);
 
   const formatDate = (dateString) =>

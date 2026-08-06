@@ -297,7 +297,7 @@ function App() {
     let sosUnsubscribe;
 
     isMountedRef.current = true;
-    reconcileAlarmState();
+    Promise.resolve().then(() => { reconcileAlarmState(); });
 
     const handleIncidentEvent = (record, action) => {
       const shouldAlert = syncSignalStateFromRecord(
@@ -440,8 +440,8 @@ function App() {
   ]);
 
   useEffect(() => {
-    const handleIncidentHandled = () => reconcileAlarmState();
-    const handleSosHandled = () => reconcileAlarmState();
+    const handleIncidentHandled = () => Promise.resolve().then(() => { reconcileAlarmState(); });
+    const handleSosHandled = () => Promise.resolve().then(() => { reconcileAlarmState(); });
 
     window.addEventListener("incident-handled", handleIncidentHandled);
     window.addEventListener("sos-handled", handleSosHandled);
@@ -477,7 +477,7 @@ function App() {
 
   useEffect(() => {
     const pollingTimer = window.setInterval(() => {
-      reconcileAlarmState();
+      Promise.resolve().then(() => { reconcileAlarmState(); });
     }, 5000);
 
     return () => window.clearInterval(pollingTimer);

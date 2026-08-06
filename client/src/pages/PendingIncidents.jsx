@@ -183,7 +183,8 @@ export default function PendingIncidents() {
   }, [fetchIncidents, isOpenIncident, resolveAddresses, triggerEmergencyAlert]);
 
   useEffect(() => {
-    fetchAvailableResponders();
+    const load = async () => { await fetchAvailableResponders(); };
+    load();
     let unsubscribe;
     const startResponderSubscription = async () => {
       unsubscribe = await pb.collection("responder_accounts").subscribe("*", () => {
@@ -197,7 +198,8 @@ export default function PendingIncidents() {
   const filteredIncidents = incidents.filter((incident) => {
     const reporter = incident.expand?.users;
     const barangay = reporter?.baranggay || "";
-    const ageMinutes = Math.floor((Date.now() - new Date(incident.created).getTime()) / 60000);
+    
+    const ageMinutes = Math.floor((new Date().getTime() - new Date(incident.created).getTime()) / 60000);
 
     if (filters.type && incident.type?.toLowerCase() !== filters.type) return false;
     if (filters.barangay && !barangay.toLowerCase().includes(filters.barangay.toLowerCase())) return false;

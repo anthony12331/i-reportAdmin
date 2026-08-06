@@ -90,7 +90,8 @@ export default function VerifiedUsers() {
   );
 
   useEffect(() => {
-    fetchVerifiedUsers();
+    const load = async () => { await fetchVerifiedUsers(); };
+    load();
 
     let unsubscribe;
     const setupSubscription = async () => {

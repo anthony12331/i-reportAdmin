@@ -38,7 +38,8 @@ export default function RBACManager() {
   }, []);
 
   useEffect(() => {
-    fetchAdmins();
+    const load = async () => { await fetchAdmins(); };
+    load();
   }, [fetchAdmins]);
 
   const handleTogglePermission = (moduleId) => {
