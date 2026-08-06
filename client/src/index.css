@@ -82,3 +82,13 @@ textarea {
     transform: rotate(360deg);
   }
 }
+
+/* Fix CLS layout shifting for dynamic cards & maps */
+.address-box, [style*="addressText"] {
+  min-height: 24px;
+  display: inline-block;
+}
+.media-tile, img, iframe {
+  aspect-ratio: 16 / 9;
+}
+
