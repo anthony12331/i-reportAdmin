@@ -137,7 +137,7 @@ export const auditStyles = {
   emptyStateText: {
     textAlign: "center",
     padding: "60px 20px",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "14px",
     fontWeight: "700",
   },
@@ -178,7 +178,7 @@ export const auditStyles = {
   },
   timeText: {
     fontSize: "11px",
-    color: "#64748b",
+    color: "#94a3b8",
     marginTop: "2px",
   },
   tdAdmin: {

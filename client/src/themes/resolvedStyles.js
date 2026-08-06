@@ -111,7 +111,7 @@ export const resolvedStyles = {
     padding: "16px 20px",
     fontSize: "11px",
     fontWeight: "800",
-    color: "#64748b",
+    color: "#94a3b8",
     letterSpacing: "0.5px",
     textTransform: "uppercase",
   },
@@ -122,7 +122,7 @@ export const resolvedStyles = {
   mutedText: {
     fontSize: "11px",
     fontWeight: "700",
-    color: "#64748b",
+    color: "#94a3b8",
     marginTop: "2px",
   },
 };

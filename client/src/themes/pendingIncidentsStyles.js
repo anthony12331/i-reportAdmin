@@ -28,7 +28,7 @@ export const pendingIncidentsStyles = {
     letterSpacing: "-0.5px",
   },
   subtitle: {
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "12px",
     margin: "4px 0 0 0",
   },
@@ -213,7 +213,7 @@ export const pendingIncidentsStyles = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "10px",
     fontWeight: 700,
     gap: "4px",

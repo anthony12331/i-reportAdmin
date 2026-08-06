@@ -82,7 +82,7 @@ export const dashboardStyles = {
     gap: "8px",
     backgroundColor: "#1e293b",
     border: "1px solid #334155",
-    color: "#64748b",
+    color: "#94a3b8",
     padding: "6px 14px",
     borderRadius: "20px",
     fontSize: "12px",
@@ -164,7 +164,7 @@ export const dashboardStyles = {
     cursor: "pointer",
   },
   emptyState: {
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "13px",
     textAlign: "center",
     margin: "20px 0",
@@ -181,7 +181,7 @@ export const dashboardStyles = {
     padding: "10px 12px",
     fontSize: "11px",
     fontWeight: "800",
-    color: "#64748b",
+    color: "#94a3b8",
     letterSpacing: "0.5px",
   },
   thRight: {
@@ -189,7 +189,7 @@ export const dashboardStyles = {
     padding: "10px 12px",
     fontSize: "11px",
     fontWeight: "800",
-    color: "#64748b",
+    color: "#94a3b8",
     letterSpacing: "0.5px",
   },
   tr: {
@@ -332,7 +332,7 @@ export const dashboardStyles = {
     fontWeight: "600",
   },
   auditTime: {
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "10px",
     fontWeight: "700",
   },

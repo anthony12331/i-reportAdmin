@@ -115,7 +115,7 @@ export const ongoingStyles = {
   filterLabel: {
     fontSize: "12px",
     fontWeight: "800",
-    color: "#64748b",
+    color: "#94a3b8",
     display: "flex",
     alignItems: "center",
     gap: "6px",

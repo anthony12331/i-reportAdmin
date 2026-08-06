@@ -106,7 +106,7 @@ export const rbacStyles = {
   emptyListText: {
     textAlign: "center",
     padding: "20px",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "13px",
   },
   adminListContainer: {
@@ -145,7 +145,7 @@ export const rbacStyles = {
   },
   positionText: {
     fontSize: "11px",
-    color: "#64748b",
+    color: "#94a3b8",
     fontWeight: "600",
   },
   moduleCountBadge: (isSelected) => ({
