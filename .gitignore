@@ -21,3 +21,8 @@ audit.text
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# Testing & Attack Simulation Scripts
+scripts/
+# Testing & Attack Scripts
+scripts/

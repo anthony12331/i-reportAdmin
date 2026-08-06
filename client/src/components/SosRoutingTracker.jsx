@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 // Baseline coordinates: [lng, lat] (Command Center)
@@ -259,7 +259,7 @@ export default function SosRoutingTracker({ targetLat, targetLng }) {
       `}</style>
 
       <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
-      <div style={styles.badge}>🔴 LIVE SOS TRACKING</div>
+      <div style={styles.badge}>ðŸ”´ LIVE SOS TRACKING</div>
     </div>
   );
 }

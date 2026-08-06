@@ -1,33 +1,16 @@
 {
-  "name": "admin_system",
+  "name": "ireport-admin-system",
   "version": "1.0.0",
-  "main": "server.js",
-  "dependencies": {
-    "@react-google-maps/api": "^2.20.8",
-    "chart.js": "^4.5.1",
-    "express": "^5.2.1",
-    "framer-motion": "^12.42.2",
-    "geoip-lite": "^2.0.3",
-    "helmet": "^8.2.0",
-    "http-proxy": "^1.18.1",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.8",
-    "leaflet": "^1.9.4",
-    "lucide-react": "^0.564.0",
-    "maplibre-gl": "^5.24.0",
-    "react": "^18.2.0",
-    "react-chartjs-2": "^5.3.1",
-    "react-dom": "^18.2.0",
-    "react-leaflet": "^4.2.1"
-  },
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
-    "start": "node server.js",
-    "verify-server": "node server.js",
-    "dev": "concurrently --names \"ADMIN,EMAIL,DASHBOARD\" -c \"bgBlue.bold,bgMagenta.bold,bgCyan.bold\" \"node server.js\" \"node email_server/server.js\" \"npm run dev --prefix admin-dashboard\"",
-    "build": "npm run build --prefix admin-dashboard",
-    "preview": "concurrently --names \"ADMIN,EMAIL,PREVIEW\" -c \"bgBlue.bold,bgMagenta.bold,bgGreen.bold\" \"node server.js\" \"node email_server/server.js\" \"npm run preview --prefix admin-dashboard\""
+    "dev": "concurrently --names \"SERVER,CLIENT\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "preview": "concurrently --names \"SERVER,CLIENT\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev --workspace=server\" \"npm run preview --workspace=client\""
   },
   "devDependencies": {
-    "concurrently": "^10.0.4"
+    "concurrently": "^8.2.2"
   }
 }
