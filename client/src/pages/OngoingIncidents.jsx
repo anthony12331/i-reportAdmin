@@ -255,7 +255,7 @@ export default function OngoingIncidents() {
                         height="100%"
                         frameBorder="0"
                         scrolling="no"
-                        src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=16&output=embed&iwloc=near`}
+                        loading="lazy" referrerpolicy="no-referrer-when-downgrade" src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=16&output=embed&iwloc=near`}
                         style={{ border: 0, pointerEvents: "none" }}
                       ></iframe>
                       <div style={ongoingStyles.mapBadge}>
@@ -361,7 +361,7 @@ export default function OngoingIncidents() {
                 width="100%"
                 height="100%"
                 frameBorder="0"
-                src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+                loading="lazy" referrerpolicy="no-referrer-when-downgrade" src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
                 style={{ border: 0 }}
                 allowFullScreen
               ></iframe>

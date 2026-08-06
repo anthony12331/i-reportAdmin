@@ -424,7 +424,7 @@ export default function PendingIncidents() {
                           width="100%"
                           height="100%"
                           frameBorder="0"
-                          src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=15&output=embed`}
+                          loading="lazy" referrerpolicy="no-referrer-when-downgrade" src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=15&output=embed`}
                           style={{ pointerEvents: "none" }}
                         />
                         <span style={tStyle.mapHoverTag}>ENLARGE MAP</span>
@@ -496,7 +496,7 @@ export default function PendingIncidents() {
               width="100%"
               height="500px"
               frameBorder="0"
-              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+              loading="lazy" referrerpolicy="no-referrer-when-downgrade" src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
             />
           </div>
         </div>
