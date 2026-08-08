@@ -102,7 +102,7 @@ function App() {
 
     // eslint-disable-next-line react-hooks/immutability
     alertSound.currentTime = 0;
-    alertSound.play().catch((error) => {
+    alertSound.play().catch(() => {}).catch((error) => {
       console.warn("Autoplay blocked. Admin must click screen first.", error);
     });
   }, [settings.soundEnabled]);
@@ -496,7 +496,7 @@ function App() {
         document.getElementById("emergency-alert-sound");
       if (alertSound) {
         alertSound
-          .play()
+          .play().catch(() => {})
           .then(() => {
             alertSound.pause();
            

@@ -66,7 +66,7 @@ export default function PendingIncidents() {
     if (soundMuted) return;
     try {
       const audio = new Audio("/notification_sound.mp3");
-      audio.play().catch((e) => console.warn("Autoplay interaction block or missing file:", e));
+      audio.play().catch(() => {}).catch((e) => console.warn("Autoplay interaction block or missing file:", e));
     } catch (e) {
       console.warn("Audio alert failed to initialize:", e);
     }
@@ -390,7 +390,7 @@ export default function PendingIncidents() {
                             loop 
                             onMouseEnter={(e) => {
                               const video = e.currentTarget;
-                              video.play().catch(() => {});
+                              video.play().catch(() => {}).catch(() => {});
                             }} 
                             onMouseLeave={(e) => {
                               const video = e.currentTarget;

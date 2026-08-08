@@ -57,7 +57,7 @@ export default function Dashboard() {
     if (soundMuted) return;
     try {
       const audio = new Audio("/notification_sound.mp3");
-      audio.play().catch(() => {});
+      audio.play().catch(() => {}).catch(() => {});
     } catch (e) {
       console.warn("Audio alert failed to play:", e);
     }

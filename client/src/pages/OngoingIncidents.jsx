@@ -305,7 +305,7 @@ export default function OngoingIncidents() {
                             objectFit: "cover",
                           }}
                           muted
-                          onMouseOver={(e) => e.target.play()}
+                          onMouseOver={(e) => e.target.play().catch(() => {})}
                           onMouseOut={(e) => e.target.pause()}
                         />
                       ) : (
