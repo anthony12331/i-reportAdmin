@@ -35,7 +35,7 @@ export default function Sidebar({
     pendingSos: 0,
   });
 
-  const isSuperAdmin = admin?.collectionName === "super_admins";
+  const isSuperAdmin = admin?.collectionName === "super_admins" || admin?.collectionName === "_superusers";
   const hasAccess = (moduleName) => {
     return isSuperAdmin || (admin?.permissions || []).includes(moduleName);
   };
@@ -249,6 +249,16 @@ export default function Sidebar({
           <>
             <p style={styles.sectionTitle}>SUPER ADMIN</p>
             <div
+              style={isActive("/manage-admins") ? styles.navItemActive : styles.navItem}
+              onClick={() => navigate("/manage-admins")}
+            >
+              <div style={styles.navLinkGroup}>
+                <ShieldCheck size={18} />
+                <span>Manage Admins</span>
+              </div>
+            </div>
+
+            <div
               style={isActive("/rbac-settings") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/rbac-settings")}
             >
@@ -281,7 +291,7 @@ export default function Sidebar({
               textOverflow: "ellipsis",
             }}
           >
-            Logged in as: <b>{admin?.username || "Admin"}</b>
+            Logged in as: <b>{(`${admin?.first_name || ''} ${admin?.last_name || ''}`.trim()) || "Admin"}</b>
           </p>
           <button onClick={handleLogout} style={styles.logoutBtn}>
             <LogOut size={16} /> Logout

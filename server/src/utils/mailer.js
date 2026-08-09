@@ -1,4 +1,4 @@
-﻿const nodemailer = require("nodemailer");
+const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -30,7 +30,19 @@ async function sendRejectionEmail(email, reason) {
   return transporter.sendMail(mailOptions);
 }
 
+async function sendOtpEmail(email, otp) {
+  const mailOptions = {
+    from: `"LAGONGLONG LGU" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Your OTP Code - LAGONGLONG INCIDENT REPORT",
+    text: `Your OTP code for password reset is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share this with anyone.`,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
 module.exports = {
   sendVerificationEmail,
   sendRejectionEmail,
+  sendOtpEmail,
 };

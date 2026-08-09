@@ -31,8 +31,10 @@ injectGlobalStyles();
 
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -65,11 +67,11 @@ export const dashboardStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(6, 182, 212, 0.3)",
+
   },
   liveTag: {
     backgroundColor: "rgba(239, 68, 68, 0.15)",
@@ -122,7 +124,7 @@ export const dashboardStyles = {
     fontSize: "13px",
     fontWeight: "800",
     cursor: "pointer",
-    boxShadow: "0 4px 15px rgba(239,68,68,0.2)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s cubic-bezier(0.25,0.8,0.25,1)",
   },
   soundBtnMuted: {
@@ -168,7 +170,7 @@ export const dashboardStyles = {
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    textShadow: "0 0 10px rgba(252, 165, 165, 0.3)",
+
   },
   sosViewBtn: {
     background: "rgba(239, 68, 68, 0.2)",
@@ -220,7 +222,7 @@ export const dashboardStyles = {
     transition: "all 0.3s ease",
   },
   emptyState: {
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "14px",
     textAlign: "center",
     margin: "32px 0",
@@ -268,7 +270,7 @@ export const dashboardStyles = {
   tdMuted: {
     padding: "16px",
     fontSize: "13px",
-    color: "#64748b",
+    color: "#94a3b8",
   },
   tdHighlight: {
     padding: "16px",
@@ -288,10 +290,10 @@ export const dashboardStyles = {
     padding: "6px 10px",
     borderRadius: "8px",
     border: "1px solid rgba(239,68,68,0.4)",
-    boxShadow: "0 4px 10px rgba(239, 68, 68, 0.2)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
   sosActionBtn: {
-    background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     padding: "8px 20px",
@@ -299,11 +301,11 @@ export const dashboardStyles = {
     fontSize: "13px",
     fontWeight: "900",
     cursor: "pointer",
-    boxShadow: "0 4px 15px rgba(239, 68, 68, 0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   dispatchBtn: {
-    background: "linear-gradient(135deg, #f59e0b 0%, #b45309 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     padding: "8px 20px",
@@ -311,7 +313,7 @@ export const dashboardStyles = {
     fontSize: "13px",
     fontWeight: "900",
     cursor: "pointer",
-    boxShadow: "0 4px 15px rgba(245, 158, 11, 0.3)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   typeTag: {
@@ -357,7 +359,7 @@ export const dashboardStyles = {
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     padding: "16px 20px",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     transition: "all 0.3s ease",
   },
   categoryCountBadge: {
@@ -390,7 +392,7 @@ export const dashboardStyles = {
     backgroundColor: "rgba(255, 255, 255, 0.02)",
     padding: "16px",
     borderRadius: "16px",
-    border: "1px solid rgba(16, 23, 42, 0.6)",
+    border: "1px solid rgba(15, 23, 42, 0.7)",
   },
   auditContent: {
     flex: 1,
@@ -402,7 +404,7 @@ export const dashboardStyles = {
     lineHeight: "1.5",
   },
   auditTime: {
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "11px",
     fontWeight: "800",
     marginTop: "6px",

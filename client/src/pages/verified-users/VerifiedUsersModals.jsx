@@ -388,7 +388,7 @@ const styles = {
     width: "min(1120px, 100%)",
     maxHeight: "92vh",
     overflow: "auto",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#0f172a",
     borderRadius: "18px",
     boxShadow: "0 30px 80px rgba(15, 23, 42, 0.45)",
     padding: "22px",
@@ -403,7 +403,7 @@ const styles = {
   reviewTitle: {
     margin: 0,
     fontSize: "22px",
-    color: "#0f172a",
+    color: "#f8fafc",
   },
   reviewSubtitle: {
     margin: "6px 0 0",
@@ -413,7 +413,7 @@ const styles = {
   closeButton: {
     border: "none",
     backgroundColor: "#f1f5f9",
-    color: "#0f172a",
+    color: "#f8fafc",
     width: "40px",
     height: "40px",
     borderRadius: "10px",
@@ -429,7 +429,7 @@ const styles = {
     marginBottom: "18px",
   },
   reviewPanel: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#0f172a",
     border: "1px solid #e2e8f0",
     borderRadius: "16px",
     padding: "14px",
@@ -438,7 +438,7 @@ const styles = {
     display: "block",
     fontSize: "12px",
     fontWeight: 800,
-    color: "#475569",
+    color: "#cbd5e1",
     marginBottom: "10px",
     textTransform: "uppercase",
     letterSpacing: "0.6px",
@@ -448,19 +448,19 @@ const styles = {
     height: "320px",
     objectFit: "cover",
     borderRadius: "12px",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#0f172a",
   },
   emptyMedia: {
     width: "100%",
     height: "320px",
     borderRadius: "12px",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#0f172a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "column",
     gap: "8px",
-    color: "#94a3b8",
+    color: "#cbd5e1",
   },
   emptyMediaText: {
     fontSize: "13px",
@@ -473,7 +473,7 @@ const styles = {
   reviewName: {
     fontSize: "18px",
     fontWeight: 900,
-    color: "#0f172a",
+    color: "#f8fafc",
     marginBottom: "12px",
   },
   detailsGrid: {
@@ -482,7 +482,7 @@ const styles = {
     gap: "10px",
   },
   detailItem: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#0f172a",
     border: "1px solid #e2e8f0",
     borderRadius: "12px",
     padding: "12px 14px",
@@ -498,14 +498,14 @@ const styles = {
   },
   detailValue: {
     fontSize: "14px",
-    color: "#0f172a",
+    color: "#f8fafc",
     fontWeight: 700,
     lineHeight: "1.35",
   },
   detailsModal: {
     width: "100%",
     maxWidth: "960px",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#0f172a",
     borderRadius: "24px",
     padding: "32px",
     boxShadow: "0 30px 80px rgba(15, 23, 42, 0.22)",
@@ -521,7 +521,7 @@ const styles = {
     height: "46px",
     borderRadius: "16px",
     border: "1px solid rgba(226,232,240,0.8)",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#0f172a",
     cursor: "pointer",
     display: "grid",
     placeItems: "center",
@@ -541,7 +541,7 @@ const styles = {
   detailsTitle: {
     margin: 0,
     fontSize: "24px",
-    color: "#0f172a",
+    color: "#f8fafc",
     letterSpacing: "-0.02em",
     lineHeight: "1.15",
   },
@@ -596,7 +596,7 @@ const styles = {
     alignItems: "start",
   },
   profileCard: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#0f172a",
     borderRadius: "20px",
     padding: "20px",
     display: "grid",
@@ -614,7 +614,7 @@ const styles = {
     margin: 0,
     fontSize: "20px",
     lineHeight: 1.15,
-    color: "#0f172a",
+    color: "#f8fafc",
   },
   profileSubtitle: {
     margin: "6px 0 0",
@@ -665,7 +665,7 @@ const styles = {
   imageLabel: {
     margin: 0,
     fontSize: "12px",
-    color: "#475569",
+    color: "#cbd5e1",
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
@@ -682,7 +682,7 @@ const styles = {
   panelTitle: {
     margin: 0,
     fontSize: "17px",
-    color: "#0f172a",
+    color: "#f8fafc",
   },
   panelSubtitle: {
     margin: "6px 0 0",
@@ -732,7 +732,7 @@ const styles = {
     padding: "18px 20px",
     borderRadius: "18px",
     border: "1px solid #e5e7eb",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#0f172a",
   },
   suspendedMeta: {
     margin: "6px 0 0",

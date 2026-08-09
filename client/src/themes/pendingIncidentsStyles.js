@@ -2,8 +2,10 @@
 
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -34,11 +36,11 @@ export const pendingIncidentsStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     color: "#94a3b8",
@@ -102,7 +104,9 @@ export const pendingIncidentsStyles = {
     letterSpacing: "0.5px",
   },
   filterSelect: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     color: "#ffffff",
     padding: "14px 16px",
@@ -112,7 +116,9 @@ export const pendingIncidentsStyles = {
     outline: "none",
   },
   filterInput: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     color: "#ffffff",
     padding: "14px 16px",
@@ -197,7 +203,7 @@ export const pendingIncidentsStyles = {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "16px",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
   },
   reporterName: {
     display: "block",
@@ -222,7 +228,7 @@ export const pendingIncidentsStyles = {
     height: "120px",
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     overflow: "hidden",
     cursor: "pointer",
     position: "relative",
@@ -238,7 +244,7 @@ export const pendingIncidentsStyles = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    color: "#64748b",
+    color: "#94a3b8",
     fontSize: "12px",
     fontWeight: "800",
     gap: "8px",
@@ -277,8 +283,10 @@ export const pendingIncidentsStyles = {
     position: "absolute",
     bottom: "10px",
     right: "10px",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    backdropFilter: "blur(8px)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    
     color: "#06b6d4",
     padding: "6px 12px",
     borderRadius: "10px",
@@ -288,7 +296,7 @@ export const pendingIncidentsStyles = {
   },
   dispatchBox: {
     backgroundColor: "rgba(0,0,0,0.2)",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     padding: "16px",
     borderRadius: "16px",
     display: "flex",
@@ -303,7 +311,9 @@ export const pendingIncidentsStyles = {
     letterSpacing: "0.5px",
   },
   dispatchSelect: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     color: "#ffffff",
     padding: "14px",
@@ -324,14 +334,14 @@ export const pendingIncidentsStyles = {
     justifyContent: "center",
     gap: "10px",
     padding: "16px",
-    background: "linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "#ffffff",
     border: "none",
     borderRadius: "16px",
     fontSize: "14px",
     fontWeight: "900",
     cursor: "pointer",
-    boxShadow: "0 8px 25px rgba(6, 182, 212, 0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   rejectBtn: {
@@ -341,14 +351,14 @@ export const pendingIncidentsStyles = {
     justifyContent: "center",
     gap: "10px",
     padding: "16px",
-    background: "linear-gradient(135deg, #f43f5e 0%, #be123c 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "#ffffff",
     border: "none",
     borderRadius: "16px",
     fontSize: "14px",
     fontWeight: "900",
     cursor: "pointer",
-    boxShadow: "0 8px 25px rgba(225, 29, 72, 0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   modalBackdrop: {
@@ -360,7 +370,7 @@ export const pendingIncidentsStyles = {
     justifyContent: "center",
     alignItems: "center",
     padding: "40px",
-    backdropFilter: "blur(20px)",
+    
   },
   modalWindow: {
     width: "100%",
@@ -388,7 +398,7 @@ export const pendingIncidentsStyles = {
     position: "absolute",
     top: "-20px",
     right: "-20px",
-    background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     width: "48px",
@@ -398,6 +408,6 @@ export const pendingIncidentsStyles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 12px 25px rgba(239, 68, 68, 0.5)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
 };

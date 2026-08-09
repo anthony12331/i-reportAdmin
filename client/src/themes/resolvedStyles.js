@@ -30,8 +30,10 @@ export function getUnitStyles(department = "") {
 
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -62,11 +64,11 @@ export const resolvedStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     fontSize: "15px",
@@ -88,7 +90,7 @@ export const resolvedStyles = {
     fontSize: "15px",
     fontWeight: "800",
     outline: "none",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   filterGroup: {
@@ -97,7 +99,7 @@ export const resolvedStyles = {
     marginTop: "24px",
   },
   pillButton: (isActive) => ({
-    background: isActive ? "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)" : "rgba(255, 255, 255, 0.05)",
+    background: isActive ? "linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)" : "rgba(255, 255, 255, 0.05)",
     color: isActive ? "#ffffff" : "#cbd5e1",
     border: isActive ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
     padding: "12px 24px",

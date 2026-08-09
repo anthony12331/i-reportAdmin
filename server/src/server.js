@@ -1,9 +1,9 @@
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../.env") });
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
 const express = require("express");
 const cors = require("cors");
-const { sendVerificationEmail, sendRejectionEmail } = require("./utils/mailer");
+const { sendVerificationEmail, sendRejectionEmail, sendOtpEmail } = require("./utils/mailer");
 
 const app = express();
 
@@ -14,6 +14,7 @@ const PB_ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD;
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
 let adminCache = { token: "", expires: 0 };
+const otpCache = new Map(); // Store OTPs as { email: { otp, expiresAt, collectionId, recordId } }
 
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(express.json());
@@ -36,7 +37,7 @@ async function getAdminToken() {
     throw new Error("Missing PB_ADMIN_EMAIL or PB_ADMIN_PASSWORD env variables.");
   }
 
-  const response = await fetch(`${POCKETBASE_URL}/api/admins/auth-with-password`, {
+  const response = await fetch(`${POCKETBASE_URL}/api/collections/_superusers/auth-with-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -82,6 +83,9 @@ app.post("/api/admin-login", async (req, res) => {
 
     if (superRes.ok) {
       const data = await superRes.json();
+      if (data.record?.suspended === true) {
+        return res.status(403).json({ ok: false, error: "Account Suspended." });
+      }
       return res.json({ ok: true, token: data.token, record: data.record, role: "super_admin" });
     } else {
       superError = `${superRes.status} ${await superRes.text()}`;
@@ -102,6 +106,9 @@ app.post("/api/admin-login", async (req, res) => {
 
     if (adminRes.ok) {
       const data = await adminRes.json();
+      if (data.record?.suspended === true) {
+        return res.status(403).json({ ok: false, error: "Account Suspended." });
+      }
       return res.json({ ok: true, token: data.token, record: data.record, role: "admin" });
     } else {
       adminError = `${adminRes.status} ${await adminRes.text()}`;
@@ -131,6 +138,100 @@ app.post("/api/admin-login", async (req, res) => {
 
   console.log(`[SERVER] Failed login attempt for ${cleanEmail}. SuperAdmin: ${superError}. Admin: ${adminError}. PB_Superuser: ${pbAdminError}`);
   return res.status(401).json({ ok: false, error: "Invalid email or password." });
+});
+
+app.post("/api/forgot-password-otp", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ ok: false, error: "Email is required." });
+  const cleanEmail = email.trim();
+
+  try {
+    const token = await getAdminToken();
+    let targetRecord = null;
+    let collectionName = "";
+
+    // Search in super_admins
+    let searchRes = await fetch(`${POCKETBASE_URL}/api/collections/super_admins/records?filter=email='${cleanEmail}'`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    let searchData = await searchRes.json();
+    if (searchData.items && searchData.items.length > 0) {
+      targetRecord = searchData.items[0];
+      collectionName = "super_admins";
+    }
+
+    // If not found, search in admins
+    if (!targetRecord) {
+      searchRes = await fetch(`${POCKETBASE_URL}/api/collections/admins/records?filter=email='${cleanEmail}'`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      searchData = await searchRes.json();
+      if (searchData.items && searchData.items.length > 0) {
+        targetRecord = searchData.items[0];
+        collectionName = "admins";
+      }
+    }
+
+    if (!targetRecord) {
+      // Return true anyway to prevent email enumeration attacks
+      return res.json({ ok: true, message: "If an account exists, an OTP was sent." });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    otpCache.set(cleanEmail, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      collectionName,
+      recordId: targetRecord.id
+    });
+
+    await sendOtpEmail(cleanEmail, otp);
+    return res.json({ ok: true, message: "If an account exists, an OTP was sent." });
+
+  } catch (error) {
+    console.error("[SERVER] Forgot Password error:", error);
+    return res.status(500).json({ ok: false, error: "Internal server error." });
+  }
+});
+
+app.post("/api/reset-password-otp", async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ ok: false, error: "Missing required fields." });
+  }
+
+  const cleanEmail = email.trim();
+  const cached = otpCache.get(cleanEmail);
+
+  if (!cached || cached.otp !== otp || Date.now() > cached.expiresAt) {
+    return res.status(400).json({ ok: false, error: "Invalid or expired OTP." });
+  }
+
+  try {
+    const token = await getAdminToken();
+    const pbResponse = await fetch(
+      `${POCKETBASE_URL}/api/collections/${cached.collectionName}/records/${cached.recordId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: newPassword, passwordConfirm: newPassword }),
+      }
+    );
+
+    if (!pbResponse.ok) {
+      const text = await pbResponse.text();
+      throw new Error(`PocketBase password update failed: ${pbResponse.status} ${text}`);
+    }
+
+    otpCache.delete(cleanEmail);
+    return res.json({ ok: true, message: "Password updated successfully." });
+  } catch (error) {
+    console.error("[SERVER] Reset Password error:", error);
+    return res.status(500).json({ ok: false, error: "Internal server error during password reset." });
+  }
 });
 
 app.post("/api/users/:id/verify", async (req, res) => {

@@ -1,8 +1,10 @@
 // src/pendingUsersStyle.js
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -48,11 +50,11 @@ export const pendingUsersStyle = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     color: "#94a3b8",
@@ -151,7 +153,7 @@ export const pendingUsersStyle = {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
     display: "grid",
     gap: "12px",
@@ -194,8 +196,10 @@ export const pendingUsersStyle = {
     position: "absolute",
     bottom: "10px",
     left: "10px",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    backdropFilter: "blur(8px)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    
     color: "#06b6d4",
     padding: "6px 12px",
     borderRadius: "10px",
@@ -210,7 +214,7 @@ export const pendingUsersStyle = {
     marginTop: "auto",
   },
   btnReject: {
-    background: "linear-gradient(135deg, #f43f5e 0%, #be123c 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     padding: "16px",
@@ -222,11 +226,11 @@ export const pendingUsersStyle = {
     alignItems: "center",
     justifyContent: "center",
     gap: "10px",
-    boxShadow: "0 8px 25px rgba(225, 29, 72, 0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   btnApprove: {
-    background: "linear-gradient(135deg, #10b981 0%, #047857 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     padding: "16px",
@@ -238,7 +242,7 @@ export const pendingUsersStyle = {
     alignItems: "center",
     justifyContent: "center",
     gap: "10px",
-    boxShadow: "0 8px 25px rgba(16, 185, 129, 0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   modalBackdrop: {
@@ -250,7 +254,7 @@ export const pendingUsersStyle = {
     justifyContent: "center",
     alignItems: "center",
     padding: "32px",
-    backdropFilter: "blur(20px)",
+    
   },
   rejectionModalCard: {
     ...glassPanel,
@@ -273,7 +277,9 @@ export const pendingUsersStyle = {
     padding: "20px",
     borderRadius: "16px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
     color: "#ffffff",
     fontSize: "15px",
     marginBottom: "32px",
@@ -301,11 +307,11 @@ export const pendingUsersStyle = {
     padding: "16px",
     borderRadius: "16px",
     border: "none",
-    background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     fontWeight: "900",
     cursor: "pointer",
-    boxShadow: "0 8px 25px rgba(239, 68, 68, 0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "all 0.3s",
   },
   previewModalCard: {
@@ -344,7 +350,7 @@ export const pendingUsersStyle = {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
     borderRadius: "24px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
   },
   photoBoxLabel: {
     fontSize: "13px",
@@ -367,7 +373,7 @@ export const pendingUsersStyle = {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "24px",
     borderRadius: "24px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
   },
   fieldLabel: {
     fontSize: "12px",
@@ -388,7 +394,7 @@ export const pendingUsersStyle = {
     inset: 0,
     zIndex: 1200,
     backgroundColor: "rgba(2, 6, 23, 0.85)",
-    backdropFilter: "blur(20px)",
+    
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

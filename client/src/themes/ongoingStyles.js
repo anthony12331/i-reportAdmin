@@ -60,8 +60,10 @@ export function getIncidentTheme(type = "") {
 
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -107,11 +109,11 @@ export const ongoingStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     color: "#94a3b8",
@@ -141,7 +143,7 @@ export const ongoingStyles = {
     letterSpacing: "0.5px",
   },
   filterButton: (isActive) => ({
-    background: isActive ? "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)" : "rgba(255, 255, 255, 0.05)",
+    background: isActive ? "linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)" : "rgba(255, 255, 255, 0.05)",
     color: isActive ? "#ffffff" : "#94a3b8",
     border: isActive ? "1px solid transparent" : "1px solid rgba(255, 255, 255, 0.1)",
     padding: "10px 20px",
@@ -211,7 +213,7 @@ export const ongoingStyles = {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
   },
   reporterHeader: {
@@ -287,14 +289,16 @@ export const ongoingStyles = {
     border: "1px solid rgba(255, 255, 255, 0.1)",
     position: "relative",
     cursor: "zoom-in",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
   mapBadge: {
     position: "absolute",
     bottom: "12px",
     right: "12px",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    backdropFilter: "blur(8px)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    
     color: "#06b6d4",
     padding: "8px 16px",
     borderRadius: "12px",
@@ -325,7 +329,7 @@ export const ongoingStyles = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    color: "#64748b",
+    color: "#94a3b8",
     fontWeight: "700",
     fontSize: "13px",
   },
@@ -338,7 +342,7 @@ export const ongoingStyles = {
     justifyContent: "center",
     alignItems: "center",
     padding: "40px",
-    backdropFilter: "blur(20px)",
+    
     cursor: "zoom-out",
   },
   modalMapCard: {
@@ -371,7 +375,7 @@ export const ongoingStyles = {
     position: "absolute",
     top: "-20px",
     right: "-20px",
-    background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     width: "48px",
@@ -381,6 +385,6 @@ export const ongoingStyles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 12px 25px rgba(239, 68, 68, 0.5)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
 };

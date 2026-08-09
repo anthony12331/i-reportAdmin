@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children, requiredModule }) {
 
   // 2. Level Two: Super Admin Bypass
   // Super admins inherently own the system. They bypass all module restrictions.
-  if (authModel.collectionName === "super_admins") {
+  if (authModel.collectionName === "super_admins" || authModel.collectionName === "_superusers") {
     return children;
   }
 
