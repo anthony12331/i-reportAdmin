@@ -82,36 +82,20 @@ const formatLocationLabel = (data, formatLevel = "full") => {
     addr.county,
   );
 
-  // 4. Province / Region
-  const province = pickFirstText(addr.state, addr.region);
+  // 4. Province / Region / ZIP
+  const province = pickFirstText(addr.state, addr.province);
+  const region = pickFirstText(addr.region, addr.state_district);
+  const zip = pickFirstText(addr.postcode);
 
   // 🚨 SMART FILTER: For Analytics Charts (Zone + Barangay + Town/City)
   if (formatLevel === "barangay") {
     let locationParts = [];
 
-    // Add Zone/Purok if it exists
-    if (zoneOrPurok) {
-      locationParts.push(zoneOrPurok);
-    }
+    if (zoneOrPurok) locationParts.push(zoneOrPurok);
+    if (trueBarangay && trueBarangay !== zoneOrPurok) locationParts.push(trueBarangay);
+    if (townCity) locationParts.push(townCity);
+    if (locationParts.length === 0 && province) locationParts.push(province);
 
-    // Add Barangay (preventing duplicates if the API named the zone and barangay the same)
-    if (trueBarangay && trueBarangay !== zoneOrPurok) {
-      locationParts.push(`Brgy. ${trueBarangay}`);
-    } else if (!zoneOrPurok && trueBarangay) {
-      locationParts.push(`Brgy. ${trueBarangay}`);
-    }
-
-    // Add Municipality/City
-    if (townCity) {
-      locationParts.push(townCity);
-    }
-
-    // Fallback if the pin is completely in the wilderness
-    if (locationParts.length === 0 && province) {
-      locationParts.push(province);
-    }
-
-    // Join the available parts with a comma
     return locationParts.length > 0 ? locationParts.join(", ") : "Unknown Area";
   }
 
@@ -127,34 +111,41 @@ const formatLocationLabel = (data, formatLevel = "full") => {
     data.name,
     data.namedetails?.name,
     data.namedetails?.["name:en"],
-    data.namedetails?.["name:fil"],
     addr.amenity,
     addr.building,
     addr.shop,
     addr.office,
-    addr.tourism,
-    addr.leisure,
     addr.place,
   );
 
-  // Combine everything intelligently for the dashboard
+  // If Nominatim provides a display_name, use it because it contains all details (ZIP, Region, etc)
+  if (data.display_name) {
+    const parts = data.display_name.split(',').map(s => s.trim()).filter(Boolean);
+    const uniqueParts = [...new Set(parts)];
+    
+    if (namedPlace && !uniqueParts.includes(namedPlace)) {
+      uniqueParts.unshift(namedPlace);
+    }
+    
+    return uniqueParts.join(', ');
+  }
+
+  // Fallback if display_name is missing, we construct the most detailed string possible
   const fullAddress = [
+    namedPlace,
     road,
     zoneOrPurok,
-    trueBarangay ? `Brgy. ${trueBarangay}` : "",
+    trueBarangay,
     townCity,
     province,
+    region,
+    zip,
     country,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  ];
 
-  return (
-    namedPlace ||
-    fullAddress ||
-    pickFirstText(data.display_name) ||
-    "Location unavailable"
-  );
+  const cleanAddress = [...new Set(fullAddress.filter(Boolean))].join(", ");
+
+  return cleanAddress || "Location unavailable";
 };
 
 // We added "formatLevel" to the parameters!

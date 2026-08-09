@@ -46,26 +46,8 @@ function getActiveAdminName(passedActor) {
 }
 
 export function addAuditLog({ action, target, details, actor }) {
-  const logs = getAuditLogs();
-
   // Resolve the real name using our smart helper
   const resolvedAdminName = getActiveAdminName(actor);
-
-  const entry = {
-    id: createUniqueId(),
-    action,
-    target: target || "N/A",
-    details: details || "",
-    actor: resolvedAdminName,
-    createdAt: new Date().toISOString(),
-  };
-
-  // Save to local browser storage
-  localStorage.setItem(
-    AUDIT_LOG_KEY,
-    JSON.stringify([entry, ...logs].slice(0, MAX_LOGS)),
-  );
-  window.dispatchEvent(new CustomEvent("lagonglong-audit-log-updated"));
 
   // Send to PocketBase (populating both actor and admin_name columns)
   if (pb.authStore.isValid) {
@@ -77,12 +59,11 @@ export function addAuditLog({ action, target, details, actor }) {
         actor: resolvedAdminName, // Keeps legacy table layouts working
         admin_name: resolvedAdminName, // Populates your new audit_logs field
       })
-      .catch((err) =>
-        console.warn("Failed to sync audit log to database:", err),
-      );
+      .catch((err) => {
+        console.warn("Failed to sync audit log to database:", err);
+        alert(`Database Sync Error: PocketBase rejected the audit log. Reason: ${err.message || err}`);
+      });
   }
-
-  return entry;
 }
 
 export function clearAuditLogs() {

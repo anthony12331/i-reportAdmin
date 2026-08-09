@@ -1,42 +1,49 @@
-// src/resolvedStyles.js
-
-// Dynamic styling generator for assigned emergency responder units
 export function getUnitStyles(department = "") {
   const dept = department ? department.toLowerCase() : "";
 
   if (dept.includes("pnp") || dept.includes("police")) {
     return {
-      color: "#3b82f6",
-      bg: "rgba(59, 130, 246, 0.12)",
+      color: "#06b6d4",
+      bg: "rgba(56, 189, 248, 0.15)",
     };
   }
 
   if (dept.includes("bfp") || dept.includes("fire")) {
     return {
-      color: "#f97316",
-      bg: "rgba(249, 115, 22, 0.12)",
+      color: "#fb923c",
+      bg: "rgba(251, 146, 60, 0.15)",
     };
   }
 
   if (dept.includes("rhu") || dept.includes("medical") || dept.includes("health")) {
     return {
-      color: "#ef4444",
-      bg: "rgba(239, 68, 68, 0.12)",
+      color: "#f87171",
+      bg: "rgba(248, 113, 113, 0.15)",
     };
   }
 
-  // Default: MDRRMO HQ or General Responders
   return {
-    color: "#10b981",
-    bg: "rgba(16, 185, 129, 0.12)",
+    color: "#34d399",
+    bg: "rgba(52, 211, 153, 0.15)",
   };
 }
+
+const glassPanel = {
+  backgroundColor: "rgba(16, 23, 42, 0.6)",
+  backdropFilter: "blur(24px) saturate(150%)",
+  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  border: "1px solid rgba(255, 255, 255, 0.08)",
+  boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
+  borderRadius: "24px",
+};
 
 export const resolvedStyles = {
   shell: {
     display: "flex",
     minHeight: "100vh",
-    backgroundColor: "#0b0f19",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
+    backgroundSize: "400% 400%",
+    animation: "gradientBG 15s ease infinite",
     color: "#f8fafc",
     fontFamily: "'Inter', sans-serif",
   },
@@ -49,58 +56,61 @@ export const resolvedStyles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "20px",
+    marginBottom: "32px",
   },
   pageTitle: {
-    fontSize: "28px",
+    fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    color: "#ffffff",
+    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
     margin: 0,
+    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
   },
   subtitle: {
-    fontSize: "14px",
-    margin: "6px 0 0 0",
+    fontSize: "15px",
+    margin: "8px 0 0 0",
     fontWeight: "500",
+    color: "#94a3b8",
   },
   searchWrapper: {
     position: "relative",
-    width: "360px",
+    width: "440px",
   },
   searchInput: {
     width: "100%",
-    padding: "12px 40px 12px 42px",
-    backgroundColor: "#1e293b",
-    border: "1px solid #334155",
-    borderRadius: "14px",
-    color: "#f8fafc",
-    fontSize: "13px",
-    fontWeight: "600",
+    padding: "16px 40px 16px 52px",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    borderRadius: "20px",
+    color: "#ffffff",
+    fontSize: "15px",
+    fontWeight: "800",
     outline: "none",
+    boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+    transition: "all 0.3s",
   },
   filterGroup: {
     display: "flex",
-    gap: "10px",
-    marginTop: "16px",
+    gap: "14px",
+    marginTop: "24px",
   },
   pillButton: (isActive) => ({
-    backgroundColor: isActive ? "#10b981" : "#1e293b",
-    color: isActive ? "#0f172a" : "#94a3b8",
-    border: "1px solid #334155",
-    padding: "8px 16px",
+    background: isActive ? "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)" : "rgba(255, 255, 255, 0.05)",
+    color: isActive ? "#ffffff" : "#cbd5e1",
+    border: isActive ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
+    padding: "12px 24px",
     borderRadius: "20px",
-    fontWeight: "800",
-    fontSize: "11px",
+    fontWeight: "900",
+    fontSize: "13px",
     letterSpacing: "0.5px",
     cursor: "pointer",
-    transition: "all 0.2s ease",
+    transition: "all 0.3s ease",
+    boxShadow: isActive ? "0 8px 20px rgba(6, 182, 212, 0.3)" : "none",
   }),
   panel: {
-    backgroundColor: "#1e293b",
-    border: "1px solid #334155",
-    borderRadius: "20px",
-    overflow: "hidden",
-    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
+    ...glassPanel,
   },
   table: {
     width: "100%",
@@ -108,24 +118,29 @@ export const resolvedStyles = {
   },
   th: {
     textAlign: "left",
-    padding: "16px 20px",
-    fontSize: "11px",
-    fontWeight: "800",
+    padding: "24px 32px",
+    fontSize: "13px",
+    fontWeight: "900",
     color: "#94a3b8",
-    letterSpacing: "0.5px",
+    letterSpacing: "1px",
     textTransform: "uppercase",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
   },
   td: {
-    padding: "16px 20px",
+    padding: "24px 32px",
     verticalAlign: "middle",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    color: "#ffffff",
+    fontWeight: "800",
+    fontSize: "15px",
   },
   mutedText: {
-    fontSize: "11px",
+    fontSize: "13px",
     fontWeight: "700",
     color: "#94a3b8",
-    marginTop: "2px",
+    marginTop: "6px",
   },
 };
 
-// Compatibility export
 export const ui = resolvedStyles;

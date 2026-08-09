@@ -3,6 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
 import { pendingUsersStyle as styles } from "../themes/pendingUsersStyle";
+import { addAuditLog } from "../utils/auditLog";
 import {
   X,
   UserCheck,
@@ -248,6 +249,12 @@ export default function PendingUserRegistration() {
         user_id: nextId,
       });
 
+      addAuditLog({
+        action: "VERIFY_CITIZEN",
+        target: user.id,
+        details: `Approved application for ${user.first_name || ""} ${user.last_name || ""} and assigned Citizen ID #${nextId}.`
+      });
+
       if (user.email) {
         await fetch("http://localhost:5002/send-verification", {
           method: "POST",
@@ -301,6 +308,13 @@ export default function PendingUserRegistration() {
       }
 
       await pb.collection("users").delete(rejectionModal.userId);
+
+      addAuditLog({
+        action: "REJECT_CITIZEN",
+        target: rejectionModal.userId,
+        details: `Rejected and deleted application for ${rejectionModal.userEmail || "user"}. Reason: ${rejectionModal.reason}`
+      });
+
       setUsers((prev) =>
         prev.filter((user) => user.id !== rejectionModal.userId)
       );
@@ -363,6 +377,12 @@ export default function PendingUserRegistration() {
       }
 
       await Promise.all(emailPromises);
+
+      addAuditLog({
+        action: "BATCH_VERIFY_CITIZENS",
+        target: selectedIds.join(", "),
+        details: `Batch approved ${selectedIds.length} pending citizen applications.`
+      });
 
       alert(
         `Batch verification complete! Processed ${selectedIds.length} citizens.`

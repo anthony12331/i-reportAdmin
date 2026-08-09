@@ -27,7 +27,8 @@ export default function Audit() {
       setLogs(recordList.items);
     } catch (error) {
       if (!error.isAbort) {
-        console.error("Failed to fetch secure audit logs:", error);
+        console.warn("Failed to fetch secure audit logs from database:", error);
+        setLogs([]);
       }
     } finally {
       setLoading(false);
@@ -47,6 +48,8 @@ export default function Audit() {
         if (e.action === "create") {
           setLogs((prev) => [e.record, ...prev]);
         }
+      }).catch((err) => {
+        console.warn("Could not subscribe to audit_logs collection:", err);
       });
     };
 
