@@ -71,9 +71,27 @@ function MapFlyToListener({ reports, sos }) {
     if (allIncidents.length > 0) {
       const latest = allIncidents[0];
       if (prevLatestId.current !== latest.id) {
-        // Fly to the latest incident and zoom out slightly to provide context
-        map.flyTo([latest.latitude, latest.longitude], 13, { duration: 2 });
         prevLatestId.current = latest.id;
+        
+        setTimeout(() => {
+          if (map) {
+            // Step 1: Fly directly to the new report and ZOOM IN very close (level 17)
+            map.flyTo([latest.latitude, latest.longitude], 17, { 
+              duration: 2.0,
+              animate: true
+            });
+
+            // Step 2: After arriving and pausing briefly, slowly ZOOM OUT to provide context
+            setTimeout(() => {
+              if (map) {
+                map.flyTo([latest.latitude, latest.longitude], 12, { 
+                  duration: 4.0, // Slow, dramatic zoom out
+                  animate: true
+                });
+              }
+            }, 3500); // 2s flight + 1.5s pause at street level
+          }
+        }, 300);
       }
     }
   }, [reports, sos, map]);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import SummaryCard from "../components/SummaryCard";
+import DashboardMap from "../components/DashboardMap";
 import { dashboardStyles as darkStyles } from "../themes/dashboardStyles";   
 import { getReadableAddress } from "../utils/utils";
 import { sortIncidentReportsByPriority } from "../utils/incidentPriority";
@@ -261,6 +262,16 @@ export default function Dashboard() {
             accent="#818cf8"
             onClick={() => navigate("/pending-users")}
           />
+        </div>
+
+        {/* REAL-TIME COMMAND MAP */}
+        <div style={{ marginBottom: "28px" }}>
+          <div style={darkStyles.panelHeader}>
+            <h2 style={darkStyles.sectionTitle}>
+              <MapPin size={18} color="#34d399" /> Live Tactical Map
+            </h2>
+          </div>
+          <DashboardMap reports={data.reports} sos={data.sos} />
         </div>
 
         {/* ACTIVE SOS EMERGENCY ALERT FEED */}
