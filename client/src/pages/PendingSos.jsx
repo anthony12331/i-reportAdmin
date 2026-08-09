@@ -156,13 +156,14 @@ export default function PendingSos() {
   // Realtime Subscriptions with Full Relation Resolution
   useEffect(() => {
     let isMounted = true;
+    let unsubSos, unsubResponders;
 
     const loadAndSubscribe = async () => {
       await fetchSosSignals();
       await fetchAvailableResponders();
 
       // Subscribe to real-time events on sos_tracking
-      pb.collection("sos_tracking").subscribe("*", async (e) => {
+      unsubSos = await pb.collection("sos_tracking").subscribe("*", async (e) => {
         if (!isMounted) return;
         const { action, record } = e;
 
@@ -201,7 +202,7 @@ export default function PendingSos() {
       });
 
       // Subscribe to real-time events on responder_accounts
-      pb.collection("responder_accounts").subscribe("*", () => {
+      unsubResponders = await pb.collection("responder_accounts").subscribe("*", () => {
         if (isMounted) fetchAvailableResponders();
       });
     };
@@ -210,8 +211,8 @@ export default function PendingSos() {
 
     return () => {
       isMounted = false;
-      pb.collection("sos_tracking").unsubscribe("*");
-      pb.collection("responder_accounts").unsubscribe("*");
+      unsubSos?.();
+      unsubResponders?.();
     };
   }, [fetchSosSignals, resolveAddresses, fetchAvailableResponders]);
 

@@ -49,7 +49,9 @@ export default function SosRoutingTracker({ targetLat, targetLng }) {
       if (map.current && !map.current.hasImage(id)) {
         try {
           map.current.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
-        } catch (_) {}
+        } catch (err) {
+          console.debug("Ignored missing style image error", err);
+        }
       }
     });
 
@@ -60,7 +62,9 @@ export default function SosRoutingTracker({ targetLat, targetLng }) {
         if (map.current && !map.current.hasImage(id)) {
           try {
             map.current.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
-          } catch (_) {}
+          } catch (err) {
+            console.debug("Ignored missing style image error", err);
+          }
         }
       });
     });
@@ -81,7 +85,9 @@ export default function SosRoutingTracker({ targetLat, targetLng }) {
         if (map.current && !map.current.hasImage(id)) {
           try {
             map.current.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
-          } catch (_) {}
+          } catch (err) {
+            console.debug("Ignored missing style image error", err);
+          }
         }
       });
 

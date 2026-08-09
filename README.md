@@ -6,10 +6,8 @@ administrative dashboard, security proxy gateway, and telemetry backend for the 
 
 - **Primary Backend & Database:** PocketBase (`pocketbase.exe` - Port 8090)
   - Core BaaS managing SQLite database collections (`incidents`, `users`, `admins`, `sos_reports`) and real-time WebSocket streams.
-- **Security Proxy & API Gateway:** Node.js (`server.js` - Port 5001)
-  - Handles unified admin authentication, secure user verification, and strict HTTP security header enforcement (`X-Frame-Options`, `CSP`, `nosniff`).
-- **Email Telemetry Microservice:** Node.js (`email_server/server.js` - Port 5002)
-  - Isolated worker for asynchronous notification dispatches without blocking primary database operations.
+- **Security Proxy & API Gateway (with Telemetry):** Node.js (`server.js` - Port 5001)
+  - Handles unified admin authentication, secure user verification, strict HTTP security header enforcement, and acts as an isolated worker for asynchronous email notification dispatches without blocking primary database operations.
 - **Frontend Dashboard:** React + Vite (`/admin-dashboard` - Port 5173)
   - Single Page Application for incident triage, live tracking, and user administration.
 - **Security & Testing:** Python scripts (`/scripts/simulate_attack.py`)
@@ -27,9 +25,6 @@ administrative dashboard, security proxy gateway, and telemetry backend for the 
 # 1. Install root dependencies
 npm install
 
-# 2. Install frontend dependencies
-cd admin-dashboard && npm install
-
-# 3. Install email microservice dependencies
-cd ../email_server && npm install
-cd ..
+# 2. Start the development environment (starts both client and server)
+npm run dev
+```

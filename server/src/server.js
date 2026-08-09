@@ -1,4 +1,4 @@
-﻿const path = require("path");
+const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
 
 const express = require("express");
@@ -69,6 +69,10 @@ app.post("/api/admin-login", async (req, res) => {
 
   const cleanEmail = email.trim();
 
+  let superError = null;
+  let adminError = null;
+  let pbAdminError = null;
+
   try {
     const superRes = await fetch(`${POCKETBASE_URL}/api/collections/super_admins/auth-with-password`, {
       method: "POST",
@@ -79,8 +83,15 @@ app.post("/api/admin-login", async (req, res) => {
     if (superRes.ok) {
       const data = await superRes.json();
       return res.json({ ok: true, token: data.token, record: data.record, role: "super_admin" });
+    } else {
+      superError = `${superRes.status} ${await superRes.text()}`;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("[SERVER] Auth error (super_admins):", e.message);
+    if (e.cause?.code === 'ECONNREFUSED' || e.message.includes('fetch failed')) {
+      return res.status(502).json({ ok: false, error: "Database connection failed. Please check PocketBase." });
+    }
+  }
 
   try {
     const adminRes = await fetch(`${POCKETBASE_URL}/api/collections/admins/auth-with-password`, {
@@ -92,9 +103,33 @@ app.post("/api/admin-login", async (req, res) => {
     if (adminRes.ok) {
       const data = await adminRes.json();
       return res.json({ ok: true, token: data.token, record: data.record, role: "admin" });
+    } else {
+      adminError = `${adminRes.status} ${await adminRes.text()}`;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("[SERVER] Auth error (admins):", e.message);
+  }
 
+  // Fallback: Check if they are trying to login with the master PocketBase _superusers account
+  try {
+    const pbAdminRes = await fetch(`${POCKETBASE_URL}/api/collections/_superusers/auth-with-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identity: cleanEmail, password }),
+    });
+
+    if (pbAdminRes.ok) {
+      const data = await pbAdminRes.json();
+      // Master DB Admins are treated as super_admins in the UI
+      return res.json({ ok: true, token: data.token, record: data.record, role: "super_admin" });
+    } else {
+      pbAdminError = `${pbAdminRes.status} ${await pbAdminRes.text()}`;
+    }
+  } catch (e) {
+    console.error("[SERVER] Auth error (_superusers):", e.message);
+  }
+
+  console.log(`[SERVER] Failed login attempt for ${cleanEmail}. SuperAdmin: ${superError}. Admin: ${adminError}. PB_Superuser: ${pbAdminError}`);
   return res.status(401).json({ ok: false, error: "Invalid email or password." });
 });
 

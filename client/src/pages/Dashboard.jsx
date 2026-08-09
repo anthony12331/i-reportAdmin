@@ -90,18 +90,18 @@ export default function Dashboard() {
       if (!pb.authStore.isValid) return;
 
       const [users, reports, sos, responders, auditLogs] = await Promise.all([
-        pb.collection("users").getFullList({ requestKey: null }),
+        pb.collection("users").getFullList({ requestKey: null }).catch(() => []),
         pb.collection("incident_reports").getFullList({
           sort: "-created",
           expand: "users",
           requestKey: null,
-        }),
+        }).catch(() => []),
         pb.collection("sos_tracking").getFullList({
           filter: 'status != "resolved"',
           sort: "-created",
           expand: "user,incident_id,assigned_responder",
           requestKey: null,
-        }),
+        }).catch(() => []),
         pb.collection("responder_accounts").getFullList({ requestKey: null }).catch(() => []),
         pb.collection("audit_logs").getList(1, 5, { sort: "-created", requestKey: null }).catch(() => ({ items: [] })),
       ]);
@@ -132,26 +132,27 @@ export default function Dashboard() {
 
   useEffect(() => {
     let isSubscribed = true;
+    let unsubUsers, unsubReports, unsubSos, unsubResponders;
 
     const initDashboard = async () => {
       await loadData();
       if (!pb.authStore.isValid || !isSubscribed) return;
 
       // Real-time subscriptions
-      pb.collection("users").subscribe("*", loadData);
-      pb.collection("incident_reports").subscribe("*", loadData);
-      pb.collection("sos_tracking").subscribe("*", loadData);
-      pb.collection("responder_accounts").subscribe("*", loadData);
+      unsubUsers = await pb.collection("users").subscribe("*", loadData);
+      unsubReports = await pb.collection("incident_reports").subscribe("*", loadData);
+      unsubSos = await pb.collection("sos_tracking").subscribe("*", loadData);
+      unsubResponders = await pb.collection("responder_accounts").subscribe("*", loadData);
     };
 
     initDashboard();
 
     return () => {
       isSubscribed = false;
-      pb.collection("users").unsubscribe("*");
-      pb.collection("incident_reports").unsubscribe("*");
-      pb.collection("sos_tracking").unsubscribe("*");
-      pb.collection("responder_accounts").unsubscribe("*");
+      unsubUsers?.();
+      unsubReports?.();
+      unsubSos?.();
+      unsubResponders?.();
     };
   }, [loadData]);
 
