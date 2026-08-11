@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -56,6 +56,51 @@ const createCustomIcon = (color, isSos = false) => {
   `;
   return L.divIcon({ className: '', html: markerHtml, iconSize: [0, 0] });
 };
+
+const createResponderIcon = () => {
+  const markerHtml = `
+    <div style="
+      background-color: #2563eb;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      left: -12px;
+      top: -12px;
+      position: relative;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 999;
+    ">
+      🚑
+    </div>
+  `;
+  return L.divIcon({ className: '', html: markerHtml, iconSize: [0, 0] });
+};
+
+function calculateDistanceAndETA(lat1, lon1, lat2, lon2, speedKmh = 40) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c * 1.3; // 1.3 tortuosity factor to account for road routing
+  
+  const timeHours = distance / speedKmh;
+  const timeMinutes = Math.round(timeHours * 60);
+  
+  return {
+    distance: distance.toFixed(2), // km
+    eta: timeMinutes < 1 ? "< 1 min" : `${timeMinutes} min`
+  };
+}
 
 const COMMAND_CENTER = [8.8066, 124.788];
 
@@ -116,7 +161,7 @@ function MapFlyToListener({ reports, sos }) {
   return null;
 }
 
-export default function DashboardMap({ reports = [], sos = [] }) {
+export default function DashboardMap({ reports = [], sos = [], responders = [] }) {
   const validReports = useMemo(() => 
     reports.filter(r => r.latitude && r.longitude && r.status?.toLowerCase() !== 'resolved' && r.status?.toLowerCase() !== 'false_alarm'), 
   [reports]);
@@ -215,6 +260,56 @@ export default function DashboardMap({ reports = [], sos = [] }) {
             </Popup>
           </Marker>
         ))}
+
+        {responders.map(responder => {
+          if (!responder.latitude || !responder.longitude) return null;
+          
+          let target = validReports.find(r => r.responders === responder.id);
+          let isSosTarget = false;
+          
+          if (!target) {
+            target = validSos.find(s => s.assigned_responder === responder.id);
+            if (target) isSosTarget = true;
+          }
+          
+          // Responder is not dispatched to active incidents/SOS
+          if (!target || !target.latitude || !target.longitude) return null; 
+          
+          const metrics = calculateDistanceAndETA(responder.latitude, responder.longitude, target.latitude, target.longitude);
+          
+          return (
+            <React.Fragment key={`responder-${responder.id}`}>
+              <Polyline 
+                positions={[[responder.latitude, responder.longitude], [target.latitude, target.longitude]]} 
+                pathOptions={{ color: '#2563eb', dashArray: '5, 10', weight: 3, opacity: 0.8 }} 
+              />
+              <Marker 
+                position={[responder.latitude, responder.longitude]}
+                icon={createResponderIcon()}
+                zIndexOffset={1000}
+              >
+                <Popup>
+                  <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '14px', marginBottom: '4px' }}>
+                    {responder.unit_name || `${responder.first_name} ${responder.last_name}`}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                    <strong>Dept:</strong> <span style={{ textTransform: 'capitalize' }}>{responder.department}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                    <strong>Target:</strong> <span style={{ textTransform: 'capitalize' }}>{isSosTarget ? 'SOS Alert' : (target.type || 'Incident')}</span>
+                  </div>
+                  <hr style={{ margin: '6px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+                  <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                    <strong>Distance:</strong> {metrics.distance} km
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
+                    <strong>ETA:</strong> {metrics.eta}
+                  </div>
+                </Popup>
+              </Marker>
+            </React.Fragment>
+          );
+        })}
       </MapContainer>
     </div>
   );

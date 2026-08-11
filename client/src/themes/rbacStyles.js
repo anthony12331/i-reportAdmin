@@ -19,6 +19,11 @@ export const AVAILABLE_MODULES = [
     label: "Data & Reports Analytics",
     description: "Access system analytics, generate telemetry graphs, and export official PDF logs.",
   },
+  {
+    id: "pins",
+    label: "Responder PIN Generation",
+    description: "Generate and manage responder registration access PINs for the emergency system.",
+  },
 ];
 
 const glassPanel = {

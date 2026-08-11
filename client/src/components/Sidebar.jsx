@@ -246,6 +246,21 @@ export default function Sidebar({
           </>
         )}
 
+        {hasAccess("pins") && (
+          <>
+            <p style={styles.sectionTitle}>ACCESS CONTROL</p>
+            <div
+              style={isActive("/responder-pins") ? styles.navItemActive : styles.navItem}
+              onClick={() => navigate("/responder-pins")}
+            >
+              <div style={styles.navLinkGroup}>
+                <KeyRound size={18} />
+                <span>Responder PINs</span>
+              </div>
+            </div>
+          </>
+        )}
+
         {isSuperAdmin && (
           <>
             <p style={styles.sectionTitle}>SUPER ADMIN</p>
@@ -269,15 +284,7 @@ export default function Sidebar({
               </div>
             </div>
 
-            <div
-              style={isActive("/responder-pins") ? styles.navItemActive : styles.navItem}
-              onClick={() => navigate("/responder-pins")}
-            >
-              <div style={styles.navLinkGroup}>
-                <KeyRound size={18} />
-                <span>Responder PINs</span>
-              </div>
-            </div>
+
 
             <div
               style={isActive("/audit-logs") ? styles.navItemActive : styles.navItem}

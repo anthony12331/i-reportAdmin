@@ -663,7 +663,7 @@ function App() {
             <Route
               path="/responder-pins"
               element={
-                <ProtectedRoute requiredModule="super_admin_only">
+                <ProtectedRoute requiredModule="pins">
                   <GenerateResponderPin />
                 </ProtectedRoute>
               }

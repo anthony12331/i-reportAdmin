@@ -271,7 +271,7 @@ export default function Dashboard() {
               <MapPin size={18} color="#34d399" /> Live Tactical Map
             </h2>
           </div>
-          <DashboardMap reports={data.reports} sos={data.sos} />
+          <DashboardMap reports={data.reports} sos={data.sos} responders={data.responders} />
         </div>
 
         {/* ACTIVE SOS EMERGENCY ALERT FEED */}
