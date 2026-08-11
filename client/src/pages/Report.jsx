@@ -354,12 +354,12 @@ export default function Report() {
     },
     scales: {
       x: {
-        ticks: { color: "#94a3b8", font: { weight: "600" } },
-        grid: { color: "#334155" },
+        ticks: { color: "#cbd5e1", font: { weight: "600" } },
+        grid: { color: "#f8fafc" },
       },
       y: {
-        ticks: { color: "#94a3b8", font: { weight: "600" } },
-        grid: { color: "#334155" },
+        ticks: { color: "#cbd5e1", font: { weight: "600" } },
+        grid: { color: "#f8fafc" },
       },
     },
   };
@@ -371,12 +371,12 @@ export default function Report() {
     plugins: { legend: { display: false } },
     scales: {
       x: {
-        ticks: { color: "#94a3b8", font: { weight: "600" } },
-        grid: { color: "#334155" },
+        ticks: { color: "#cbd5e1", font: { weight: "600" } },
+        grid: { color: "#f8fafc" },
       },
       y: {
         ticks: { color: "#cbd5e1", font: { weight: "700" } },
-        grid: { color: "#334155" },
+        grid: { color: "#f8fafc" },
       },
     },
   };

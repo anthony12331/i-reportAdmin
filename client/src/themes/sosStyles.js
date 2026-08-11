@@ -2,8 +2,10 @@
 
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -49,11 +51,11 @@ export const sosStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     color: "#94a3b8",
@@ -74,7 +76,7 @@ export const sosStyles = {
     fontWeight: "900",
     fontSize: "13px",
     transition: "all 0.3s ease",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
   emptyState: {
     textAlign: "center",
@@ -129,7 +131,7 @@ export const sosStyles = {
     gap: "10px",
     color: "#fca5a5",
     letterSpacing: "0.5px",
-    textShadow: "0 0 10px rgba(239,68,68,0.5)",
+
   },
   timeBadge: {
     fontSize: "12px",
@@ -139,7 +141,7 @@ export const sosStyles = {
     padding: "6px 14px",
     borderRadius: "12px",
     border: "1px solid rgba(239, 68, 68, 0.4)",
-    boxShadow: "0 4px 12px rgba(239,68,68,0.2)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
   cardBody: {
     padding: "24px",
@@ -151,7 +153,7 @@ export const sosStyles = {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
   },
   callerHeader: {
@@ -211,7 +213,7 @@ export const sosStyles = {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
     display: "flex",
     flexDirection: "column",
@@ -245,7 +247,9 @@ export const sosStyles = {
     padding: "16px",
     borderRadius: "14px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
     color: "#ffffff",
     fontWeight: "800",
     fontSize: "14px",
@@ -277,14 +281,16 @@ export const sosStyles = {
     cursor: "zoom-in",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     marginBottom: "20px",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
   mapBadge: {
     position: "absolute",
     bottom: "12px",
     right: "12px",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    backdropFilter: "blur(8px)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    
     color: "#06b6d4",
     padding: "8px 16px",
     borderRadius: "12px",
@@ -305,7 +311,7 @@ export const sosStyles = {
     justifyContent: "center",
     alignItems: "center",
     padding: "40px",
-    backdropFilter: "blur(20px)",
+    
     cursor: "zoom-out",
   },
   modalCard: {
@@ -329,7 +335,7 @@ export const sosStyles = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    textShadow: "0 0 15px rgba(239,68,68,0.4)",
+
   },
   modalSubtitle: {
     margin: "6px 0 0 0",
@@ -353,6 +359,8 @@ export const sosStyles = {
   modalMapCanvas: {
     width: "100%",
     height: "65vh",
-    backgroundColor: "#ffffff",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
   },
 };

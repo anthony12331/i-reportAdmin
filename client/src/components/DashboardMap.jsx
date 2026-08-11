@@ -64,6 +64,9 @@ function MapFlyToListener({ reports, sos }) {
   const prevLatestId = useRef(null);
 
   useEffect(() => {
+    let isMounted = true;
+    let timeout1, timeout2;
+
     const allIncidents = [...reports, ...sos]
       .filter(i => i.latitude && i.longitude)
       .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
@@ -73,27 +76,41 @@ function MapFlyToListener({ reports, sos }) {
       if (prevLatestId.current !== latest.id) {
         prevLatestId.current = latest.id;
         
-        setTimeout(() => {
-          if (map) {
-            // Step 1: Fly directly to the new report and ZOOM IN very close (level 17)
-            map.flyTo([latest.latitude, latest.longitude], 17, { 
-              duration: 2.0,
-              animate: true
-            });
+        timeout1 = setTimeout(() => {
+          if (map && isMounted) {
+            try {
+              // Step 1: Fly directly to the new report and ZOOM IN very close (level 17)
+              map.flyTo([latest.latitude, latest.longitude], 17, { 
+                duration: 2.0,
+                animate: true
+              });
 
-            // Step 2: After arriving and pausing briefly, slowly ZOOM OUT to provide context
-            setTimeout(() => {
-              if (map) {
-                map.flyTo([latest.latitude, latest.longitude], 12, { 
-                  duration: 4.0, // Slow, dramatic zoom out
-                  animate: true
-                });
-              }
-            }, 3500); // 2s flight + 1.5s pause at street level
+              // Step 2: After arriving and pausing briefly, slowly ZOOM OUT to provide context
+              timeout2 = setTimeout(() => {
+                if (map && isMounted) {
+                  try {
+                    map.flyTo([latest.latitude, latest.longitude], 12, { 
+                      duration: 4.0, // Slow, dramatic zoom out
+                      animate: true
+                    });
+                  } catch (e) {
+                    console.warn("Map zoom out interrupted", e);
+                  }
+                }
+              }, 3500); // 2s flight + 1.5s pause at street level
+            } catch (e) {
+              console.warn("Map flyTo interrupted", e);
+            }
           }
         }, 300);
       }
     }
+
+    return () => {
+      isMounted = false;
+      if (timeout1) clearTimeout(timeout1);
+      if (timeout2) clearTimeout(timeout2);
+    };
   }, [reports, sos, map]);
 
   return null;

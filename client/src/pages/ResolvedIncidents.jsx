@@ -112,7 +112,7 @@ export default function ResolvedIncidents() {
                 style={ui.searchInput}
               />
               {searchTerm && (
-                <X size={16} onClick={() => setSearchTerm("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#94a3b8" }} />
+                <X size={16} onClick={() => setSearchTerm("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1" }} />
               )}
             </div>
           </div>
@@ -153,7 +153,7 @@ export default function ResolvedIncidents() {
                 </tr>
               ) : incidents.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: "#94a3b8" }}>
+                  <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: "#cbd5e1" }}>
                     No records found.
                   </td>
                 </tr>
@@ -188,7 +188,7 @@ export default function ResolvedIncidents() {
                       </td>
 
                       <td style={ui.td}>
-                        <div style={{ fontSize: "10px", fontWeight: "900", color: "#94a3b8", textTransform: "uppercase", marginBottom: "4px" }}>
+                        <div style={{ fontSize: "10px", fontWeight: "900", color: "#cbd5e1", textTransform: "uppercase", marginBottom: "4px" }}>
                           {incident.type}
                         </div>
                         <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: unitStyle.color, backgroundColor: unitStyle.bg, padding: "5px 10px", borderRadius: "8px" }}>
@@ -211,7 +211,7 @@ export default function ResolvedIncidents() {
 
           {/* Pagination */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px", backgroundColor: "#0f172a", borderTop: "1px solid #334155" }}>
-            <span style={{ fontSize: "13px", color: "#94a3b8", fontWeight: "700" }}>
+            <span style={{ fontSize: "13px", color: "#cbd5e1", fontWeight: "700" }}>
               Showing {incidents.length} of {totalItems} total logs (Page {currentPage} of {totalPages})
             </span>
             <div style={{ display: "flex", gap: "10px" }}>
@@ -221,7 +221,7 @@ export default function ResolvedIncidents() {
                   setCurrentPage((p) => p - 1);
                   window.scrollTo(0, 0);
                 }}
-                style={{ padding: "10px 20px", borderRadius: "12px", border: "1px solid #334155", backgroundColor: "#1e293b", color: "#f8fafc", cursor: "pointer", fontWeight: "800", fontSize: "12px", opacity: currentPage === 1 ? 0.5 : 1 }}
+                style={{ padding: "10px 20px", borderRadius: "12px", border: "1px solid #334155", backgroundColor: "#0f172a", color: "#f8fafc", cursor: "pointer", fontWeight: "800", fontSize: "12px", opacity: currentPage === 1 ? 0.5 : 1 }}
               >
                 <ChevronLeft size={18} /> PREV
               </button>
@@ -231,7 +231,7 @@ export default function ResolvedIncidents() {
                   setCurrentPage((p) => p + 1);
                   window.scrollTo(0, 0);
                 }}
-                style={{ padding: "10px 20px", borderRadius: "12px", border: "1px solid #334155", backgroundColor: "#1e293b", color: "#f8fafc", cursor: "pointer", fontWeight: "800", fontSize: "12px", opacity: currentPage === totalPages ? 0.5 : 1 }}
+                style={{ padding: "10px 20px", borderRadius: "12px", border: "1px solid #334155", backgroundColor: "#0f172a", color: "#f8fafc", cursor: "pointer", fontWeight: "800", fontSize: "12px", opacity: currentPage === totalPages ? 0.5 : 1 }}
               >
                 NEXT <ChevronRight size={18} />
               </button>

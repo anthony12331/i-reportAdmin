@@ -23,8 +23,10 @@ export const AVAILABLE_MODULES = [
 
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -69,11 +71,11 @@ export const rbacStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     color: "#94a3b8",
@@ -295,7 +297,7 @@ export const rbacStyles = {
   saveRulesBtn: (loading) => ({
     width: "100%",
     padding: "20px",
-    background: "linear-gradient(135deg, #10b981 0%, #047857 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     borderRadius: "20px",
@@ -308,7 +310,7 @@ export const rbacStyles = {
     fontSize: "16px",
     transition: "all 0.3s",
     opacity: loading ? 0.7 : 1,
-    boxShadow: "0 10px 30px rgba(16, 185, 129, 0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   }),
   unselectedPlaceholder: {
     ...glassPanel,

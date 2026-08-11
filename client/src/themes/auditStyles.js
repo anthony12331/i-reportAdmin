@@ -2,8 +2,10 @@
 
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -86,11 +88,11 @@ export const auditStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     color: "#94a3b8",
@@ -108,7 +110,9 @@ export const auditStyles = {
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     borderRadius: "16px",
     padding: "16px 20px",

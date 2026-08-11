@@ -6,7 +6,7 @@ import { pb } from "./config/pocketbase";
 
 // Pages
 import Login from "./pages/Login";
-import Register from "./pages/Register";
+import ManageAdmins from "./pages/ManageAdmins";
 import Dashboard from "./pages/Dashboard";
 import OngoingIncidents from "./pages/OngoingIncidents";
 import ResolvedIncidents from "./pages/ResolvedIncidents";
@@ -534,6 +534,20 @@ function App() {
       window.removeEventListener("alarm-audio-unlock", handleAlarmAudioUnlock);
   }, [enableAudio]);
 
+  useEffect(() => {
+    const handleSecurityViolation = () => {
+      console.log("Security Violation Detected! Logging to database...");
+      addAuditLog({
+        action: "SECURITY_VIOLATION",
+        target: "Command Center Terminal",
+        details: "User attempted to bypass the system via Ctrl+Alt+Delete or Windows Key.",
+        actor: "System",
+      });
+    };
+    window.addEventListener("security-violation-detected", handleSecurityViolation);
+    return () => window.removeEventListener("security-violation-detected", handleSecurityViolation);
+  }, []);
+
   return (
     <div onClick={enableAudio} style={{ minHeight: "100vh", width: "100%" }}>
       <audio
@@ -557,7 +571,6 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route path="/register" element={<Register />} />
             <Route
               path="/dashboard"
               element={
@@ -571,6 +584,14 @@ function App() {
               element={
                 <ProtectedRoute requiredModule="super_admin_only">
                   <RBACManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manage-admins"
+              element={
+                <ProtectedRoute requiredModule="super_admin_only">
+                  <ManageAdmins />
                 </ProtectedRoute>
               }
             />

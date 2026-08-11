@@ -637,7 +637,7 @@ export default function PendingUserRegistration() {
                 <p
                   style={{
                     margin: "4px 0 0 0",
-                    color: "#94a3b8",
+                    color: "#cbd5e1",
                     fontSize: "13px",
                   }}
                 >
@@ -696,7 +696,7 @@ export default function PendingUserRegistration() {
             <h3 style={{ margin: 0, fontSize: "18px", color: "#f8fafc" }}>
               {operationState.title}
             </h3>
-            <p style={{ margin: 0, color: "#94a3b8", fontSize: "13px" }}>
+            <p style={{ margin: 0, color: "#cbd5e1", fontSize: "13px" }}>
               {operationState.message}
             </p>
           </div>

@@ -344,7 +344,7 @@ export default function OngoingIncidents() {
                 >
                   <MapIcon size={20} color="#60a5fa" /> LIVE MAP DISPATCH LOCATION
                 </h3>
-                <p style={{ margin: "4px 0 0 0", color: "#94a3b8", fontSize: "13px" }}>
+                <p style={{ margin: "4px 0 0 0", color: "#cbd5e1", fontSize: "13px" }}>
                   {selectedMap.address}
                 </p>
               </div>

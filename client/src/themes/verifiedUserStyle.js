@@ -1,8 +1,10 @@
 // src/verifiedUserStyle.js
 const glassPanel = {
   backgroundColor: "rgba(16, 23, 42, 0.6)",
-  backdropFilter: "blur(24px) saturate(150%)",
-  WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  
+  
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   borderRadius: "24px",
@@ -47,11 +49,11 @@ export const verifiedUserStyle = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    
+    
     margin: 0,
-    textShadow: "0 4px 20px rgba(56,189,248,0.2)",
+
   },
   subtitle: {
     color: "#94a3b8",
@@ -112,13 +114,13 @@ export const verifiedUserStyle = {
   },
   btnRetry: {
     padding: "14px 32px",
-    background: "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
+    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
     color: "white",
     border: "none",
     borderRadius: "16px",
     fontWeight: "900",
     cursor: "pointer",
-    boxShadow: "0 8px 25px rgba(239,68,68,0.4)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
   loadingContainer: {
     textAlign: "center",

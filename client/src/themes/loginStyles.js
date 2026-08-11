@@ -16,10 +16,12 @@ export const loginStyles = {
     backgroundColor: "rgba(16, 23, 42, 0.6)",
     backdropFilter: "blur(24px) saturate(150%)",
     WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    
+    
     border: "1px solid rgba(255, 255, 255, 0.1)",
     padding: "60px 48px",
     borderRadius: "32px",
-    boxShadow: "0 30px 60px 0 rgba(0, 0, 0, 0.5)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     width: "100%",
     maxWidth: "460px",
   },
@@ -41,7 +43,9 @@ export const loginStyles = {
     fontSize: "16px",
     outline: "none",
     boxSizing: "border-box",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    backgroundColor: "rgba(16, 23, 42, 0.6)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
     color: "#ffffff",
     fontWeight: "700",
     marginBottom: "24px",
@@ -58,7 +62,7 @@ export const loginStyles = {
     fontWeight: "900",
     fontSize: "16px",
     marginTop: "16px",
-    boxShadow: "0 10px 30px -5px rgba(6, 182, 212, 0.5)",
+    boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
     transition: "transform 0.3s, box-shadow 0.3s",
   },
   footer: {
@@ -72,6 +76,6 @@ export const loginStyles = {
     textDecoration: "none", 
     fontWeight: "900",
     fontSize: "15px",
-    textShadow: "0 0 10px rgba(6, 182, 212, 0.4)",
+
   },
 };
