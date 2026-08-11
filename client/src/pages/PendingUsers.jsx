@@ -513,7 +513,7 @@ export default function PendingUserRegistration() {
                       }}
                     >
                       <img
-                        src={pb.files.getURL(user, user.selfie)}
+                        src={pb.files.getUrl(user, user.selfie)}
                         alt="Selfie"
                         style={styles.imgCover}
                       />
@@ -528,7 +528,7 @@ export default function PendingUserRegistration() {
                       }}
                     >
                       <img
-                        src={pb.files.getURL(user, user.id_photo)}
+                        src={pb.files.getUrl(user, user.id_photo)}
                         alt="ID Card"
                         style={styles.imgCover}
                       />
@@ -657,7 +657,7 @@ export default function PendingUserRegistration() {
               <div style={styles.photoBox}>
                 <span style={styles.photoBoxLabel}>LIVE SELFIE PHOTO</span>
                 <img
-                  src={pb.files.getURL(previewUser, previewUser.selfie)}
+                  src={pb.files.getUrl(previewUser, previewUser.selfie)}
                   alt="Selfie"
                   style={styles.previewImg}
                 />
@@ -666,7 +666,7 @@ export default function PendingUserRegistration() {
               <div style={styles.photoBox}>
                 <span style={styles.photoBoxLabel}>GOVERNMENT ID CARD</span>
                 <img
-                  src={pb.files.getURL(previewUser, previewUser.id_photo)}
+                  src={pb.files.getUrl(previewUser, previewUser.id_photo)}
                   alt="ID"
                   style={styles.previewImg}
                 />

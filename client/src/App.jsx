@@ -17,6 +17,7 @@ import VerifiedUsers from "./pages/VerifiedUsers";
 import RBACManager from "./pages/RBACManager";
 import Report from "./pages/Report";
 import AuditLogs from "./pages/Audit";
+import GenerateResponderPin from "./pages/GenerateResponderPin";
 
 // Components
 import { MessageBoxProvider } from "./components/MessageBox";
@@ -656,6 +657,14 @@ function App() {
               element={
                 <ProtectedRoute requiredModule="audit">
                   <AuditLogs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/responder-pins"
+              element={
+                <ProtectedRoute requiredModule="super_admin_only">
+                  <GenerateResponderPin />
                 </ProtectedRoute>
               }
             />

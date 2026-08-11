@@ -13,6 +13,7 @@ import {
   Settings,
   BarChart3,
   History,
+  KeyRound,
 } from "lucide-react";
 import { useMessageBox } from "./MessageBox";
 
@@ -265,6 +266,16 @@ export default function Sidebar({
               <div style={styles.navLinkGroup}>
                 <Settings size={18} />
                 <span>Access Control</span>
+              </div>
+            </div>
+
+            <div
+              style={isActive("/responder-pins") ? styles.navItemActive : styles.navItem}
+              onClick={() => navigate("/responder-pins")}
+            >
+              <div style={styles.navLinkGroup}>
+                <KeyRound size={18} />
+                <span>Responder PINs</span>
               </div>
             </div>
 
