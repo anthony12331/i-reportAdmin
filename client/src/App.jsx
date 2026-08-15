@@ -479,7 +479,7 @@ function App() {
   useEffect(() => {
     const pollingTimer = window.setInterval(() => {
       Promise.resolve().then(() => { reconcileAlarmState(); });
-    }, 5000);
+    }, 60000);
 
     return () => window.clearInterval(pollingTimer);
   }, [reconcileAlarmState]);

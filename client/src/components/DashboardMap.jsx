@@ -171,7 +171,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [] }
   [sos]);
 
   return (
-    <div style={{ width: '100%', height: '450px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
       <style>{`
         @keyframes radar-pulse-map {
           0% { transform: scale(1); opacity: 0.8; }

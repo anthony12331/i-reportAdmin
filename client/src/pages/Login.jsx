@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { pb } from "../config/pocketbase";
-import { loginStyles } from "../themes/loginStyles"; // 
+import { loginStyles } from "../themes/loginStyles"; 
+import { Eye, EyeOff } from "lucide-react"; 
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
@@ -141,14 +143,20 @@ export default function Login() {
               />
             </div>
 
-            <div>
+            <div style={{ position: "relative", marginBottom: "24px" }}>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={loginStyles.input}
+                style={{ ...loginStyles.input, paddingRight: "40px", marginBottom: 0 }}
               />
+              <div 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1", display: "flex", alignItems: "center" }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </div>
             </div>
 
             <button type="submit" style={loginStyles.button} disabled={loading}>
@@ -189,13 +197,21 @@ export default function Login() {
             </div>
             <div>
               <label style={loginStyles.label}>NEW PASSWORD</label>
-              <input
-                type="password"
-                placeholder="New Password (min 8 chars)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                style={loginStyles.input}
-              />
+              <div style={{ position: "relative", marginBottom: "24px" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="New Password (min 8 chars)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  style={{ ...loginStyles.input, paddingRight: "40px", marginBottom: 0 }}
+                />
+                <div 
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1", display: "flex", alignItems: "center" }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </div>
+              </div>
             </div>
             <button type="submit" style={loginStyles.button} disabled={loading}>
               {loading ? "UPDATING..." : "RESET PASSWORD"}

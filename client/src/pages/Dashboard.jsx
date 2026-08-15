@@ -194,6 +194,7 @@ export default function Dashboard() {
         pendingSosCount={data.sos.length}
       />
 
+      
       <main style={darkStyles.main}>
         {/* HEADER BAR WITH CONTROLS */}
         <header style={darkStyles.header}>
@@ -206,17 +207,15 @@ export default function Dashboard() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            {/* Audio Toggle */}
             <button
               onClick={() => setSoundMuted(!soundMuted)}
               style={soundMuted ? darkStyles.soundBtnMuted : darkStyles.soundBtnActive}
               title={soundMuted ? "Unmute Audio Sirens" : "Mute Audio Sirens"}
             >
-              {soundMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {soundMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
               <span>{soundMuted ? "AUDIO MUTED" : "SIRENS ACTIVE"}</span>
             </button>
 
-            {/* Live Socket Status */}
             <div style={darkStyles.statusBadge}>
               <span style={darkStyles.statusDot} />
               ACTIVE
@@ -229,7 +228,7 @@ export default function Dashboard() {
           <SummaryCard
             title="Active SOS"
             val={data.sos.length}
-            icon={<Radio size={20} color="#ef4444" />}
+            icon={<Radio size={16} color="#ef4444" />}
             accent="#ef4444"
             urgent={data.sos.length > 0}
             onClick={() => navigate("/pending-sos")}
@@ -237,168 +236,127 @@ export default function Dashboard() {
           <SummaryCard
             title="Pending Incidents"
             val={stats.pending.length}
-            icon={<AlertTriangle size={20} color="#f97316" />}
+            icon={<AlertTriangle size={16} color="#f97316" />}
             accent="#f97316"
             onClick={() => navigate("/pending-incidents")}
           />
           <SummaryCard
             title="Ongoing Dispatches"
             val={stats.ongoing}
-            icon={<Clock size={20} color="#38bdf8" />}
+            icon={<Clock size={16} color="#38bdf8" />}
             accent="#38bdf8"
             onClick={() => navigate("/ongoing-incidents")}
           />
           <SummaryCard
             title="Resolved Total"
             val={stats.resolved}
-            icon={<CheckCircle2 size={20} color="#22c55e" />}
+            icon={<CheckCircle2 size={16} color="#22c55e" />}
             accent="#22c55e"
             onClick={() => navigate("/resolved-incidents")}
           />
           <SummaryCard
             title="Verification Queue"
             val={stats.uPending}
-            icon={<UserCheck size={20} color="#818cf8" />}
+            icon={<UserCheck size={16} color="#818cf8" />}
             accent="#818cf8"
             onClick={() => navigate("/pending-users")}
           />
         </div>
 
-        {/* REAL-TIME COMMAND MAP */}
-        <div style={{ marginBottom: "28px" }}>
-          <div style={darkStyles.panelHeader}>
-            <h2 style={darkStyles.sectionTitle}>
-              <MapPin size={18} color="#34d399" /> Live Tactical Map
-            </h2>
-          </div>
-          <DashboardMap reports={data.reports} sos={data.sos} responders={data.responders} />
-        </div>
-
-        {/* ACTIVE SOS EMERGENCY ALERT FEED */}
-        {data.sos.length > 0 && (
-          <div style={darkStyles.sosPanel}>
-            <div style={darkStyles.sosHeader}>
-              <h2 style={darkStyles.sosHeading}>
-                <Radio className="animate-pulse" size={18} /> CRITICAL DISTRESS ALERTS ({data.sos.length})
-              </h2>
-              <button onClick={() => navigate("/pending-sos")} style={darkStyles.sosViewBtn}>
-                SOS Control Hub <ArrowUpRight size={14} />
-              </button>
-            </div>
-            <table style={darkStyles.table}>
-              <thead>
-                <tr style={darkStyles.thRow}>
-                  <th style={darkStyles.th}>CITIZEN</th>
-                  <th style={darkStyles.th}>SYNC CHANNEL</th>
-                  <th style={darkStyles.th}>ELAPSED WAIT</th>
-                  <th style={darkStyles.thRight}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.sos.slice(0, 3).map((s) => {
-                  const citizenName =
-                    s.expand?.user?.first_name ||
-                    s.expand?.users?.first_name ||
-                    "Resident";
-                  return (
-                    <tr key={s.id} style={darkStyles.tr}>
-                      <td style={darkStyles.tdBold}>{citizenName}</td>
-                      <td style={darkStyles.td}>
-                        <span style={darkStyles.sosBadge}>{s.sync_channel?.toUpperCase() || "APP"}</span>
-                      </td>
-                      <td style={darkStyles.tdHighlight}>{formatWaitTime(s.created)}</td>
-                      <td style={darkStyles.tdRight}>
-                        <button
-                          onClick={() => navigate("/pending-sos")}
-                          style={darkStyles.sosActionBtn}
-                        >
-                          Dispatch Units
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* MAIN DASHBOARD CONTENT GRID */}
-        <div style={darkStyles.splitGrid}>
-          {/* LEFT COLUMN: PRIORITY QUEUE */}
-          <div style={darkStyles.panel}>
-            <div style={darkStyles.panelHeader}>
-              <h2 style={darkStyles.sectionTitle}>
-                <ShieldAlert size={18} color="#f97316" /> Incident Queue
-              </h2>
-              <button
-                onClick={() => navigate("/pending-incidents")}
-                style={darkStyles.ghostBtn}
-              >
-                View Full Queue ({stats.pending.length})
-              </button>
-            </div>
-            {stats.pending.length === 0 ? (
-              <p style={darkStyles.emptyState}>All emergency queues clear. No pending incidents.</p>
-            ) : (
-              <table style={darkStyles.table}>
-                <thead>
-                  <tr style={darkStyles.thRow}>
-                    <th style={darkStyles.th}>CATEGORY</th>
-                    <th style={darkStyles.th}>REPORTER</th>
-                    <th style={darkStyles.th}>LOCATION</th>
-                    <th style={darkStyles.thRight}>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.pending.slice(0, 5).map((r) => (
-                    <tr key={r.id} style={darkStyles.tr}>
-                      <td style={darkStyles.tdBold}>
-                        <span style={darkStyles.typeTag}>
-                          {getCategoryIcon(r.type)} {r.type?.toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={darkStyles.td}>
-                        {r.expand?.users?.first_name || "Citizen"}
-                      </td>
-                      <td style={darkStyles.tdMuted}>
-                        <MapPin size={12} style={darkStyles.inlineIcon} />
-                        {addresses[r.id] || "Locating..."}
-                      </td>
-                      <td style={darkStyles.tdRight}>
-                        <button
-                          onClick={() => navigate("/pending-incidents")}
-                          style={darkStyles.dispatchBtn}
-                        >
-                          Dispatch
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* MASTER GRID */}
+        <div style={darkStyles.masterGrid}>
+          {/* LEFT COLUMN: SOS & QUEUE */}
+          <div style={darkStyles.gridCol}>
+            {data.sos.length > 0 && (
+              <div style={darkStyles.sosPanel}>
+                <div style={darkStyles.sosHeader}>
+                  <h2 style={darkStyles.sosHeading}>
+                    <Radio className="animate-pulse" size={12} /> CRITICAL ALERTS ({data.sos.length})
+                  </h2>
+                  <button onClick={() => navigate("/pending-sos")} style={darkStyles.sosViewBtn}>
+                    HUB <ArrowUpRight size={10} />
+                  </button>
+                </div>
+                <div style={{ overflow: "auto", flex: 1 }}>
+                  <table style={darkStyles.table}>
+                    <thead>
+                      <tr style={darkStyles.thRow}>
+                        <th style={darkStyles.th}>CITIZEN</th>
+                        <th style={darkStyles.th}>WAIT</th>
+                        <th style={darkStyles.thRight}>ACT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.sos.slice(0, 3).map((s) => {
+                        const citizenName = s.expand?.user?.first_name || s.expand?.users?.first_name || "Resident";
+                        return (
+                          <tr key={s.id} style={darkStyles.tr}>
+                            <td style={darkStyles.tdBold}>{citizenName}</td>
+                            <td style={darkStyles.tdHighlight}>{formatWaitTime(s.created)}</td>
+                            <td style={darkStyles.tdRight}>
+                              <button onClick={() => navigate("/pending-sos")} style={darkStyles.sosActionBtn}>Go</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
-          </div>
-
-          {/* RIGHT COLUMN: ANALYTICS & FLEET WIDGETS */}
-          <div style={darkStyles.rightColumnStack}>
-            {/* CATEGORY INCIDENT DISTRIBUTION */}
-            <div style={darkStyles.panel}>
+            
+            <div style={darkStyles.panelFlex}>
               <div style={darkStyles.panelHeader}>
                 <h2 style={darkStyles.sectionTitle}>
-                  <PieIcon size={18} color="#a855f7" /> Incident Breakdown
+                  <ShieldAlert size={14} color="#f97316" /> Incident Queue
+                </h2>
+                <button onClick={() => navigate("/pending-incidents")} style={darkStyles.ghostBtn}>
+                  All ({stats.pending.length})
+                </button>
+              </div>
+              <div style={{ overflow: "auto", flex: 1 }}>
+                {stats.pending.length === 0 ? (
+                  <p style={darkStyles.emptyState}>No pending incidents.</p>
+                ) : (
+                  <table style={darkStyles.table}>
+                    <tbody>
+                      {stats.pending.map((r) => (
+                        <tr key={r.id} style={darkStyles.tr}>
+                          <td style={darkStyles.tdBold}>
+                            <span style={darkStyles.typeTag}>
+                              {getCategoryIcon(r.type)} {r.type?.toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={darkStyles.tdMuted}>
+                            {addresses[r.id]?.substring(0, 15) || "Locating..."}
+                          </td>
+                          <td style={darkStyles.tdRight}>
+                            <button onClick={() => navigate("/pending-incidents")} style={darkStyles.dispatchBtn}>GO</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            <div style={darkStyles.panelFixed}>
+              <div style={darkStyles.panelHeader}>
+                <h2 style={darkStyles.sectionTitle}>
+                  <PieIcon size={14} color="#a855f7" /> Breakdown
                 </h2>
                 <span style={darkStyles.subBadge}>{data.reports.length} Total</span>
               </div>
               <div style={darkStyles.categoryList}>
                 {Object.keys(categoryCounts).length === 0 ? (
-                  <p style={darkStyles.emptyState}>No categorization data available.</p>
+                  <p style={darkStyles.emptyState}>No data.</p>
                 ) : (
-                  Object.entries(categoryCounts).map(([type, count]) => (
+                  Object.entries(categoryCounts).slice(0, 3).map(([type, count]) => (
                     <div key={type} style={darkStyles.categoryRow}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         {getCategoryIcon(type)}
-                        <span style={{ textTransform: "uppercase", fontSize: "12px", color: "#cbd5e1", fontWeight: 600 }}>
+                        <span style={{ textTransform: "uppercase", fontSize: "9px", color: "#cbd5e1", fontWeight: 600 }}>
                           {type}
                         </span>
                       </div>
@@ -408,15 +366,29 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+          </div>
 
-            {/* FLEET READINESS MONITOR */}
-            <div style={darkStyles.panel}>
+          {/* MIDDLE COLUMN: MAP */}
+          <div style={darkStyles.panelFlex}>
+            <div style={darkStyles.panelHeader}>
+              <h2 style={darkStyles.sectionTitle}>
+                <MapPin size={14} color="#34d399" /> Live Tactical Map
+              </h2>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+              <DashboardMap reports={data.reports} sos={data.sos} responders={data.responders} />
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Fleet & Audit */}
+          <div style={darkStyles.gridCol}>
+            <div style={darkStyles.panelFixed}>
               <div style={darkStyles.panelHeader}>
                 <h2 style={darkStyles.sectionTitle}>
-                  <Truck size={18} color="#38bdf8" /> Fleet Readiness
+                  <Truck size={14} color="#38bdf8" /> Fleet Readiness
                 </h2>
                 <span style={darkStyles.subBadgeBlue}>
-                  {stats.respondersAvailable} / {data.responders.length || 0} Standby
+                  {stats.respondersAvailable}/{data.responders.length || 0} Ready
                 </span>
               </div>
               <p style={darkStyles.fleetSubtext}>
@@ -426,23 +398,20 @@ export default function Dashboard() {
               </p>
             </div>
 
-            {/* SYSTEM AUDIT STREAM */}
-            <div style={darkStyles.panel}>
+            <div style={darkStyles.panelFlex}>
               <div style={darkStyles.panelHeader}>
                 <h2 style={darkStyles.sectionTitle}>
-                  <History size={18} color="#818cf8" /> Live Audit Stream
+                  <History size={14} color="#818cf8" /> Live Audit Stream
                 </h2>
-                <button onClick={() => navigate("/audit")} style={darkStyles.ghostBtn}>
-                  Audit Log
-                </button>
+                <button onClick={() => navigate("/audit")} style={darkStyles.ghostBtn}>View All</button>
               </div>
               {data.auditLogs.length === 0 ? (
-                <p style={darkStyles.emptyState}>No recent audit records.</p>
+                <p style={darkStyles.emptyState}>No recent records.</p>
               ) : (
                 <ul style={darkStyles.auditList}>
-                  {data.auditLogs.slice(0, 3).map((log) => (
+                  {data.auditLogs.slice(0, 5).map((log) => (
                     <li key={log.id} style={darkStyles.auditItem}>
-                      <Activity size={14} color="#64748b" style={{ flexShrink: 0, marginTop: "2px" }} />
+                      <Activity size={10} color="#64748b" style={{ flexShrink: 0, marginTop: "2px" }} />
                       <div style={darkStyles.auditContent}>
                         <p style={darkStyles.auditText}>{log.action || log.details || "System Event"}</p>
                         <span style={darkStyles.auditTime}>{formatWaitTime(log.created)}</span>
@@ -455,6 +424,7 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
     </div>
   );
 }

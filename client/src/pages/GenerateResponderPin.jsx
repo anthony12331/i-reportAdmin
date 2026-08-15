@@ -17,6 +17,7 @@ export default function GenerateResponderPin() {
       try {
         const records = await pb.collection("registration_access").getFullList({
           sort: "department",
+          requestKey: null,
         });
         if (isMounted) {
           setAccessRecords(records);

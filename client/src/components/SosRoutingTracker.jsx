@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import * as maplibregl from "maplibre-gl";
+import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const COMMAND_CENTER = [124.788, 8.8066];
@@ -107,6 +107,7 @@ export default function SosRoutingTracker({ targetLat, targetLng }) {
         .addTo(map.current);
 
       const initialRouteCoords = await fetchRoadRoute(COMMAND_CENTER, [initLng.current, initLat.current]);
+      if (!map.current) return;
       map.current.addSource("route", {
         type: "geojson",
         data: {
@@ -180,6 +181,7 @@ export default function SosRoutingTracker({ targetLat, targetLng }) {
 
     const updateRoute = async () => {
       const roadCoordinates = await fetchRoadRoute(COMMAND_CENTER, [targetLng, targetLat]);
+      if (!map.current) return;
       const routeSource = map.current.getSource("route");
       if (routeSource) {
         routeSource.setData({

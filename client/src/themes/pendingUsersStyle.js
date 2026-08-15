@@ -1,29 +1,29 @@
 // src/pendingUsersStyle.js
 const glassPanel = {
-  backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
   
   
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
-  borderRadius: "24px",
+  borderRadius: "32px",
 };
 
 export const pendingUsersStyle = {
   container: {
     display: "flex",
     minHeight: "100vh",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
-    backgroundSize: "400% 400%",
-    animation: "gradientBG 15s ease infinite",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
+    backgroundAttachment: "fixed",
+    
     color: "#f8fafc",
     fontFamily: "'Inter', sans-serif",
   },
   main: {
     flex: 1,
-    padding: "32px",
-    marginLeft: "260px",
+    padding: "clamp(32px, 5vw, 64px)",
+    marginLeft: "324px",
   },
   header: {
     display: "flex",
@@ -50,17 +50,19 @@ export const pendingUsersStyle = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     
     
     margin: 0,
 
   },
   subtitle: {
+    fontSize: "10px",
+    margin: "8px 0 0 0",
+    fontWeight: "600",
     color: "#94a3b8",
-    fontSize: "15px",
-    margin: "8px 0 0 26px",
-    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: "3px",
   },
   headerActions: {
     display: "flex",
@@ -71,7 +73,7 @@ export const pendingUsersStyle = {
     border: "1px solid rgba(255, 255, 255, 0.1)",
     color: "#ffffff",
     padding: "12px 24px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     cursor: "pointer",
     fontWeight: "900",
     fontSize: "13px",
@@ -82,7 +84,7 @@ export const pendingUsersStyle = {
     color: isDisabled ? "#64748b" : "#ffffff",
     border: isDisabled ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
     padding: "12px 24px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     cursor: isDisabled ? "not-allowed" : "pointer",
     fontWeight: "900",
     fontSize: "13px",
@@ -140,11 +142,11 @@ export const pendingUsersStyle = {
     backgroundColor: "rgba(56, 189, 248, 0.2)",
     color: "#7dd3fc",
     padding: "6px 14px",
-    borderRadius: "12px",
+    borderRadius: "32px",
     border: "1px solid rgba(6, 182, 212, 0.4)",
   },
   cardBody: {
-    padding: "24px",
+    padding: "clamp(32px, 5vw, 64px)",
     flex: 1,
     display: "flex",
     flexDirection: "column",
@@ -152,7 +154,7 @@ export const pendingUsersStyle = {
   detailsBox: {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
     display: "grid",
@@ -180,7 +182,7 @@ export const pendingUsersStyle = {
   },
   imageThumb: {
     height: "140px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     overflow: "hidden",
     border: "1px solid rgba(255, 255, 255, 0.08)",
     position: "relative",
@@ -196,9 +198,9 @@ export const pendingUsersStyle = {
     position: "absolute",
     bottom: "10px",
     left: "10px",
-    backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
     
     color: "#06b6d4",
     padding: "6px 12px",
@@ -214,11 +216,11 @@ export const pendingUsersStyle = {
     marginTop: "auto",
   },
   btnReject: {
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     color: "white",
     border: "none",
     padding: "16px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     fontWeight: "900",
     fontSize: "14px",
     cursor: "pointer",
@@ -230,11 +232,11 @@ export const pendingUsersStyle = {
     transition: "all 0.3s",
   },
   btnApprove: {
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     color: "white",
     border: "none",
     padding: "16px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     fontWeight: "900",
     fontSize: "14px",
     cursor: "pointer",
@@ -253,7 +255,7 @@ export const pendingUsersStyle = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    padding: "32px",
+    padding: "clamp(32px, 5vw, 64px)",
     
   },
   rejectionModalCard: {
@@ -275,11 +277,11 @@ export const pendingUsersStyle = {
     width: "100%",
     height: "140px",
     padding: "20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
     color: "#ffffff",
     fontSize: "15px",
     marginBottom: "32px",
@@ -294,7 +296,7 @@ export const pendingUsersStyle = {
   btnModalCancel: {
     flex: 1,
     padding: "16px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255,255,255,0.2)",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     color: "#f8fafc",
@@ -305,9 +307,9 @@ export const pendingUsersStyle = {
   btnModalConfirmReject: {
     flex: 1,
     padding: "16px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "none",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     color: "white",
     fontWeight: "900",
     cursor: "pointer",
@@ -333,7 +335,7 @@ export const pendingUsersStyle = {
     color: "#ffffff",
     width: "48px",
     height: "48px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -349,7 +351,7 @@ export const pendingUsersStyle = {
   photoBox: {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
-    borderRadius: "24px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.08)",
   },
   photoBoxLabel: {
@@ -364,15 +366,15 @@ export const pendingUsersStyle = {
     width: "100%",
     height: "360px",
     objectFit: "cover",
-    borderRadius: "16px",
+    borderRadius: "32px",
   },
   profileFieldsGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
     gap: "20px",
     backgroundColor: "rgba(0,0,0,0.2)",
-    padding: "24px",
-    borderRadius: "24px",
+    padding: "clamp(32px, 5vw, 64px)",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.08)",
   },
   fieldLabel: {
@@ -398,7 +400,7 @@ export const pendingUsersStyle = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "32px",
+    padding: "clamp(32px, 5vw, 64px)",
   },
   overlayCard: {
     width: "min(460px, 100%)",

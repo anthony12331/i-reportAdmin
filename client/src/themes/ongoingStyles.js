@@ -59,30 +59,30 @@ export function getIncidentTheme(type = "") {
 }
 
 const glassPanel = {
-  backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
   
   
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
-  borderRadius: "24px",
+  borderRadius: "32px",
 };
 
 export const ongoingStyles = {
   shell: {
     display: "flex",
     minHeight: "100vh",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
-    backgroundSize: "400% 400%",
-    animation: "gradientBG 15s ease infinite",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
+    backgroundAttachment: "fixed",
+    
     color: "#f8fafc",
     fontFamily: "'Inter', sans-serif",
   },
   main: {
     flex: 1,
-    padding: "32px",
-    marginLeft: "260px",
+    padding: "clamp(32px, 5vw, 64px)",
+    marginLeft: "324px",
   },
   header: {
     display: "flex",
@@ -106,20 +106,21 @@ export const ongoingStyles = {
     animation: "pulseGlowRed 2s infinite",
   },
   pageTitle: {
-    fontSize: "32px",
-    fontWeight: "900",
-    letterSpacing: "-0.5px",
-    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
-    
-    
+    fontFamily: '"Didot", "Bodoni MT", "Times New Roman", serif',
+    fontSize: "48px",
+    fontWeight: "400",
+    color: "#ffffff",
+    letterSpacing: "1px",
     margin: 0,
-
+    textTransform: "capitalize",
   },
   subtitle: {
+    fontSize: "10px",
+    margin: "8px 0 0 0",
+    fontWeight: "600",
     color: "#94a3b8",
-    fontSize: "15px",
-    margin: "8px 0 0 26px",
-    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: "3px",
   },
   filterBar: {
     display: "flex",
@@ -129,7 +130,7 @@ export const ongoingStyles = {
     alignItems: "center",
     ...glassPanel,
     padding: "16px 24px",
-    borderRadius: "20px",
+    borderRadius: "32px",
   },
   filterLabel: {
     fontSize: "13px",
@@ -147,7 +148,7 @@ export const ongoingStyles = {
     color: isActive ? "#ffffff" : "#94a3b8",
     border: isActive ? "1px solid transparent" : "1px solid rgba(255, 255, 255, 0.1)",
     padding: "10px 20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     fontWeight: "800",
     fontSize: "13px",
     cursor: "pointer",
@@ -200,11 +201,11 @@ export const ongoingStyles = {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     color: "#ffffff",
     padding: "6px 14px",
-    borderRadius: "12px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
   },
   cardBody: {
-    padding: "24px",
+    padding: "clamp(32px, 5vw, 64px)",
     flex: 1,
     display: "flex",
     flexDirection: "column",
@@ -212,7 +213,7 @@ export const ongoingStyles = {
   reporterBox: {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
   },
@@ -225,7 +226,7 @@ export const ongoingStyles = {
   avatarIcon: {
     width: "48px",
     height: "48px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     backgroundColor: "rgba(99, 102, 241, 0.2)",
     display: "flex",
     alignItems: "center",
@@ -258,7 +259,7 @@ export const ongoingStyles = {
   responderBanner: (borderColor) => ({
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "16px 20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     marginBottom: "20px",
     border: `1px solid ${borderColor}`,
     display: "flex",
@@ -284,7 +285,7 @@ export const ongoingStyles = {
   mapPreviewWrapper: {
     width: "100%",
     height: "180px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     overflow: "hidden",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     position: "relative",
@@ -295,13 +296,13 @@ export const ongoingStyles = {
     position: "absolute",
     bottom: "12px",
     right: "12px",
-    backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
     
     color: "#06b6d4",
     padding: "8px 16px",
-    borderRadius: "12px",
+    borderRadius: "32px",
     fontSize: "12px",
     fontWeight: "900",
     display: "flex",
@@ -316,7 +317,7 @@ export const ongoingStyles = {
   },
   mediaTile: (hasUrl) => ({
     border: "1px solid rgba(255, 255, 255, 0.08)",
-    borderRadius: "16px",
+    borderRadius: "32px",
     overflow: "hidden",
     height: "140px",
     position: "relative",
@@ -363,7 +364,7 @@ export const ongoingStyles = {
     border: "1px solid rgba(255,255,255,0.2)",
     width: "48px",
     height: "48px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     color: "#ffffff",
     cursor: "pointer",
     display: "flex",
@@ -375,7 +376,7 @@ export const ongoingStyles = {
     position: "absolute",
     top: "-20px",
     right: "-20px",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     color: "white",
     border: "none",
     width: "48px",

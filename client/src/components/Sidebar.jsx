@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import {
@@ -40,6 +40,32 @@ export default function Sidebar({
   const hasAccess = (moduleName) => {
     return isSuperAdmin || (admin?.permissions || []).includes(moduleName);
   };
+
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem("sidebarScrollPos");
+    if (navRef.current && savedScroll) {
+      navRef.current.scrollTop = parseInt(savedScroll, 10);
+    }
+
+    const handleScroll = () => {
+      if (navRef.current) {
+        sessionStorage.setItem("sidebarScrollPos", navRef.current.scrollTop);
+      }
+    };
+
+    const navEl = navRef.current;
+    if (navEl) {
+      navEl.addEventListener("scroll", handleScroll);
+    }
+
+    return () => {
+      if (navEl) {
+        navEl.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -102,10 +128,10 @@ export default function Sidebar({
   };
 
   const handleLogout = async () => {
-    const shouldLogout = await confirm("Are you sure you want to logout from the command center?", {
+    const shouldLogout = await confirm("Are you sure you want to logout?", {
       title: "Confirm Logout",
-      primaryLabel: "Logout",
-      secondaryLabel: "Stay Signed In",
+      primaryLabel: "Yes",
+      secondaryLabel: "No",
     });
 
     if (!shouldLogout) return;
@@ -126,7 +152,7 @@ export default function Sidebar({
         <div style={styles.onlineBadge}>● System Online</div>
       </div>
 
-      <nav className="sidebarNavNoScroll" style={styles.nav}>
+      <nav ref={navRef} className="sidebarNavNoScroll" style={styles.nav}>
         <p style={styles.sectionTitle}>MAIN</p>
         <div
           style={isActive("/dashboard") ? styles.navItemActive : styles.navItem}
@@ -299,6 +325,8 @@ export default function Sidebar({
         )}
 
         <p style={styles.sectionTitle}>SYSTEM</p>
+      </nav>
+
         <div style={styles.logoutSection}>
           <p
             style={{
@@ -315,7 +343,6 @@ export default function Sidebar({
             <LogOut size={16} /> Logout
           </button>
         </div>
-      </nav>
     </aside>
   );
 }
@@ -323,107 +350,120 @@ export default function Sidebar({
 const styles = {
   sidebar: {
     width: "260px",
-    backgroundColor: "#1a1c23",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
+    border: "1px solid rgba(255, 255, 255, 0.05)",
+    borderRadius: "32px",
     color: "white",
     display: "flex",
     flexDirection: "column",
     position: "fixed",
-    height: "100%",
-    left: 0,
-    top: 0,
+    height: "calc(100vh - 64px)",
+    left: "32px",
+    top: "32px",
     zIndex: 1000,
+    overflow: "hidden",
+    boxShadow: "0 30px 60px rgba(0,0,0,0.5)",
   },
-  brandBox: { padding: "25px 20px", borderBottom: "1px solid #2e303e" },
+  brandBox: { padding: "48px 32px 32px 32px", borderBottom: "1px solid rgba(255, 255, 255, 0.03)" },
   onlineBadge: {
-    fontSize: "11px",
-    color: "#4caf50",
-    marginTop: "5px",
-    fontWeight: "bold",
-    letterSpacing: "0.5px",
+    fontSize: "9px",
+    color: "#d4af37",
+    marginTop: "12px",
+    fontWeight: "600",
+    letterSpacing: "2px",
+    textTransform: "uppercase",
   },
   nav: {
     flex: 1,
-    padding: "10px 0",
+    padding: "32px 0",
     display: "flex",
     flexDirection: "column",
     overflowY: "auto",
   },
   sectionTitle: {
-    padding: "0 20px",
-    fontSize: "10px",
-    color: "#6b7280",
-    fontWeight: "bold",
-    marginTop: "25px",
-    marginBottom: "10px",
+    padding: "0 32px",
+    fontSize: "9px",
+    color: "#52525b",
+    fontWeight: "700",
+    marginTop: "32px",
+    marginBottom: "16px",
     textTransform: "uppercase",
-    letterSpacing: "1px",
+    letterSpacing: "3px",
   },
   navItem: {
-    padding: "12px 20px",
+    padding: "12px 32px",
     cursor: "pointer",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    transition: "0.2s",
-    color: "#9ca3af",
-    fontSize: "14px",
+    transition: "all 0.4s ease",
+    color: "#71717a",
+    fontSize: "12px",
+    fontWeight: "500",
+    letterSpacing: "0.5px",
+    borderLeft: "2px solid transparent",
   },
   navItemActive: {
-    padding: "12px 20px",
-    backgroundColor: "#2e303e",
-    color: "white",
-    borderLeft: "4px solid #3b82f6",
-    fontWeight: "bold",
+    padding: "12px 32px",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    color: "#ffffff",
+    fontWeight: "500",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    fontSize: "14px",
+    fontSize: "12px",
+    transition: "all 0.4s ease",
+    borderLeft: "2px solid #d4af37",
+    letterSpacing: "0.5px",
   },
-  navLinkGroup: { display: "flex", alignItems: "center", gap: "12px" },
+  navLinkGroup: { display: "flex", alignItems: "center", gap: "16px" },
   badgeRed: {
-    backgroundColor: "#d32f2f",
-    color: "white",
-    fontSize: "11px",
-    padding: "2px 8px",
-    borderRadius: "10px",
-    fontWeight: "bold",
+    backgroundColor: "transparent",
+    color: "#ef4444",
+    fontSize: "10px",
+    padding: "0",
+    fontWeight: "700",
   },
   badgeOrange: {
-    backgroundColor: "#ff9800",
-    color: "white",
-    fontSize: "11px",
-    padding: "2px 8px",
-    borderRadius: "10px",
-    fontWeight: "bold",
+    backgroundColor: "transparent",
+    color: "#d4af37",
+    fontSize: "10px",
+    padding: "0",
+    fontWeight: "700",
   },
   badgeBlue: {
-    backgroundColor: "#3b82f6",
-    color: "white",
-    fontSize: "11px",
-    padding: "2px 8px",
-    borderRadius: "10px",
-    fontWeight: "bold",
+    backgroundColor: "transparent",
+    color: "#ffffff",
+    fontSize: "10px",
+    padding: "0",
+    fontWeight: "700",
   },
   logoutSection: {
-    padding: "20px",
-    borderTop: "1px solid #2e303e",
-    backgroundColor: "#131419",
+    padding: "32px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.03)",
+    backgroundColor: "transparent",
     marginTop: "auto",
   },
   logoutBtn: {
     width: "100%",
-    padding: "12px",
-    backgroundColor: "#d32f2f",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
+    padding: "16px",
+    backgroundColor: "transparent",
+    color: "#a1a1aa",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    borderRadius: "99px",
     cursor: "pointer",
-    fontWeight: "bold",
+    fontWeight: "600",
+    fontSize: "10px",
+    textTransform: "uppercase",
+    letterSpacing: "2px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "8px",
-    transition: "0.2s",
+    gap: "12px",
+    transition: "all 0.4s ease",
   },
 };
+
 

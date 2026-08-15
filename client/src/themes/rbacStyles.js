@@ -27,30 +27,30 @@ export const AVAILABLE_MODULES = [
 ];
 
 const glassPanel = {
-  backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
   
   
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
-  borderRadius: "24px",
+  borderRadius: "32px",
 };
 
 export const rbacStyles = {
   shell: {
     display: "flex",
     minHeight: "100vh",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
-    backgroundSize: "400% 400%",
-    animation: "gradientBG 15s ease infinite",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
+    backgroundAttachment: "fixed",
+    
     color: "#f8fafc",
     fontFamily: "'Inter', sans-serif",
   },
   main: {
     flex: 1,
-    padding: "32px",
-    marginLeft: "260px",
+    padding: "clamp(32px, 5vw, 64px)",
+    marginLeft: "324px",
   },
   header: {
     display: "flex",
@@ -76,17 +76,19 @@ export const rbacStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     
     
     margin: 0,
 
   },
   subtitle: {
+    fontSize: "10px",
+    margin: "8px 0 0 0",
+    fontWeight: "600",
     color: "#94a3b8",
-    fontSize: "15px",
-    margin: "8px 0 0 26px",
-    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: "3px",
   },
   layoutGrid: {
     display: "grid",
@@ -95,7 +97,7 @@ export const rbacStyles = {
   },
   leftPanel: {
     ...glassPanel,
-    padding: "24px",
+    padding: "clamp(32px, 5vw, 64px)",
     display: "flex",
     flexDirection: "column",
     gap: "20px",
@@ -138,7 +140,7 @@ export const rbacStyles = {
     cursor: "pointer",
     backgroundColor: isSelected ? "rgba(56, 189, 248, 0.15)" : "rgba(255, 255, 255, 0.05)",
     border: isSelected ? "1px solid rgba(6, 182, 212, 0.4)" : "1px solid rgba(255, 255, 255, 0.05)",
-    borderRadius: "16px",
+    borderRadius: "32px",
     transition: "all 0.3s ease",
     outline: "none",
     boxShadow: isSelected ? "0 0 20px rgba(56,189,248,0.15)" : "none",
@@ -265,10 +267,10 @@ export const rbacStyles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "24px",
+    padding: "clamp(32px, 5vw, 64px)",
     backgroundColor: hasAccess ? "rgba(16, 185, 129, 0.1)" : "rgba(255, 255, 255, 0.05)",
     border: `1px solid ${hasAccess ? "rgba(16, 185, 129, 0.4)" : "rgba(255, 255, 255, 0.1)"}`,
-    borderRadius: "20px",
+    borderRadius: "32px",
     cursor: "pointer",
     transition: "all 0.3s ease",
     boxShadow: hasAccess ? "0 0 20px rgba(16,185,129,0.15)" : "none",
@@ -294,7 +296,7 @@ export const rbacStyles = {
     fontSize: "13px",
     fontWeight: "900",
     padding: "8px 16px",
-    borderRadius: "12px",
+    borderRadius: "32px",
     backgroundColor: hasAccess ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.1)",
     color: hasAccess ? "#34d399" : "#cbd5e1",
     border: `1px solid ${hasAccess ? "rgba(16, 185, 129, 0.4)" : "transparent"}`,
@@ -302,10 +304,10 @@ export const rbacStyles = {
   saveRulesBtn: (loading) => ({
     width: "100%",
     padding: "20px",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     color: "white",
     border: "none",
-    borderRadius: "20px",
+    borderRadius: "32px",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",

@@ -2,12 +2,15 @@
 
 const styles = {
   card: {
-    backgroundColor: "#1e293b",
-    borderRadius: "16px",
-    padding: "20px",
-    border: "1px solid #334155",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
+    borderRadius: "32px",
+    padding: "clamp(32px, 3vw, 40px)",
+    border: "1px solid rgba(255, 255, 255, 0.04)",
+    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
     cursor: "pointer",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -15,19 +18,21 @@ const styles = {
   cardHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "12px",
+    alignItems: "flex-start",
+    marginBottom: "8px",
   },
   cardTitle: {
-    fontSize: "12px",
-    fontWeight: "800",
-    color: "#94a3b8",
-    letterSpacing: "0.5px",
+    fontSize: "10px",
+    fontWeight: "600",
+    color: "#52525b",
+    letterSpacing: "2px",
     textTransform: "uppercase",
   },
   bigNumber: {
-    fontSize: "32px",
-    fontWeight: "900",
+    fontFamily: '"Didot", "Bodoni MT", "Times New Roman", serif',
+    fontSize: "36px",
+    fontWeight: "400",
+    color: "#ffffff",
     margin: 0,
     lineHeight: 1,
   },
@@ -36,10 +41,10 @@ const styles = {
 export default function SummaryCard({ title, val, icon, accent, urgent, onClick }) {
   return (
     <div
+      className="lux-hover"
       style={{
         ...styles.card,
-        borderTop: `3px solid ${accent}`,
-        boxShadow: urgent ? `0 0 15px rgba(239, 68, 68, 0.25)` : "none",
+        border: `1px solid ${urgent ? "rgba(239, 68, 68, 0.3)" : "rgba(255, 255, 255, 0.04)"}`,
       }}
       onClick={onClick}
     >
@@ -47,7 +52,7 @@ export default function SummaryCard({ title, val, icon, accent, urgent, onClick 
         <span style={styles.cardTitle}>{title}</span>
         {icon}
       </div>
-      <p style={{ ...styles.bigNumber, color: urgent ? "#ef4444" : "#f8fafc" }}>
+      <p style={{ ...styles.bigNumber, color: urgent ? "#ef4444" : "#ffffff" }}>
         {val}
       </p>
     </div>

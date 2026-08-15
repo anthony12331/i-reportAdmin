@@ -1,30 +1,30 @@
 // src/reportStyles.js
 
 const glassPanel = {
-  backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
   
   
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
-  borderRadius: "24px",
+  borderRadius: "32px",
 };
 
 export const reportStyles = {
   shell: {
     display: "flex",
     minHeight: "100vh",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
-    backgroundSize: "400% 400%",
-    animation: "gradientBG 15s ease infinite",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
+    backgroundAttachment: "fixed",
+    
     color: "#f8fafc",
     fontFamily: "'Inter', sans-serif",
   },
   main: {
     flex: 1,
-    padding: "32px",
-    marginLeft: "260px",
+    padding: "clamp(32px, 5vw, 64px)",
+    marginLeft: "324px",
   },
   header: {
     display: "flex",
@@ -50,21 +50,23 @@ export const reportStyles = {
     fontSize: "32px",
     fontWeight: "900",
     letterSpacing: "-0.5px",
-    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     
     
     margin: 0,
 
   },
   subtitle: {
+    fontSize: "10px",
+    margin: "8px 0 0 0",
+    fontWeight: "600",
     color: "#94a3b8",
-    fontSize: "15px",
-    margin: "8px 0 0 26px",
-    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: "3px",
   },
   filterBar: {
     ...glassPanel,
-    padding: "32px",
+    padding: "clamp(32px, 5vw, 64px)",
     display: "flex",
     alignItems: "center",
     gap: "32px",
@@ -88,11 +90,11 @@ export const reportStyles = {
   },
   dateInput: {
     padding: "16px 20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
     color: "#ffffff",
     fontSize: "15px",
     fontWeight: "800",
@@ -107,10 +109,10 @@ export const reportStyles = {
   generateBtn: {
     width: "100%",
     padding: "18px 32px",
-    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     color: "white",
     border: "none",
-    borderRadius: "16px",
+    borderRadius: "32px",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -131,7 +133,7 @@ export const reportStyles = {
   },
   progressBarFill: (progress) => ({
     height: "100%",
-    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     width: `${progress}%`,
     transition: "width 0.2s ease-in-out",
   }),
@@ -194,10 +196,10 @@ export const reportStyles = {
   },
   exportPdfBtn: {
     padding: "14px 28px",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
     color: "white",
     border: "none",
-    borderRadius: "16px",
+    borderRadius: "32px",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -215,7 +217,7 @@ export const reportStyles = {
   },
   chartPanel: {
     ...glassPanel,
-    padding: "32px",
+    padding: "clamp(32px, 5vw, 64px)",
   },
   chartTitle: {
     margin: "0 0 24px 0",
@@ -303,7 +305,7 @@ export const reportStyles = {
 
     return {
       padding: "8px 16px",
-      borderRadius: "12px",
+      borderRadius: "32px",
       fontSize: "13px",
       fontWeight: "900",
       backgroundColor: bg,

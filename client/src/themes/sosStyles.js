@@ -1,30 +1,30 @@
 // admin-dashboard/src/sosStyles.js
 
 const glassPanel = {
-  backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+  backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
   
   
   border: "1px solid rgba(255, 255, 255, 0.08)",
   boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
-  borderRadius: "24px",
+  borderRadius: "32px",
 };
 
 export const sosStyles = {
   shell: {
     display: "flex",
     minHeight: "100vh",
-    background: "linear-gradient(-45deg, #090a0f, #10172a, #0b1120, #020617)",
-    backgroundSize: "400% 400%",
-    animation: "gradientBG 15s ease infinite",
+    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
+    backgroundAttachment: "fixed",
+    
     color: "#f8fafc",
     fontFamily: "'Inter', sans-serif",
   },
   main: {
     flex: 1,
-    padding: "32px",
-    marginLeft: "260px",
+    padding: "clamp(32px, 5vw, 64px)",
+    marginLeft: "324px",
   },
   header: {
     display: "flex",
@@ -48,20 +48,21 @@ export const sosStyles = {
     animation: "pulseGlowRed 2s infinite",
   },
   pageTitle: {
-    fontSize: "32px",
-    fontWeight: "900",
-    letterSpacing: "-0.5px",
-    background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
-    
-    
+    fontFamily: '"Didot", "Bodoni MT", "Times New Roman", serif',
+    fontSize: "48px",
+    fontWeight: "400",
+    color: "#ffffff",
+    letterSpacing: "1px",
     margin: 0,
-
+    textTransform: "capitalize",
   },
   subtitle: {
+    fontSize: "10px",
+    margin: "8px 0 0 0",
+    fontWeight: "600",
     color: "#94a3b8",
-    fontSize: "15px",
-    margin: "8px 0 0 26px",
-    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: "3px",
   },
   refreshBtn: {
     display: "flex",
@@ -70,7 +71,7 @@ export const sosStyles = {
     background: "rgba(255, 255, 255, 0.05)",
     color: "#ffffff",
     padding: "12px 24px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     cursor: "pointer",
     fontWeight: "900",
@@ -139,12 +140,12 @@ export const sosStyles = {
     backgroundColor: "rgba(239, 68, 68, 0.2)",
     color: "#fca5a5",
     padding: "6px 14px",
-    borderRadius: "12px",
+    borderRadius: "32px",
     border: "1px solid rgba(239, 68, 68, 0.4)",
     boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
   },
   cardBody: {
-    padding: "24px",
+    padding: "clamp(32px, 5vw, 64px)",
     flex: 1,
     display: "flex",
     flexDirection: "column",
@@ -152,7 +153,7 @@ export const sosStyles = {
   callerBox: {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
   },
@@ -165,7 +166,7 @@ export const sosStyles = {
   avatarIcon: {
     width: "48px",
     height: "48px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     backgroundColor: "rgba(239, 68, 68, 0.15)",
     display: "flex",
     alignItems: "center",
@@ -212,7 +213,7 @@ export const sosStyles = {
   assignmentBox: {
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: "20px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.08)",
     marginBottom: "20px",
     display: "flex",
@@ -238,7 +239,7 @@ export const sosStyles = {
       ? "rgba(16, 185, 129, 0.15)"
       : "rgba(245, 158, 11, 0.15)",
     padding: "6px 14px",
-    borderRadius: "12px",
+    borderRadius: "32px",
     border: `1px solid ${isAssigned ? "rgba(52, 211, 153, 0.3)" : "rgba(251, 191, 36, 0.3)"}`,
     boxShadow: `0 0 15px ${isAssigned ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)"}`,
   }),
@@ -247,9 +248,9 @@ export const sosStyles = {
     padding: "16px",
     borderRadius: "14px",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
     color: "#ffffff",
     fontWeight: "800",
     fontSize: "14px",
@@ -262,7 +263,7 @@ export const sosStyles = {
     background: isDisabled ? "rgba(255, 255, 255, 0.05)" : "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
     color: isDisabled ? "#64748b" : "white",
     border: isDisabled ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
-    borderRadius: "16px",
+    borderRadius: "32px",
     fontWeight: "900",
     fontSize: "15px",
     cursor: isDisabled ? "not-allowed" : "pointer",
@@ -275,7 +276,7 @@ export const sosStyles = {
   }),
   mapPreviewWrapper: {
     height: "200px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     overflow: "hidden",
     position: "relative",
     cursor: "zoom-in",
@@ -287,13 +288,13 @@ export const sosStyles = {
     position: "absolute",
     bottom: "12px",
     right: "12px",
-    backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
     
     color: "#06b6d4",
     padding: "8px 16px",
-    borderRadius: "12px",
+    borderRadius: "32px",
     fontSize: "12px",
     fontWeight: "900",
     display: "flex",
@@ -348,7 +349,7 @@ export const sosStyles = {
     border: "1px solid rgba(255,255,255,0.2)",
     width: "48px",
     height: "48px",
-    borderRadius: "16px",
+    borderRadius: "32px",
     color: "#ffffff",
     cursor: "pointer",
     display: "flex",
@@ -359,8 +360,8 @@ export const sosStyles = {
   modalMapCanvas: {
     width: "100%",
     height: "65vh",
-    backgroundColor: "rgba(16, 23, 42, 0.6)",
-    backdropFilter: "blur(24px) saturate(150%)",
-    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(40px)",
+    WebkitBackdropFilter: "blur(40px)",
   },
 };
