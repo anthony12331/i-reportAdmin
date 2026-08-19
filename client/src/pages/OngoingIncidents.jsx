@@ -19,6 +19,7 @@ import {
 
 export default function OngoingIncidents() {
   const [incidents, setIncidents] = useState([]);
+  const [dispatches, setDispatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
@@ -34,10 +35,17 @@ export default function OngoingIncidents() {
       const records = await pb.collection("incident_reports").getFullList({
         filter: 'status = "ongoing" || status = "accepted" || status = "en_route" || status = "at_scene" || status = "dispatched"',
         sort: "-created",
-        expand: "users,responders",
+        expand: "users",
         requestKey: null,
       });
       setIncidents(records);
+
+      const activeDispatches = await pb.collection("dispatches").getFullList({
+        filter: 'status != "resolved"',
+        expand: "responder_id",
+        requestKey: null
+      });
+      setDispatches(activeDispatches);
 
       const pendingAddresses = records.filter(
         (record) =>
@@ -72,13 +80,13 @@ export default function OngoingIncidents() {
     const loadAndSubscribe = async () => {
       await fetchIncidents();
 
-      unsubscribe = await pb
-        .collection("incident_reports")
-        .subscribe("*", () => {
-          if (isMounted) {
-            fetchIncidents();
-          }
-        });
+      const unsubIncidents = await pb.collection("incident_reports").subscribe("*", () => {
+        if (isMounted) fetchIncidents();
+      });
+      const unsubDispatches = await pb.collection("dispatches").subscribe("*", () => {
+        if (isMounted) fetchIncidents();
+      });
+      unsubscribe = () => { unsubIncidents(); unsubDispatches(); };
     };
 
     loadAndSubscribe();
@@ -165,7 +173,7 @@ export default function OngoingIncidents() {
         <div style={ongoingStyles.grid}>
           {filteredIncidents.map((incident) => {
             const reporter = incident.expand?.users;
-            const responder = incident.expand?.responders;
+            const incidentDispatches = dispatches.filter(d => d.incident_id === incident.id);
 
             const imgUrl = incident.incident_image
               ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}`
@@ -218,14 +226,28 @@ export default function OngoingIncidents() {
                   </div>
 
                   {/* Deployed Responder Banner */}
-                  <div style={ongoingStyles.responderBanner(theme.border)}>
-                    <Activity color={theme.accentText} size={16} />
-                    <span style={ongoingStyles.responderText}>
-                      DEPLOYED UNIT:{" "}
-                      <span style={{ color: theme.accentText }}>
-                        {responder?.department?.toUpperCase() || "LOCAL RESPONDERS"}
+                  <div style={{ ...ongoingStyles.responderBanner(theme.border), flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Activity color={theme.accentText} size={16} />
+                      <span style={ongoingStyles.responderText}>
+                        DEPLOYED UNITS:
                       </span>
-                    </span>
+                    </div>
+                    {incidentDispatches.length === 0 ? (
+                      <span style={{ fontSize: "12px", color: "#cbd5e1", paddingLeft: "24px" }}>No active units found.</span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", paddingLeft: "24px", width: "100%", boxSizing: "border-box" }}>
+                        {incidentDispatches.map(d => {
+                          const r = d.expand?.responder_id;
+                          return (
+                            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", background: "rgba(0,0,0,0.2)", padding: "6px 8px", borderRadius: "4px" }}>
+                              <span style={{ color: theme.accentText, fontWeight: "bold" }}>{r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department}</span>
+                              <span style={{ color: "#94a3b8", textTransform: "uppercase" }}>{d.status}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Location & Map Preview */}

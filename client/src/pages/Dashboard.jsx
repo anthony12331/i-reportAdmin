@@ -39,6 +39,7 @@ export default function Dashboard() {
     reports: [],
     sos: [],
     responders: [],
+    dispatches: [],
     auditLogs: [],
   });
   const [addresses, setAddresses] = useState({});
@@ -90,7 +91,7 @@ export default function Dashboard() {
     try {
       if (!pb.authStore.isValid) return;
 
-      const [users, reports, sos, responders, auditLogs] = await Promise.all([
+      const [users, reports, sos, responders, dispatches, auditLogs] = await Promise.all([
         pb.collection("users").getFullList({ requestKey: null }).catch(() => []),
         pb.collection("incident_reports").getFullList({
           sort: "-created",
@@ -100,10 +101,14 @@ export default function Dashboard() {
         pb.collection("sos_tracking").getFullList({
           filter: 'status != "resolved"',
           sort: "-created",
-          expand: "user,incident_id,assigned_responder",
+          expand: "user,incident_id",
           requestKey: null,
         }).catch(() => []),
         pb.collection("responder_accounts").getFullList({ requestKey: null }).catch(() => []),
+        pb.collection("dispatches").getFullList({
+          expand: "responder_id,incident_id,sos_id",
+          requestKey: null,
+        }).catch(() => []),
         pb.collection("audit_logs").getList(1, 5, { sort: "-created", requestKey: null }).catch(() => ({ items: [] })),
       ]);
 
@@ -118,6 +123,7 @@ export default function Dashboard() {
         reports,
         sos,
         responders,
+        dispatches,
         auditLogs: auditLogs.items || [],
       });
 
@@ -133,7 +139,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     let isSubscribed = true;
-    let unsubUsers, unsubReports, unsubSos, unsubResponders;
+    let unsubUsers, unsubReports, unsubSos, unsubResponders, unsubDispatches;
 
     const initDashboard = async () => {
       await loadData();
@@ -144,6 +150,7 @@ export default function Dashboard() {
       unsubReports = await pb.collection("incident_reports").subscribe("*", loadData);
       unsubSos = await pb.collection("sos_tracking").subscribe("*", loadData);
       unsubResponders = await pb.collection("responder_accounts").subscribe("*", loadData);
+      unsubDispatches = await pb.collection("dispatches").subscribe("*", loadData);
     };
 
     initDashboard();
@@ -154,6 +161,7 @@ export default function Dashboard() {
       unsubReports?.();
       unsubSos?.();
       unsubResponders?.();
+      unsubDispatches?.();
     };
   }, [loadData]);
 
@@ -376,7 +384,7 @@ export default function Dashboard() {
               </h2>
             </div>
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-              <DashboardMap reports={data.reports} sos={data.sos} responders={data.responders} />
+              <DashboardMap reports={data.reports} sos={data.sos} responders={data.responders} dispatches={data.dispatches} />
             </div>
           </div>
 

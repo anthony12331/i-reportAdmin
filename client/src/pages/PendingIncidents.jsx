@@ -216,29 +216,34 @@ export default function PendingIncidents() {
     setIncidents((prev) => [...prev]);
   }, []);
 
-  const updateStatus = async (incident, newStatus, responderId = selectedResponderIds[incident.id]) => {
+  const updateStatus = async (incident, newStatus, responderIds = selectedResponderIds[incident.id] || []) => {
     setProcessingId(incident.id);
-    let reservedResponder = null;
+    let reservedResponders = [];
+    let dispatchesCreated = [];
     try {
       const updateData = { status: newStatus };
 
       if (newStatus === "ongoing") {
-        const targetDept = getResponderDepartmentForIncident(incident);
-        const responderOptions = getRespondersForDepartment(availableResponders, targetDept);
-        const chosenResponderId = String(responderId || "").trim();
-        const selectedResponder =
-          responderOptions.find((r) => r.id === chosenResponderId) ||
-          availableResponders.find((r) => r.id === chosenResponderId);
-
-        if (!selectedResponder) {
-          alert(`Assign an available responder unit for ${targetDept} before dispatching.`);
+        if (!responderIds || responderIds.length === 0) {
+          alert(`Assign at least one responder unit before dispatching.`);
           setProcessingId(null);
           return;
         }
 
-        await pb.collection("responder_accounts").update(selectedResponder.id, { is_available: false });
-        reservedResponder = selectedResponder;
-        updateData.responders = selectedResponder.id;
+        const selectedResponders = responderIds.map(id => availableResponders.find(r => r.id === id)).filter(Boolean);
+
+        for (const r of selectedResponders) {
+          await pb.collection("responder_accounts").update(r.id, { is_available: false });
+          reservedResponders.push(r);
+          
+          const dispatch = await pb.collection("dispatches").create({
+            incident_id: incident.id,
+            responder_id: r.id,
+            department: r.department,
+            status: 'pending' // Responder will accept this
+          });
+          dispatchesCreated.push(dispatch);
+        }
       }
 
       await pb.collection("incident_reports").update(incident.id, updateData);
@@ -247,15 +252,18 @@ export default function PendingIncidents() {
       addAuditLog({
         action: "Incident Dispatched",
         target: incident.id,
-        details: `${incident.type} assigned to responder`,
+        details: `${incident.type} assigned to ${responderIds.length} responder(s)`,
         actor: pb.authStore.model?.username || "Admin",
       });
       setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
       await fetchAvailableResponders();
     } catch (error) {
       console.error("Failed to update status:", error);
-      if (reservedResponder) {
-        await pb.collection("responder_accounts").update(reservedResponder.id, { is_available: true }).catch(() => {});
+      for (const r of reservedResponders) {
+        await pb.collection("responder_accounts").update(r.id, { is_available: true }).catch(() => {});
+      }
+      for (const d of dispatchesCreated) {
+        await pb.collection("dispatches").delete(d.id).catch(() => {});
       }
       alert("Failed to update status.");
     }
@@ -332,9 +340,6 @@ export default function PendingIncidents() {
             const videoUrl = incident.incident_video ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_video}` : null;
             const duplicateInfo = duplicateMap[incident.id];
             const isNew = !isIncidentReviewed(incident.id);
-            const targetDept = getResponderDepartmentForIncident(incident);
-            const responderOptions = getRespondersForDepartment(availableResponders, targetDept);
-            const selectedResponderId = selectedResponderIds[incident.id] || responderOptions[0]?.id || "";
             const isFire = incident.type?.toLowerCase().includes("fire");
 
             return (
@@ -432,32 +437,52 @@ export default function PendingIncidents() {
                     )}
                   </div>
 
-                  {/* RESPONDER DISPATCH SELECTOR */}
-                  <div style={tStyle.dispatchBox}>
+                  {/* RESPONDER DISPATCH MULTI-SELECTOR */}
+                  <div style={{ ...tStyle.dispatchBox, flexDirection: "column", alignItems: "stretch", gap: "8px" }}>
                     <div style={tStyle.dispatchLabel}>
-                      <span>ASSIGN RESPONDER ({targetDept})</span>
+                      <span>ASSIGN RESPONDER(S)</span>
                     </div>
-                    <select
-                      value={selectedResponderId}
-                      onChange={(e) => setSelectedResponderIds((prev) => ({ ...prev, [incident.id]: e.target.value }))}
-                      style={tStyle.dispatchSelect}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value="">{responderOptions.length === 0 ? "No Standby Responders" : "Select Dispatch Unit..."}</option>
-                      {responderOptions.map((r) => (
-                        <option key={r.id} value={r.id}>{getResponderOptionLabel(r)}</option>
-                      ))}
-                    </select>
+                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "4px" }} onClick={(e) => e.stopPropagation()}>
+                      {availableResponders.length === 0 ? (
+                        <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders</div>
+                      ) : (
+                        availableResponders.map((r) => {
+                          const isSelected = (selectedResponderIds[incident.id] || []).includes(r.id);
+                          return (
+                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "rgba(56, 189, 248, 0.1)" : "transparent", borderRadius: "4px", marginBottom: "2px" }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isSelected}
+                                onChange={() => {
+                                  setSelectedResponderIds((prev) => {
+                                    const current = prev[incident.id] || [];
+                                    if (current.includes(r.id)) {
+                                      return { ...prev, [incident.id]: current.filter(id => id !== r.id) };
+                                    } else {
+                                      return { ...prev, [incident.id]: [...current, r.id] };
+                                    }
+                                  });
+                                }}
+                                style={{ cursor: "pointer" }}
+                              />
+                              <span style={{ fontSize: "12px", color: isSelected ? "#38bdf8" : "#e2e8f0", fontWeight: isSelected ? "600" : "400" }}>
+                                {getResponderOptionLabel(r)} ({r.department})
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
 
                   {/* DISPATCH / REJECT ACTION BUTTONS */}
                   <div style={tStyle.actionRow}>
                     <button
-                      onClick={(e) => { e.stopPropagation(); updateStatus(incident, "ongoing", selectedResponderId); }}
-                      disabled={processingId === incident.id || responderOptions.length === 0}
+                      onClick={(e) => { e.stopPropagation(); updateStatus(incident, "ongoing", selectedResponderIds[incident.id] || []); }}
+                      disabled={processingId === incident.id || (selectedResponderIds[incident.id] || []).length === 0}
                       style={tStyle.deployBtn}
                     >
-                      <Send size={14} /> {processingId === incident.id ? "DEPLOYING..." : "DISPATCH UNIT"}
+                      <Send size={14} /> {processingId === incident.id ? "DEPLOYING..." : "DISPATCH UNITS"}
                     </button>
                     <button
                       onClick={async (e) => {

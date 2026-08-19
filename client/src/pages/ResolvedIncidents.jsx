@@ -57,9 +57,22 @@ export default function ResolvedIncidents() {
       const result = await pb.collection("incident_reports").getList(currentPage, perPage, {
         filter: filterParts.join(" && "),
         sort: "-updated",
-        expand: "users,responders",
+        expand: "users",
         requestKey: null,
       });
+
+      const incidentIdsFilter = result.items.map(r => `incident_id="${r.id}"`).join(" || ");
+      if (incidentIdsFilter) {
+        const dispatches = await pb.collection("dispatches").getFullList({
+          filter: incidentIdsFilter,
+          expand: "responder_id",
+          requestKey: null
+        });
+        
+        result.items.forEach(incident => {
+          incident.dispatches = dispatches.filter(d => d.incident_id === incident.id);
+        });
+      }
 
       setIncidents(result.items);
       setTotalPages(result.totalPages);
@@ -160,8 +173,6 @@ export default function ResolvedIncidents() {
               ) : (
                 incidents.map((incident) => {
                   const reporter = incident.expand?.users;
-                  const responder = incident.expand?.responders;
-                  const unitStyle = getUnitStyles(responder?.department);
 
                   return (
                     <tr key={incident.id} style={{ borderBottom: "1px solid #334155" }}>
@@ -191,8 +202,22 @@ export default function ResolvedIncidents() {
                         <div style={{ fontSize: "10px", fontWeight: "900", color: "#cbd5e1", textTransform: "uppercase", marginBottom: "4px" }}>
                           {incident.type}
                         </div>
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: unitStyle.color, backgroundColor: unitStyle.bg, padding: "5px 10px", borderRadius: "8px" }}>
-                          <ShieldCheck size={14} /> {responder ? responder.department : "MDRRMO HQ"}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                          {incident.dispatches && incident.dispatches.length > 0 ? (
+                            incident.dispatches.map(d => {
+                              const r = d.expand?.responder_id;
+                              const unitStyle = getUnitStyles(r?.department || d.department);
+                              return (
+                                <div key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: unitStyle.color, backgroundColor: unitStyle.bg, padding: "5px 10px", borderRadius: "8px", width: "fit-content" }}>
+                                  <ShieldCheck size={14} /> {r ? `${r.department.toUpperCase()} - ${r.first_name}` : (d.department || '').toUpperCase()} ({d.status})
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: getUnitStyles("mdrrmo").color, backgroundColor: getUnitStyles("mdrrmo").bg, padding: "5px 10px", borderRadius: "8px", width: "fit-content" }}>
+                              <ShieldCheck size={14} /> MDRRMO HQ
+                            </div>
+                          )}
                         </div>
                       </td>
 

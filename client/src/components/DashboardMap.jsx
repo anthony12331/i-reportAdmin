@@ -161,7 +161,7 @@ function MapFlyToListener({ reports, sos }) {
   return null;
 }
 
-export default function DashboardMap({ reports = [], sos = [], responders = [] }) {
+export default function DashboardMap({ reports = [], sos = [], responders = [], dispatches = [] }) {
   const validReports = useMemo(() => 
     reports.filter(r => r.latitude && r.longitude && r.status?.toLowerCase() !== 'resolved' && r.status?.toLowerCase() !== 'false_alarm'), 
   [reports]);
@@ -261,24 +261,26 @@ export default function DashboardMap({ reports = [], sos = [], responders = [] }
           </Marker>
         ))}
 
-        {responders.map(responder => {
-          if (!responder.latitude || !responder.longitude) return null;
+        {dispatches.map(dispatch => {
+          if (dispatch.status === 'resolved') return null;
           
-          let target = validReports.find(r => r.responders === responder.id);
+          const responder = responders.find(r => r.id === dispatch.responder_id);
+          if (!responder || !responder.latitude || !responder.longitude) return null;
+          
+          let target = validReports.find(r => r.id === dispatch.incident_id);
           let isSosTarget = false;
           
           if (!target) {
-            target = validSos.find(s => s.assigned_responder === responder.id);
+            target = validSos.find(s => s.id === dispatch.sos_id);
             if (target) isSosTarget = true;
           }
           
-          // Responder is not dispatched to active incidents/SOS
           if (!target || !target.latitude || !target.longitude) return null; 
           
           const metrics = calculateDistanceAndETA(responder.latitude, responder.longitude, target.latitude, target.longitude);
           
           return (
-            <React.Fragment key={`responder-${responder.id}`}>
+            <React.Fragment key={`dispatch-${dispatch.id}`}>
               <Polyline 
                 positions={[[responder.latitude, responder.longitude], [target.latitude, target.longitude]]} 
                 pathOptions={{ color: '#2563eb', dashArray: '5, 10', weight: 3, opacity: 0.8 }} 

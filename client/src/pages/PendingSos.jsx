@@ -62,7 +62,7 @@ export default function PendingSos() {
       const records = await pb.collection("sos_tracking").getFullList({
         filter: 'status = "active"',
         sort: "-created",
-        expand: "user,incident_id,assigned_responder",
+        expand: "user,incident_id",
         requestKey: null,
       });
       setSosSignals(records);
@@ -96,40 +96,45 @@ export default function PendingSos() {
   // Assign Responder to SOS
   const assignResponderToSos = async (
     sosSignal,
-    responderId = selectedResponderIds[sosSignal.id]
+    responderIds = selectedResponderIds[sosSignal.id] || []
   ) => {
-    const chosenResponderId = String(responderId || "").trim();
-    const selectedResponder = availableResponders.find(
-      (responder) => responder.id === chosenResponderId
-    );
+    if (!responderIds || responderIds.length === 0) {
+      alert("Select at least one responder before assigning this SOS.");
+      return;
+    }
 
-    if (!selectedResponder) {
-      alert("Select a responder before assigning this SOS.");
+    const selectedResponders = responderIds.map(id => availableResponders.find(r => r.id === id)).filter(Boolean);
+
+    if (selectedResponders.length === 0) {
+      alert("Select at least one valid responder before assigning this SOS.");
       return;
     }
 
     setAssigningId(sosSignal.id);
+    let reservedResponders = [];
+    let dispatchesCreated = [];
 
     try {
-      await pb
-        .collection("responder_accounts")
-        .update(selectedResponder.id, { is_available: false });
+      for (const r of selectedResponders) {
+        await pb.collection("responder_accounts").update(r.id, { is_available: false });
+        reservedResponders.push(r);
+        
+        const dispatch = await pb.collection("dispatches").create({
+          sos_id: sosSignal.id,
+          responder_id: r.id,
+          department: r.department,
+          status: 'pending' // Responder will accept this
+        });
+        dispatchesCreated.push(dispatch);
+      }
 
       await pb.collection("sos_tracking").update(sosSignal.id, {
-        assigned_department: selectedResponder.department || null,
-        assigned_responder: selectedResponder.id,
         dispatch_status: "assigned",
       });
 
       const updatedSnapshot = {
         ...sosSignal,
-        assigned_department: selectedResponder.department || null,
-        assigned_responder: selectedResponder.id,
-        dispatch_status: "assigned",
-        expand: {
-          ...(sosSignal.expand || {}),
-          assigned_responder: selectedResponder,
-        },
+        dispatch_status: "assigned"
       };
 
       setSosSignals((prev) =>
@@ -147,6 +152,12 @@ export default function PendingSos() {
       await fetchAvailableResponders();
     } catch (e) {
       console.error("Error assigning responder to SOS:", e);
+      for (const r of reservedResponders) {
+        await pb.collection("responder_accounts").update(r.id, { is_available: true }).catch(() => {});
+      }
+      for (const d of dispatchesCreated) {
+        await pb.collection("dispatches").delete(d.id).catch(() => {});
+      }
       alert("Failed to assign responder.");
     } finally {
       setAssigningId(null);
@@ -173,9 +184,9 @@ export default function PendingSos() {
         } else if (action === "create" || action === "update") {
           if (record.status === "active") {
             try {
-              // Fetch record with full relations (expand user & responder)
+              // Fetch record with full relations
               const freshRecord = await pb.collection("sos_tracking").getOne(record.id, {
-                expand: "user,incident_id,assigned_responder",
+                expand: "user,incident_id",
                 requestKey: null,
               });
 
@@ -261,9 +272,8 @@ export default function PendingSos() {
         {/* SOS Cards Grid */}
         <div style={sosStyles.grid}>
           {sosSignals.map((sos) => {
-            const assignedResponder = sos.expand?.assigned_responder;
             const responderOptions = availableResponders;
-            const selectedResponderId = selectedResponderIds[sos.id] || "";
+            const selectedIds = selectedResponderIds[sos.id] || [];
 
             return (
               <div key={sos.id} style={sosStyles.card}>
@@ -320,62 +330,67 @@ export default function PendingSos() {
                   <div style={sosStyles.assignmentBox}>
                     <div style={sosStyles.statusHeader}>
                       <span style={sosStyles.statusLabel}>CURRENT STATUS:</span>
-                      <span style={sosStyles.statusBadge(!!assignedResponder)}>
-                        {assignedResponder
-                          ? `ASSIGNED: ${
-                              `${assignedResponder.first_name || ""} ${
-                                assignedResponder.last_name || ""
-                              }`.trim() || assignedResponder.email
-                            }`
+                      <span style={sosStyles.statusBadge(sos.dispatch_status === "assigned")}>
+                        {sos.dispatch_status === "assigned"
+                          ? "DISPATCHED"
                           : "UNASSIGNED"}
                       </span>
                     </div>
 
-                    <select
-                      value={selectedResponderId}
-                      onChange={(e) =>
-                        setSelectedResponderIds((prev) => ({
-                          ...prev,
-                          [sos.id]: e.target.value,
-                        }))
-                      }
-                      style={sosStyles.selectInput}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value="">
-                        {respondersLoading
-                          ? "Loading responders..."
-                          : responderOptions.length === 0
-                          ? "No responders available"
-                          : "Select Response Unit..."}
-                      </option>
-                      {responderOptions.map((responder) => (
-                        <option key={responder.id} value={responder.id}>
-                          {getResponderOptionLabel(responder)}
-                        </option>
-                      ))}
-                    </select>
+                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "4px", marginBottom: "10px" }} onClick={(e) => e.stopPropagation()}>
+                      {respondersLoading ? (
+                        <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>Loading responders...</div>
+                      ) : responderOptions.length === 0 ? (
+                        <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders</div>
+                      ) : (
+                        responderOptions.map((r) => {
+                          const isSelected = selectedIds.includes(r.id);
+                          return (
+                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "rgba(56, 189, 248, 0.1)" : "transparent", borderRadius: "4px", marginBottom: "2px" }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isSelected}
+                                onChange={() => {
+                                  setSelectedResponderIds((prev) => {
+                                    const current = prev[sos.id] || [];
+                                    if (current.includes(r.id)) {
+                                      return { ...prev, [sos.id]: current.filter(id => id !== r.id) };
+                                    } else {
+                                      return { ...prev, [sos.id]: [...current, r.id] };
+                                    }
+                                  });
+                                }}
+                                style={{ cursor: "pointer" }}
+                              />
+                              <span style={{ fontSize: "12px", color: isSelected ? "#38bdf8" : "#e2e8f0", fontWeight: isSelected ? "600" : "400" }}>
+                                {getResponderOptionLabel(r)} ({r.department})
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
 
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        assignResponderToSos(sos, selectedResponderId);
+                        assignResponderToSos(sos, selectedIds);
                       }}
                       disabled={
                         assigningId === sos.id ||
                         responderOptions.length === 0 ||
-                        !selectedResponderId
+                        selectedIds.length === 0
                       }
                       style={sosStyles.dispatchBtn(
-                        !selectedResponderId || assigningId === sos.id
+                        selectedIds.length === 0 || assigningId === sos.id
                       )}
                     >
                       <Siren size={16} />
                       {assigningId === sos.id
                         ? "DISPATCHING..."
-                        : assignedResponder
-                        ? "REASSIGN RESPONDER"
-                        : "DISPATCH RESPONDER"}
+                        : sos.dispatch_status === "assigned"
+                        ? "DISPATCH ADDITIONAL"
+                        : "DISPATCH RESPONDER(S)"}
                     </button>
                   </div>
 

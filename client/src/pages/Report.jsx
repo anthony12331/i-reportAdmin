@@ -82,7 +82,7 @@ export default function Report() {
       const rawData = await pb.collection("incident_reports").getFullList({
         filter: `created >= "${start}" && created <= "${end}"`,
         sort: "-created",
-        expand: "users,responders",
+        expand: "users",
       });
 
       if (rawData.length === 0) {
@@ -91,6 +91,11 @@ export default function Report() {
         setLoadingProgress(0);
         return;
       }
+      
+      const allDispatches = await pb.collection("dispatches").getFullList({
+        expand: "responder_id",
+        requestKey: null
+      });
 
       setLoadingProgress(15);
 
@@ -141,8 +146,10 @@ export default function Report() {
           const currentPercentage =
             15 + Math.round((completedGeocodes / totalToGeocode) * 80);
           setLoadingProgress(currentPercentage);
+          
+          const itemDispatches = allDispatches.filter(d => d.incident_id === item.id);
 
-          return { ...item, resolvedLocation: locationStr };
+          return { ...item, resolvedLocation: locationStr, dispatches: itemDispatches };
         })
       );
 
@@ -179,24 +186,26 @@ export default function Report() {
         const area = item.resolvedLocation;
         areaCounts[area] = (areaCounts[area] || 0) + 1;
 
-        const responderObj = item.expand?.responders;
-        let responderName = "Unassigned Unit";
-
-        if (responderObj) {
-          if (responderObj.unit_name) {
-            responderName = responderObj.department
-              ? `${responderObj.unit_name} (${responderObj.department.toUpperCase()})`
-              : responderObj.unit_name;
-          } else if (responderObj.department) {
-            responderName = `${responderObj.department.toUpperCase()} Unit`;
-          } else if (responderObj.first_name || responderObj.last_name) {
-            responderName = `${responderObj.first_name || ""} ${
-              responderObj.last_name || ""
-            }`.trim();
-          }
+        if (!item.dispatches || item.dispatches.length === 0) {
+          responderCounts["Unassigned Unit"] = (responderCounts["Unassigned Unit"] || 0) + 1;
+        } else {
+          item.dispatches.forEach(d => {
+            const r = d.expand?.responder_id;
+            let responderName = "Unknown Unit";
+            if (r) {
+              if (r.unit_name) {
+                responderName = r.department ? `${r.unit_name} (${r.department.toUpperCase()})` : r.unit_name;
+              } else if (r.department) {
+                responderName = `${r.department.toUpperCase()} Unit`;
+              } else if (r.first_name || r.last_name) {
+                responderName = `${r.first_name || ""} ${r.last_name || ""}`.trim();
+              }
+            } else if (d.department) {
+              responderName = `${d.department.toUpperCase()} Unit`;
+            }
+            responderCounts[responderName] = (responderCounts[responderName] || 0) + 1;
+          });
         }
-        responderCounts[responderName] =
-          (responderCounts[responderName] || 0) + 1;
 
         const userObj = item.expand?.users;
         let reporterName = "Anonymous";
@@ -302,11 +311,13 @@ export default function Report() {
     ];
 
     const tableRows = reports.map((r) => {
-      const unit =
-        r.expand?.responders?.unit_name ||
-        (r.expand?.responders?.department
-          ? `${r.expand.responders.department.toUpperCase()} Dept`
-          : "Unassigned");
+      let unit = "Unassigned";
+      if (r.dispatches && r.dispatches.length > 0) {
+        unit = r.dispatches.map(d => {
+          const resp = d.expand?.responder_id;
+          return resp?.unit_name || (resp?.department ? `${resp.department.toUpperCase()} Dept` : d.department);
+        }).join(", ");
+      }
 
       const reporterName = r.expand?.users
         ? `${r.expand.users.first_name || ""} ${

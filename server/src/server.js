@@ -234,41 +234,19 @@ app.post("/api/reset-password-otp", async (req, res) => {
   }
 });
 
-app.post("/api/users/:id/verify", async (req, res) => {
-  const userId = req.params.id;
+app.post("/api/send-verification", async (req, res) => {
   const { email, name } = req.body;
 
+  if (!email) {
+    return res.status(400).json({ ok: false, error: "Email is required." });
+  }
+
   try {
-    const token = await getAdminToken();
-
-    const pbResponse = await fetch(
-      `${POCKETBASE_URL}/api/collections/users/records/${encodeURIComponent(userId)}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ verified: true }),
-      }
-    );
-
-    if (!pbResponse.ok) {
-      const text = await pbResponse.text();
-      throw new Error(`PocketBase update failed: ${pbResponse.status} ${text}`);
-    }
-
-    const record = await pbResponse.json();
-
-    if (email) {
-      sendVerificationEmail(email, name).catch((err) =>
-        console.error("[EMAIL] Failed to send verification email:", err.message)
-      );
-    }
-
-    return res.json({ ok: true, record });
-  } catch (error) {
-    return res.status(500).json({ ok: false, error: "Internal verification routine failed." });
+    await sendVerificationEmail(email, name);
+    return res.json({ ok: true, message: "Verification email sent successfully." });
+  } catch (err) {
+    console.error("[EMAIL] Failed to send verification email:", err.message);
+    return res.status(500).json({ ok: false, error: "Failed to send email: " + err.message });
   }
 });
 
