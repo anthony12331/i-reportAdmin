@@ -215,14 +215,7 @@ export default function Dashboard() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <button
-              onClick={() => setSoundMuted(!soundMuted)}
-              style={soundMuted ? darkStyles.soundBtnMuted : darkStyles.soundBtnActive}
-              title={soundMuted ? "Unmute Audio Sirens" : "Mute Audio Sirens"}
-            >
-              {soundMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              <span>{soundMuted ? "AUDIO MUTED" : "SIRENS ACTIVE"}</span>
-            </button>
+
 
             <div style={darkStyles.statusBadge}>
               <span style={darkStyles.statusDot} />

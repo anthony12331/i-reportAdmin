@@ -25,6 +25,10 @@ export default function OngoingIncidents() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("ALL");
+  const [departmentFilters, setDepartmentFilters] = useState({});
+  const [selectedResponderIds, setSelectedResponderIds] = useState({});
+  const [availableResponders, setAvailableResponders] = useState([]);
+  const [processingId, setProcessingId] = useState(null);
 
   const fetchedAddressIds = useRef(new Set());
 
@@ -32,20 +36,35 @@ export default function OngoingIncidents() {
   const fetchIncidents = useCallback(async () => {
     setLoading(true);
     try {
-      const records = await pb.collection("incident_reports").getFullList({
-        filter: 'status = "ongoing" || status = "accepted" || status = "en_route" || status = "at_scene" || status = "dispatched"',
-        sort: "-created",
-        expand: "users",
-        requestKey: null,
-      });
-      setIncidents(records);
-
       const activeDispatches = await pb.collection("dispatches").getFullList({
         filter: 'status != "resolved"',
         expand: "responder_id",
         requestKey: null
       });
       setDispatches(activeDispatches);
+
+      // If there are active dispatches on an incident, it should stay visible even if one responder marked it resolved.
+      const activeIncidentIds = [...new Set(activeDispatches.map(d => d.incident_id))];
+      let filterString = 'status = "ongoing" || status = "accepted" || status = "en_route" || status = "at_scene" || status = "dispatched"';
+      if (activeIncidentIds.length > 0) {
+        const idFilters = activeIncidentIds.map(id => `id = "${id}"`).join(" || ");
+        filterString = `(${filterString}) || (${idFilters})`;
+      }
+
+      const records = await pb.collection("incident_reports").getFullList({
+        filter: filterString,
+        sort: "-created",
+        expand: "users",
+        requestKey: null,
+      });
+      setIncidents(records);
+
+      const responders = await pb.collection("responder_accounts").getFullList({
+        filter: "is_available = true",
+        sort: "department, first_name, last_name",
+        requestKey: null,
+      });
+      setAvailableResponders(responders);
 
       const pendingAddresses = records.filter(
         (record) =>
@@ -86,7 +105,10 @@ export default function OngoingIncidents() {
       const unsubDispatches = await pb.collection("dispatches").subscribe("*", () => {
         if (isMounted) fetchIncidents();
       });
-      unsubscribe = () => { unsubIncidents(); unsubDispatches(); };
+      const unsubResponders = await pb.collection("responder_accounts").subscribe("*", () => {
+        if (isMounted) fetchIncidents();
+      });
+      unsubscribe = () => { unsubIncidents(); unsubDispatches(); unsubResponders(); };
     };
 
     loadAndSubscribe();
@@ -96,6 +118,52 @@ export default function OngoingIncidents() {
       unsubscribe?.();
     };
   }, [fetchIncidents]);
+
+  const updateStatus = async (incident, newStatus, responderIds = selectedResponderIds[incident.id] || []) => {
+    setProcessingId(incident.id);
+    let reservedResponders = [];
+    let dispatchesCreated = [];
+    try {
+      if (!responderIds || responderIds.length === 0) {
+        alert(`Assign at least one responder unit before dispatching.`);
+        setProcessingId(null);
+        return;
+      }
+
+      const selectedResponders = responderIds.map(id => availableResponders.find(r => r.id === id)).filter(Boolean);
+
+      for (const r of selectedResponders) {
+        await pb.collection("responder_accounts").update(r.id, { is_available: false });
+        reservedResponders.push(r);
+        
+        const dispatch = await pb.collection("dispatches").create({
+          incident_id: incident.id,
+          responder_id: r.id,
+          department: r.department,
+          status: 'pending' // Responder will accept this
+        });
+        dispatchesCreated.push(dispatch);
+      }
+
+      // No need to update incident status if it's already ongoing.
+      if (incident.status === "pending" || incident.status === "new" || incident.status === "resolved") {
+         await pb.collection("incident_reports").update(incident.id, { status: "ongoing" });
+      }
+
+      setSelectedResponderIds(prev => ({ ...prev, [incident.id]: [] }));
+      await fetchIncidents();
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      for (const r of reservedResponders) {
+        await pb.collection("responder_accounts").update(r.id, { is_available: true }).catch(() => {});
+      }
+      for (const d of dispatchesCreated) {
+        await pb.collection("dispatches").delete(d.id).catch(() => {});
+      }
+      alert("Failed to update status.");
+    }
+    setProcessingId(null);
+  };
 
   // Filtering Logic
   const filteredIncidents = incidents.filter((incident) => {
@@ -241,7 +309,10 @@ export default function OngoingIncidents() {
                           const r = d.expand?.responder_id;
                           return (
                             <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", background: "rgba(0,0,0,0.2)", padding: "6px 8px", borderRadius: "4px" }}>
-                              <span style={{ color: theme.accentText, fontWeight: "bold" }}>{r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department}</span>
+                              <span style={{ color: theme.accentText, fontWeight: "bold" }}>
+                                {r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department} 
+                                {d.is_primary_responder && <span style={{ color: "#f59e0b", marginLeft: "6px", fontSize: "10px" }}>(PRIMARY)</span>}
+                              </span>
                               <span style={{ color: "#94a3b8", textTransform: "uppercase" }}>{d.status}</span>
                             </div>
                           );
@@ -284,6 +355,86 @@ export default function OngoingIncidents() {
                         <Maximize2 size={12} /> ENLARGE MAP
                       </div>
                     </div>
+                  </div>
+
+                  {/* RESPONDER DISPATCH MULTI-SELECTOR */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: "8px", background: "rgba(15, 23, 42, 0.6)", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)", marginBottom: "20px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#94a3b8", letterSpacing: "1px" }}>
+                      <span>DISPATCH ADDITIONAL UNITS</span>
+                    </div>
+
+                    {/* DEPARTMENT FILTER DROPDOWN */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <select 
+                        value={departmentFilters[incident.id] || ""} 
+                        onChange={(e) => setDepartmentFilters(prev => ({ ...prev, [incident.id]: e.target.value }))}
+                        style={{ width: "100%", padding: "6px", borderRadius: "4px", backgroundColor: "#1e293b", color: "#f8fafc", border: "1px solid #334155", fontSize: "12px", outline: "none", cursor: "pointer" }}
+                      >
+                        <option value="">All Departments</option>
+                        <option value="police">Police</option>
+                        <option value="ambulance">Ambulance</option>
+                        <option value="MDRRMO">MDRRMO</option>
+                        <option value="Fire">BFP (Fire)</option>
+                      </select>
+                    </div>
+
+                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "4px" }} onClick={(e) => e.stopPropagation()}>
+                      {availableResponders.length === 0 ? (
+                        <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders</div>
+                      ) : (() => {
+                        const filtered = availableResponders.filter(r => !departmentFilters[incident.id] || r.department === departmentFilters[incident.id]);
+                        if (filtered.length === 0) {
+                          return <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders for this department</div>;
+                        }
+                        return filtered.map((r) => {
+                          const isSelected = (selectedResponderIds[incident.id] || []).includes(r.id);
+                          return (
+                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "rgba(56, 189, 248, 0.1)" : "transparent", borderRadius: "4px", marginBottom: "2px" }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isSelected}
+                                onChange={() => {
+                                  setSelectedResponderIds((prev) => {
+                                    const current = prev[incident.id] || [];
+                                    if (current.includes(r.id)) {
+                                      return { ...prev, [incident.id]: current.filter(id => id !== r.id) };
+                                    } else {
+                                      return { ...prev, [incident.id]: [...current, r.id] };
+                                    }
+                                  });
+                                }}
+                                style={{ cursor: "pointer" }}
+                              />
+                              <span style={{ fontSize: "12px", color: isSelected ? "#38bdf8" : "#e2e8f0", fontWeight: isSelected ? "600" : "400" }}>
+                                {r.first_name} {r.last_name} ({r.department})
+                              </span>
+                            </label>
+                          );
+                        });
+                      })()}
+                    </div>
+                    
+                    <button
+                      onClick={(e) => { e.stopPropagation(); updateStatus(incident, "ongoing", selectedResponderIds[incident.id] || []); }}
+                      disabled={processingId === incident.id || (selectedResponderIds[incident.id] || []).length === 0}
+                      style={{
+                        padding: "8px 12px",
+                        backgroundColor: (selectedResponderIds[incident.id] || []).length === 0 ? "#334155" : "#2563eb",
+                        color: (selectedResponderIds[incident.id] || []).length === 0 ? "#94a3b8" : "#ffffff",
+                        border: "none",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        cursor: (selectedResponderIds[incident.id] || []).length === 0 ? "not-allowed" : "pointer",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: "6px",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      {processingId === incident.id ? "DEPLOYING..." : "DISPATCH UNITS"}
+                    </button>
                   </div>
 
                   {/* Media Grid */}

@@ -47,6 +47,9 @@ export default function ManageAdmins() {
         email: newEmail.trim(),
         first_name: newFirstName.trim(),
         last_name: newLastName.trim(),
+        middle_name: "",
+        extension: "",
+        position: "Admin",
         password: "12345678",
         passwordConfirm: "12345678",
         emailVisibility: true,
@@ -91,9 +94,11 @@ export default function ManageAdmins() {
       // 1. Create in super_admins
       await pb.collection("super_admins").create({
         email: admin.email,
-        first_name: admin.first_name,
-        last_name: admin.last_name,
-        middle_name: admin.middle_name,
+        first_name: admin.first_name || "",
+        last_name: admin.last_name || "",
+        middle_name: admin.middle_name || "",
+        extension: admin.extension || "",
+        position: admin.position || "Super Admin",
         password: "12345678", // Must reset password because we can't extract the hash
         passwordConfirm: "12345678",
         emailVisibility: true,

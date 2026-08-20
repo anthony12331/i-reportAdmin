@@ -72,20 +72,24 @@ export default function Sidebar({
     let unsubIncidentsFn = null;
     let unsubUsersFn = null;
     let unsubSosFn = null;
+    let unsubDispatchesFn = null;
 
     const fetchCounts = async () => {
       try {
-        const [reports, users, sos] = await Promise.all([
+        const [reports, users, sos, activeDispatches] = await Promise.all([
           pb.collection("incident_reports").getFullList({ fields: "id,status", requestKey: null }),
           pb.collection("users").getFullList({ fields: "id,status", requestKey: null }),
           pb.collection("sos_tracking").getFullList({ fields: "id,status", requestKey: null }),
+          pb.collection("dispatches").getFullList({ filter: 'status != "resolved"', fields: "incident_id", requestKey: null })
         ]);
 
         if (!isMounted) return;
 
+        const activeIncidentIds = new Set(activeDispatches.map(d => d.incident_id).filter(id => id));
+
         setLiveCounts({
           pendingIncidents: reports.filter((r) => r.status === "new" || r.status === "pending").length,
-          ongoingIncidents: reports.filter((r) => ONGOING_STATUSES.includes(r.status?.toLowerCase())).length,
+          ongoingIncidents: reports.filter((r) => ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)).length,
           pendingUsers: users.filter((u) => u.status === "pending").length,
           pendingSos: sos.filter((s) => s.status !== "resolved").length,
         });
@@ -107,6 +111,7 @@ export default function Sidebar({
       unsubIncidentsFn = await pb.collection("incident_reports").subscribe("*", debouncedFetchCounts);
       unsubUsersFn = await pb.collection("users").subscribe("*", debouncedFetchCounts);
       unsubSosFn = await pb.collection("sos_tracking").subscribe("*", debouncedFetchCounts);
+      unsubDispatchesFn = await pb.collection("dispatches").subscribe("*", debouncedFetchCounts);
     };
 
     startSubscriptions();
@@ -117,6 +122,7 @@ export default function Sidebar({
       if (typeof unsubIncidentsFn === "function") unsubIncidentsFn();
       if (typeof unsubUsersFn === "function") unsubUsersFn();
       if (typeof unsubSosFn === "function") unsubSosFn();
+      if (typeof unsubDispatchesFn === "function") unsubDispatchesFn();
     };
   }, []);
 
@@ -203,6 +209,27 @@ export default function Sidebar({
                 <span>Resolved Incidents</span>
               </div>
             </div>
+
+            <div
+              style={isActive("/request-backup") ? styles.navItemActive : styles.navItem}
+              onClick={() => navigate("/request-backup")}
+            >
+              <div style={styles.navLinkGroup}>
+                <ShieldCheck size={18} />
+                <span>Request Backup</span>
+              </div>
+            </div>
+
+            <div
+              style={isActive("/ongoing-backup") ? styles.navItemActive : styles.navItem}
+              onClick={() => navigate("/ongoing-backup")}
+            >
+              <div style={styles.navLinkGroup}>
+                <Activity size={18} />
+                <span>Ongoing Backup</span>
+              </div>
+            </div>
+
           </>
         )}
 

@@ -43,6 +43,8 @@ ChartJS.register(
 export default function Report() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [reportSource, setReportSource] = useState("incident"); // "incident" | "sos"
+  const [selectedIncidentType, setSelectedIncidentType] = useState("ALL");
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -59,7 +61,6 @@ export default function Report() {
 
   // Chart Refs
   const typeChartRef = useRef(null);
-  const statusChartRef = useRef(null);
   const areaChartRef = useRef(null);
   const responderChartRef = useRef(null);
 
@@ -79,14 +80,27 @@ export default function Report() {
         .toISOString()
         .replace("T", " ");
 
-      const rawData = await pb.collection("incident_reports").getFullList({
-        filter: `created >= "${start}" && created <= "${end}"`,
-        sort: "-created",
-        expand: "users",
-      });
+      let rawData = [];
+      if (reportSource === "incident") {
+        let filterQuery = `created >= "${start}" && created <= "${end}"`;
+        if (selectedIncidentType !== "ALL") {
+          filterQuery += ` && type = "${selectedIncidentType}"`;
+        }
+        rawData = await pb.collection("incident_reports").getFullList({
+          filter: filterQuery,
+          sort: "-created",
+          expand: "users",
+        });
+      } else {
+        rawData = await pb.collection("sos_tracking").getFullList({
+          filter: `created >= "${start}" && created <= "${end}"`,
+          sort: "-created",
+          expand: "user",
+        });
+      }
 
       if (rawData.length === 0) {
-        alert("No incident reports found for this time period.");
+        alert(`No ${reportSource === "incident" ? "incident reports" : "SOS alerts"} found for this time period.`);
         setIsLoading(false);
         setLoadingProgress(0);
         return;
@@ -125,18 +139,24 @@ export default function Report() {
             locationStr = addressCache[coordKey] || "";
           }
 
+          const userObj = reportSource === "incident" ? item.expand?.users : item.expand?.user;
+
           if (
             !locationStr ||
             locationStr === "Coordinates Error" ||
             locationStr === "Unknown Location"
           ) {
-            const userBgry = item.expand?.users?.baranggay;
-            const userMuni = item.expand?.users?.municipality;
+            if (userObj) {
+              const userBgry = userObj.baranggay;
+              const userMuni = userObj.municipality;
 
-            if (userBgry && userMuni) {
-              locationStr = `Brgy. ${userBgry}, ${userMuni}`;
-            } else if (userBgry) {
-              locationStr = `Brgy. ${userBgry}`;
+              if (userBgry && userMuni) {
+                locationStr = `Brgy. ${userBgry}, ${userMuni}`;
+              } else if (userBgry) {
+                locationStr = `Brgy. ${userBgry}`;
+              } else {
+                locationStr = "Lagonglong Area (Unspecified)";
+              }
             } else {
               locationStr = "Lagonglong Area (Unspecified)";
             }
@@ -147,9 +167,16 @@ export default function Report() {
             15 + Math.round((completedGeocodes / totalToGeocode) * 80);
           setLoadingProgress(currentPercentage);
           
-          const itemDispatches = allDispatches.filter(d => d.incident_id === item.id);
+          const itemDispatches = allDispatches.filter(d => 
+             reportSource === "incident" ? d.incident_id === item.id : d.sos_id === item.id
+          );
 
-          return { ...item, resolvedLocation: locationStr, dispatches: itemDispatches };
+          let computedStatus = item.status;
+          if (!computedStatus || computedStatus.trim() === "") {
+            computedStatus = reportSource === "incident" ? "pending" : "active";
+          }
+
+          return { ...item, status: computedStatus, resolvedLocation: locationStr, dispatches: itemDispatches, reporterUser: userObj };
         })
       );
 
@@ -167,17 +194,23 @@ export default function Report() {
       const reporterCounts = {};
 
       processedData.forEach((item) => {
-        const rawType = (item.type || "OTHER").toUpperCase().trim();
+        let rawType = "OTHER";
+        if (reportSource === "incident") {
+          rawType = (item.type || "OTHER").toUpperCase().trim();
+        } else {
+          rawType = (item.assigned_department || "UNASSIGNED").toUpperCase().trim();
+        }
+
         if (Object.prototype.hasOwnProperty.call(typeCounts, rawType)) {
           typeCounts[rawType]++;
         } else {
-          typeCounts["OTHER"] = (typeCounts["OTHER"] || 0) + 1;
+          typeCounts[rawType] = (typeCounts[rawType] || 0) + 1;
         }
 
-        const rawStatus = (item.status || "").toLowerCase().trim();
+        const rawStatus = (item.status || "pending").toLowerCase().trim();
         if (rawStatus === "resolved") {
           statusCounts.resolved++;
-        } else if (rawStatus === "pending") {
+        } else if (rawStatus === "pending" || rawStatus === "unassigned") {
           statusCounts.pending++;
         } else {
           statusCounts.ongoing++;
@@ -207,7 +240,7 @@ export default function Report() {
           });
         }
 
-        const userObj = item.expand?.users;
+        const userObj = item.reporterUser;
         let reporterName = "Anonymous";
 
         if (userObj) {
@@ -266,45 +299,53 @@ export default function Report() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(148, 163, 184);
-    doc.text("Official Operations & Telemetry Audit Report", 14, 24);
+    doc.text(`Official Operations & Telemetry Audit Report (${reportSource === "incident" ? "Incident Reports" : "SOS Alerts"})`, 14, 24);
 
     doc.setFontSize(10);
     doc.setTextColor(30, 41, 59);
     doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 44);
-    doc.text(`Total Incidents Processed: ${reports.length}`, 14, 50);
+    doc.text(`Total Records Processed: ${reports.length}`, 14, 50);
     doc.text(
-      `Active Dispatches (Ongoing): ${analytics.statuses.ongoing}`,
+      `Active (Ongoing): ${analytics.statuses.ongoing}`,
       110,
       44
     );
     doc.text(
-      `Resolved Emergency Cases: ${analytics.statuses.resolved}`,
+      `Resolved Cases: ${analytics.statuses.resolved}`,
       110,
       50
     );
 
-    const typeImg = typeChartRef.current?.toBase64Image();
-    const statusImg = statusChartRef.current?.toBase64Image();
+    const typeImg = typeChartRef.current?.toBase64Image("image/png", 1.0);
+    const areaImg = areaChartRef.current?.toBase64Image("image/png", 1.0);
+    const responderImg = responderChartRef.current?.toBase64Image("image/png", 1.0);
 
-    if (typeImg && statusImg) {
+    if (typeImg) {
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text("Visual Classification & Response Distribution", 14, 62);
+      doc.setTextColor(15, 23, 42);
+      doc.text(reportSource === "incident" ? "Visual Classification Breakdown" : "Assigned Department Breakdown", 14, 62);
 
-      doc.addImage(typeImg, "PNG", 14, 68, 90, 50);
-      doc.addImage(statusImg, "PNG", 110, 68, 85, 50);
+      // Give it full width
+      doc.addImage(typeImg, "PNG", 14, 68, 180, 50);
+    }
+    
+    if (areaImg && responderImg) {
+      doc.text("Hotspots & Responder Deployments", 14, 125);
+      doc.addImage(areaImg, "PNG", 14, 131, 85, 45);
+      doc.addImage(responderImg, "PNG", 110, 131, 85, 45);
     }
 
     doc.addPage();
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
-    doc.text("Incident Log Entries Audit Table", 14, 16);
+    doc.text("Log Entries Audit Table", 14, 16);
 
     const tableHeaders = [
       "Timestamp",
-      "Incident Location",
-      "Type",
+      "Location",
+      reportSource === "incident" ? "Type" : "Department",
       "Status",
       "Assigned Unit",
       "Reporter",
@@ -319,13 +360,15 @@ export default function Report() {
         }).join(", ");
       }
 
-      const reporterName = r.expand?.users
-        ? `${r.expand.users.first_name || ""} ${
-            r.expand.users.last_name || ""
+      const reporterName = r.reporterUser
+        ? `${r.reporterUser.first_name || ""} ${
+            r.reporterUser.last_name || ""
           }`.trim() ||
-          r.expand.users.contact_number ||
+          r.reporterUser.contact_number ||
           "Registered Citizen"
         : "Anonymous";
+        
+      const rawType = reportSource === "incident" ? (r.type || "OTHER") : (r.assigned_department || "UNASSIGNED");
 
       return [
         new Date(r.created).toLocaleDateString([], {
@@ -336,8 +379,8 @@ export default function Report() {
           minute: "2-digit",
         }),
         r.resolvedLocation,
-        (r.type || "OTHER").toUpperCase(),
-        (r.status || "UNKNOWN").toUpperCase().replace("_", " "),
+        rawType.toUpperCase(),
+        (r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE")).toUpperCase().replace("_", " "),
         unit,
         reporterName,
       ];
@@ -355,6 +398,18 @@ export default function Report() {
     doc.save(`DRRMO_Report_${startDate}_to_${endDate}.pdf`);
   };
 
+  const customCanvasBackgroundColor = {
+    id: 'customCanvasBackgroundColor',
+    beforeDraw: (chart, args, options) => {
+      const {ctx} = chart;
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.fillStyle = options.color || '#0f172a'; // Match the UI dark background
+      ctx.fillRect(0, 0, chart.width, chart.height);
+      ctx.restore();
+    }
+  };
+
   const darkChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -362,15 +417,16 @@ export default function Report() {
       legend: {
         labels: { color: "#cbd5e1", font: { weight: "700", size: 11 } },
       },
+      customCanvasBackgroundColor: { color: '#0f172a' }
     },
     scales: {
       x: {
         ticks: { color: "#cbd5e1", font: { weight: "600" } },
-        grid: { color: "#f8fafc" },
+        grid: { color: "#334155" }, // Softer grid lines
       },
       y: {
         ticks: { color: "#cbd5e1", font: { weight: "600" } },
-        grid: { color: "#f8fafc" },
+        grid: { color: "#334155" }, // Softer grid lines
       },
     },
   };
@@ -379,15 +435,18 @@ export default function Report() {
     indexAxis: "y",
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
+    plugins: { 
+      legend: { display: false },
+      customCanvasBackgroundColor: { color: '#0f172a' } 
+    },
     scales: {
       x: {
         ticks: { color: "#cbd5e1", font: { weight: "600" } },
-        grid: { color: "#f8fafc" },
+        grid: { color: "#334155" }, // Softer grid lines
       },
       y: {
         ticks: { color: "#cbd5e1", font: { weight: "700" } },
-        grid: { color: "#f8fafc" },
+        grid: { color: "#334155" }, // Softer grid lines
       },
     },
   };
@@ -403,19 +462,7 @@ export default function Report() {
     ],
   };
 
-  const statusChartData = {
-    labels: ["Pending Queue", "Active Dispatches", "Resolved"],
-    datasets: [
-      {
-        data: [
-          analytics.statuses.pending,
-          analytics.statuses.ongoing,
-          analytics.statuses.resolved,
-        ],
-        backgroundColor: ["#ef4444", "#f59e0b", "#10b981"],
-      },
-    ],
-  };
+
 
   const areaChartData = {
     labels: analytics.topAreas.map((item) => item[0]),
@@ -482,6 +529,39 @@ export default function Report() {
               style={styles.dateInput}
             />
           </div>
+
+          <div style={styles.dateInputGroup}>
+            <label style={styles.dateLabel}>
+              <ShieldAlert size={14} color="#38bdf8" /> DATA SOURCE
+            </label>
+            <select
+              value={reportSource}
+              onChange={(e) => setReportSource(e.target.value)}
+              style={{ ...styles.dateInput, cursor: "pointer", appearance: "auto" }}
+            >
+              <option value="incident">Incident Reports</option>
+              <option value="sos">SOS Alerts</option>
+            </select>
+          </div>
+
+          {reportSource === "incident" && (
+            <div style={styles.dateInputGroup}>
+              <label style={styles.dateLabel}>
+                <ShieldAlert size={14} color="#38bdf8" /> INCIDENT TYPE
+              </label>
+              <select
+                value={selectedIncidentType}
+                onChange={(e) => setSelectedIncidentType(e.target.value)}
+                style={{ ...styles.dateInput, cursor: "pointer", appearance: "auto" }}
+              >
+                <option value="ALL">All Types</option>
+                <option value="fire">Fire Emergency</option>
+                <option value="accident">Accident</option>
+                <option value="landslide">Landslide</option>
+                <option value="police">Police</option>
+              </select>
+            </div>
+          )}
 
           <div style={styles.actionColumn}>
             <button
@@ -555,7 +635,7 @@ export default function Report() {
             </div>
 
             {/* Top Charts Row */}
-            <div style={styles.chartRowGrid}>
+            <div style={{ marginBottom: "32px" }}>
               <div style={styles.chartPanel}>
                 <h3 style={styles.chartTitle}>
                   <ShieldAlert size={18} color="#f87171" /> CLASSIFICATION BREAKDOWN
@@ -565,34 +645,7 @@ export default function Report() {
                     ref={typeChartRef}
                     data={typeChartData}
                     options={darkChartOptions}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.chartPanel}>
-                <h3 style={styles.chartTitle}>RESPONSE LIFECYCLE</h3>
-                <div
-                  style={{
-                    maxHeight: "280px",
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Pie
-                    ref={statusChartRef}
-                    data={statusChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          labels: {
-                            color: "#cbd5e1",
-                            font: { weight: "700", size: 11 },
-                          },
-                        },
-                      },
-                    }}
+                    plugins={[customCanvasBackgroundColor]}
                   />
                 </div>
               </div>
@@ -609,6 +662,7 @@ export default function Report() {
                     ref={areaChartRef}
                     data={areaChartData}
                     options={horizontalBarOptions}
+                    plugins={[customCanvasBackgroundColor]}
                   />
                 </div>
               </div>
@@ -622,6 +676,7 @@ export default function Report() {
                     ref={responderChartRef}
                     data={responderChartData}
                     options={horizontalBarOptions}
+                    plugins={[customCanvasBackgroundColor]}
                   />
                 </div>
               </div>
@@ -654,33 +709,38 @@ export default function Report() {
               </div>
 
               <div style={styles.chartPanel}>
-                <h3 style={styles.chartTitle}>RECENT LOG ENTRIES AUDIT</h3>
-                <table style={styles.auditTable}>
-                  <thead>
-                    <tr>
-                      <th style={styles.auditTh}>Type</th>
-                      <th style={styles.auditTh}>Incident Location</th>
-                      <th style={styles.auditTh}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reports.slice(0, 5).map((r) => (
-                      <tr key={r.id} style={styles.auditTr}>
-                        <td style={styles.auditTdType}>
-                          {(r.type || "OTHER").toUpperCase()}
-                        </td>
-                        <td style={styles.auditTdLoc}>{r.resolvedLocation}</td>
-                        <td>
-                          <span style={styles.statusBadge(r.status)}>
-                            {(r.status || "UNKNOWN")
-                              .toUpperCase()
-                              .replace("_", " ")}
-                          </span>
-                        </td>
+                <h3 style={styles.chartTitle}>LOG ENTRIES AUDIT</h3>
+                <div style={{ maxHeight: "300px", overflowY: "auto", paddingRight: "8px" }}>
+                  <table style={styles.auditTable}>
+                    <thead style={{ position: "sticky", top: 0, backgroundColor: "#0f172a", zIndex: 1 }}>
+                      <tr>
+                        <th style={styles.auditTh}>{reportSource === "incident" ? "Type" : "Department"}</th>
+                        <th style={styles.auditTh}>Location</th>
+                        <th style={styles.auditTh}>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {reports.map((r) => {
+                        const rawType = reportSource === "incident" ? (r.type || "OTHER") : (r.assigned_department || "UNASSIGNED");
+                        return (
+                          <tr key={r.id} style={styles.auditTr}>
+                            <td style={styles.auditTdType}>
+                              {rawType.toUpperCase()}
+                            </td>
+                            <td style={styles.auditTdLoc}>{r.resolvedLocation}</td>
+                            <td>
+                              <span style={styles.statusBadge(r.status || (reportSource === "incident" ? "pending" : "active"))}>
+                                {(r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE"))
+                                  .toUpperCase()
+                                  .replace("_", " ")}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

@@ -48,6 +48,7 @@ export default function PendingIncidents() {
   const [availableResponders, setAvailableResponders] = useState([]);
   const [, setRespondersLoading] = useState(false);
   const [selectedResponderIds, setSelectedResponderIds] = useState({});
+  const [departmentFilters, setDepartmentFilters] = useState({});
   const [soundMuted, setSoundMuted] = useState(false);
 
   const [filters, setFilters] = useState({
@@ -294,15 +295,7 @@ export default function PendingIncidents() {
             <p style={tStyle.subtitle}>Tactical incident queue & real-time dispatch control</p>
           </div>
 
-          {/* AUDIO SIREN TOGGLE */}
-          <button
-            onClick={() => setSoundMuted(!soundMuted)}
-            style={soundMuted ? tStyle.soundBtnMuted : tStyle.soundBtnActive}
-            title={soundMuted ? "Unmute Audio Sirens" : "Mute Audio Sirens"}
-          >
-            {soundMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            <span>{soundMuted ? "AUDIO MUTED" : "SIRENS ACTIVE"}</span>
-          </button>
+
         </header>
 
         {/* TACTICAL FILTER BAR */}
@@ -442,11 +435,31 @@ export default function PendingIncidents() {
                     <div style={tStyle.dispatchLabel}>
                       <span>ASSIGN RESPONDER(S)</span>
                     </div>
+
+                    {/* DEPARTMENT FILTER DROPDOWN */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <select 
+                        value={departmentFilters[incident.id] || ""} 
+                        onChange={(e) => setDepartmentFilters(prev => ({ ...prev, [incident.id]: e.target.value }))}
+                        style={{ width: "100%", padding: "6px", borderRadius: "4px", backgroundColor: "#1e293b", color: "#f8fafc", border: "1px solid #334155", fontSize: "12px", outline: "none", cursor: "pointer" }}
+                      >
+                        <option value="">All Departments</option>
+                        <option value="police">Police</option>
+                        <option value="ambulance">Ambulance</option>
+                        <option value="MDRRMO">MDRRMO</option>
+                        <option value="Fire">BFP (Fire)</option>
+                      </select>
+                    </div>
+
                     <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "4px" }} onClick={(e) => e.stopPropagation()}>
                       {availableResponders.length === 0 ? (
                         <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders</div>
-                      ) : (
-                        availableResponders.map((r) => {
+                      ) : (() => {
+                        const filtered = availableResponders.filter(r => !departmentFilters[incident.id] || r.department === departmentFilters[incident.id]);
+                        if (filtered.length === 0) {
+                          return <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders for this department</div>;
+                        }
+                        return filtered.map((r) => {
                           const isSelected = (selectedResponderIds[incident.id] || []).includes(r.id);
                           return (
                             <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "rgba(56, 189, 248, 0.1)" : "transparent", borderRadius: "4px", marginBottom: "2px" }}>
@@ -470,8 +483,8 @@ export default function PendingIncidents() {
                               </span>
                             </label>
                           );
-                        })
-                      )}
+                        });
+                      })()}
                     </div>
                   </div>
 

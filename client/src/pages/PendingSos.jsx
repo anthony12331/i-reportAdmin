@@ -21,6 +21,7 @@ import { getResponderOptionLabel } from "../utils/responderOptions";
 
 export default function PendingSos() {
   const [sosSignals, setSosSignals] = useState([]);
+  const [dispatches, setDispatches] = useState([]);
   const [addresses, setAddresses] = useState({});
   const [selectedMap, setSelectedMap] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -59,8 +60,22 @@ export default function PendingSos() {
   const fetchSosSignals = useCallback(async () => {
     setLoading(true);
     try {
+      const activeDispatches = await pb.collection("dispatches").getFullList({
+        filter: 'sos_id != "" && status != "resolved"',
+        expand: "responder_id",
+        requestKey: null
+      });
+      setDispatches(activeDispatches);
+
+      const activeSosIds = [...new Set(activeDispatches.map(d => d.sos_id))];
+      let filterString = 'status = "active"';
+      if (activeSosIds.length > 0) {
+        const idFilters = activeSosIds.map(id => `id = "${id}"`).join(" || ");
+        filterString = `(${filterString}) || (${idFilters})`;
+      }
+
       const records = await pb.collection("sos_tracking").getFullList({
-        filter: 'status = "active"',
+        filter: filterString,
         sort: "-created",
         expand: "user,incident_id",
         requestKey: null,
@@ -68,7 +83,7 @@ export default function PendingSos() {
       setSosSignals(records);
       await resolveAddresses(records);
     } catch (e) {
-      console.error("Fetch SOS error:", e);
+      if (!e.isAbort) console.error("Fetch SOS error:", e);
     }
     setLoading(false);
   }, [resolveAddresses]);
@@ -167,49 +182,20 @@ export default function PendingSos() {
   // Realtime Subscriptions with Full Relation Resolution
   useEffect(() => {
     let isMounted = true;
-    let unsubSos, unsubResponders;
+    let unsubSos, unsubResponders, unsubDispatches;
 
     const loadAndSubscribe = async () => {
       await fetchSosSignals();
       await fetchAvailableResponders();
 
       // Subscribe to real-time events on sos_tracking
-      unsubSos = await pb.collection("sos_tracking").subscribe("*", async (e) => {
-        if (!isMounted) return;
-        const { action, record } = e;
+      unsubSos = await pb.collection("sos_tracking").subscribe("*", () => {
+        if (isMounted) fetchSosSignals();
+      });
 
-        if (action === "delete" || (action === "update" && record.status !== "active")) {
-          setSosSignals((prev) => prev.filter((item) => item.id !== record.id));
-          setSelectedMap((current) => (current?.id === record.id ? null : current));
-        } else if (action === "create" || action === "update") {
-          if (record.status === "active") {
-            try {
-              // Fetch record with full relations
-              const freshRecord = await pb.collection("sos_tracking").getOne(record.id, {
-                expand: "user,incident_id",
-                requestKey: null,
-              });
-
-              if (!isMounted) return;
-
-              setSosSignals((prev) => {
-                const exists = prev.some((item) => item.id === freshRecord.id);
-                if (exists) {
-                  return prev.map((item) => (item.id === freshRecord.id ? freshRecord : item));
-                }
-                return [freshRecord, ...prev];
-              });
-
-              setSelectedMap((current) =>
-                current?.id === freshRecord.id ? freshRecord : current
-              );
-
-              resolveAddresses([freshRecord]);
-            } catch (err) {
-              console.error("Error resolving realtime SOS record:", err);
-            }
-          }
-        }
+      // Subscribe to real-time events on dispatches
+      unsubDispatches = await pb.collection("dispatches").subscribe("*", () => {
+        if (isMounted) fetchSosSignals();
       });
 
       // Subscribe to real-time events on responder_accounts
@@ -223,9 +209,10 @@ export default function PendingSos() {
     return () => {
       isMounted = false;
       unsubSos?.();
+      unsubDispatches?.();
       unsubResponders?.();
     };
-  }, [fetchSosSignals, resolveAddresses, fetchAvailableResponders]);
+  }, [fetchSosSignals, fetchAvailableResponders]);
 
   return (
     <div style={sosStyles.shell}>
@@ -274,6 +261,7 @@ export default function PendingSos() {
           {sosSignals.map((sos) => {
             const responderOptions = availableResponders;
             const selectedIds = selectedResponderIds[sos.id] || [];
+            const sosDispatches = dispatches.filter(d => d.sos_id === sos.id);
 
             return (
               <div key={sos.id} style={sosStyles.card}>
@@ -330,12 +318,30 @@ export default function PendingSos() {
                   <div style={sosStyles.assignmentBox}>
                     <div style={sosStyles.statusHeader}>
                       <span style={sosStyles.statusLabel}>CURRENT STATUS:</span>
-                      <span style={sosStyles.statusBadge(sos.dispatch_status === "assigned")}>
-                        {sos.dispatch_status === "assigned"
+                      <span style={sosStyles.statusBadge(sos.dispatch_status === "assigned" || sosDispatches.length > 0)}>
+                        {sos.dispatch_status === "assigned" || sosDispatches.length > 0
                           ? "DISPATCHED"
                           : "UNASSIGNED"}
                       </span>
                     </div>
+
+                    {sosDispatches.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px", background: "rgba(0,0,0,0.3)", borderRadius: "6px", marginBottom: "10px" }}>
+                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold", textTransform: "uppercase" }}>🚀 DEPLOYED UNITS:</span>
+                        {sosDispatches.map(d => {
+                          const r = d.expand?.responder_id;
+                          return (
+                            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "rgba(255,255,255,0.05)", padding: "4px 8px", borderRadius: "4px" }}>
+                              <span style={{ color: "#38bdf8", fontWeight: "bold" }}>
+                                {r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department} 
+                                {d.is_primary_responder && <span style={{ color: "#f59e0b", marginLeft: "6px", fontSize: "10px" }}>(PRIMARY)</span>}
+                              </span>
+                              <span style={{ color: "#94a3b8", textTransform: "uppercase", fontSize: "10px", fontWeight: "bold" }}>{d.status}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "4px", marginBottom: "10px" }} onClick={(e) => e.stopPropagation()}>
                       {respondersLoading ? (

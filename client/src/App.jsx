@@ -18,6 +18,8 @@ import RBACManager from "./pages/RBACManager";
 import Report from "./pages/Report";
 import AuditLogs from "./pages/Audit";
 import GenerateResponderPin from "./pages/GenerateResponderPin";
+import RequestBackup from "./pages/RequestBackup";
+import OngoingBackup from "./pages/OngoingBackup";
 
 // Components
 import { MessageBoxProvider } from "./components/MessageBox";
@@ -665,6 +667,22 @@ function App() {
               element={
                 <ProtectedRoute requiredModule="pins">
                   <GenerateResponderPin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/request-backup"
+              element={
+                <ProtectedRoute requiredModule="incidents">
+                  <RequestBackup />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ongoing-backup"
+              element={
+                <ProtectedRoute requiredModule="incidents">
+                  <OngoingBackup />
                 </ProtectedRoute>
               }
             />
