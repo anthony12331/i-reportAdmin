@@ -161,7 +161,7 @@ function MapFlyToListener({ reports, sos }) {
   return null;
 }
 
-export default function DashboardMap({ reports = [], sos = [], responders = [], dispatches = [] }) {
+export default function DashboardMap({ reports = [], sos = [], responders = [], dispatches = [], backupRequests = [] }) {
   const validReports = useMemo(() => {
     const activeDispatches = dispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
     const activeIncidentIds = new Set(activeDispatches.map(d => d.incident_id).filter(id => !!id));
@@ -180,6 +180,17 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
       (s.status?.toLowerCase() !== 'resolved' || activeSosIds.has(s.id))
     );
   }, [sos, dispatches]);
+
+  const validBackups = useMemo(() => {
+    return backupRequests
+      .filter(b => b.dispatch_status === 'pending')
+      .map(b => {
+        const lat = b.expand?.requester_id?.latitude || b.expand?.incident_id?.latitude || b.expand?.sos_id?.latitude;
+        const lng = b.expand?.requester_id?.longitude || b.expand?.incident_id?.longitude || b.expand?.sos_id?.longitude;
+        return { ...b, latitude: lat, longitude: lng };
+      })
+      .filter(b => b.latitude && b.longitude);
+  }, [backupRequests]);
 
   return (
     <div style={{ width: '100%', height: '100%', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
@@ -271,6 +282,29 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
             </Popup>
           </Marker>
         ))}
+
+        {validBackups.map(b => {
+          const reqName = b.expand?.requester_id?.unit_name || b.expand?.requester_id?.first_name || "Unit";
+          return (
+            <Marker 
+              key={`backup-${b.id}`} 
+              position={[b.latitude, b.longitude]}
+              icon={createCustomIcon('#f59e0b', true)}
+            >
+              <Popup>
+                <div style={{ fontWeight: 'bold', color: '#f59e0b', fontSize: '14px', marginBottom: '4px' }}>
+                  ⚠️ BACKUP REQUEST
+                </div>
+                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                  <strong>Requester:</strong> {reqName}
+                </div>
+                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                  <strong>Reason:</strong> {b.reason || "Not specified"}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
 
         {dispatches.map(dispatch => {
           if (dispatch.status === 'resolved') return null;

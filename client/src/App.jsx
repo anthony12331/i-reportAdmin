@@ -50,8 +50,14 @@ function App() {
   const alarmAudioRef = useRef(null);
   const openIncidentIdsRef = useRef(new Set());
   const openSosIdsRef = useRef(new Set());
+  const openBackupIdsRef = useRef(new Set());
   const alarmSyncVersionRef = useRef(0);
   const isMountedRef = useRef(true);
+
+  // Derived state calculations
+  const alertedIncidentIds = new Set();
+  const alertedSosIds = new Set();
+  const alertedBackupIds = new Set();
 
   useEffect(() => subscribeToSettings(setSettings), []);
 
@@ -95,6 +101,10 @@ function App() {
   const isOpenSos = useCallback(
     (record) =>
       record?.status !== "resolved" && record?.dispatch_status !== "assigned",
+    []
+  );
+  const isOpenBackup = useCallback(
+    (record) => record?.dispatch_status === "pending",
     []
   );
   const getAlertKey = useCallback(
@@ -196,42 +206,41 @@ function App() {
 
       const nextIncidentIds = new Set(openIncidentIdsRef.current);
       const nextSosIds = new Set(openSosIdsRef.current);
+      const nextBackupIds = new Set(openBackupIdsRef.current);
+      
       const alertSet =
-        collectionName === "sos_tracking" ? alertedSosIds : alertedIncidentIds;
+        collectionName === "sos_tracking" ? alertedSosIds 
+        : collectionName === "backup_requests" ? alertedBackupIds
+        : alertedIncidentIds;
 
       let wasOpen = false;
       let isOpen = false;
 
       if (collectionName === "incident_reports") {
         wasOpen = nextIncidentIds.has(record.id);
-        isOpen =
-          action !== "delete" &&
-          (action === "create" || isOpenIncident(record));
-
-        if (isOpen) {
-          nextIncidentIds.add(record.id);
-        } else {
-          nextIncidentIds.delete(record.id);
-          alertSet.delete(record.id);
-        }
+        isOpen = action !== "delete" && (action === "create" || isOpenIncident(record));
+        if (isOpen) nextIncidentIds.add(record.id);
+        else { nextIncidentIds.delete(record.id); alertSet.delete(record.id); }
       }
 
       if (collectionName === "sos_tracking") {
         wasOpen = nextSosIds.has(record.id);
-        isOpen =
-          action !== "delete" && (action === "create" || isOpenSos(record));
-
-        if (isOpen) {
-          nextSosIds.add(record.id);
-        } else {
-          nextSosIds.delete(record.id);
-          alertSet.delete(record.id);
-        }
+        isOpen = action !== "delete" && (action === "create" || isOpenSos(record));
+        if (isOpen) nextSosIds.add(record.id);
+        else { nextSosIds.delete(record.id); alertSet.delete(record.id); }
+      }
+      
+      if (collectionName === "backup_requests") {
+        wasOpen = nextBackupIds.has(record.id);
+        isOpen = action !== "delete" && (action === "create" || isOpenBackup(record));
+        if (isOpen) nextBackupIds.add(record.id);
+        else { nextBackupIds.delete(record.id); alertSet.delete(record.id); }
       }
 
       openIncidentIdsRef.current = nextIncidentIds;
       openSosIdsRef.current = nextSosIds;
-      setAlarmActive(nextIncidentIds.size + nextSosIds.size > 0);
+      openBackupIdsRef.current = nextBackupIds;
+      setAlarmActive(nextIncidentIds.size + nextSosIds.size + nextBackupIds.size > 0);
 
       const shouldPulse =
         isOpen && !alertSet.has(record.id) && (!wasOpen || action === "create");
@@ -243,7 +252,7 @@ function App() {
 
       return shouldPulse;
     },
-    [isAuthorizedAdmin, isOpenIncident, isOpenSos, playAlarmSound]
+    [isAuthorizedAdmin, isOpenIncident, isOpenSos, isOpenBackup, playAlarmSound]
   );
 
   const reconcileAlarmState = useCallback(async () => {
@@ -255,7 +264,7 @@ function App() {
     const syncVersion = ++alarmSyncVersionRef.current;
 
     try {
-      const [openIncidentRecords, openSosRecords] = await Promise.all([
+      const [openIncidentRecords, openSosRecords, openBackupRecords] = await Promise.all([
         pb.collection("incident_reports").getFullList({
           filter: 'status = "new" || status = "pending"',
           fields: "id",
@@ -266,6 +275,11 @@ function App() {
           fields: "id",
           requestKey: null,
         }),
+        pb.collection("backup_requests").getFullList({
+          filter: 'dispatch_status = "pending"',
+          fields: "id",
+          requestKey: null,
+        }),
       ]);
 
       if (!isMountedRef.current || syncVersion !== alarmSyncVersionRef.current)
@@ -273,14 +287,19 @@ function App() {
 
       const previousIncidentIds = openIncidentIdsRef.current;
       const previousSosIds = openSosIdsRef.current;
+      const previousBackupIds = openBackupIdsRef.current;
+      
       const nextIncidentIds = new Set(
         openIncidentRecords.map((record) => record.id)
       );
       const nextSosIds = new Set(openSosRecords.map((record) => record.id));
+      const nextBackupIds = new Set(openBackupRecords.map((record) => record.id));
+
       const hasNewIncident = [...nextIncidentIds].some(
         (id) => !previousIncidentIds.has(id)
       );
       const hasNewSos = [...nextSosIds].some((id) => !previousSosIds.has(id));
+      const hasNewBackup = [...nextBackupIds].some((id) => !previousBackupIds.has(id));
 
       for (const alertedId of alertedIncidentIds) {
         if (!nextIncidentIds.has(alertedId)) {
@@ -292,12 +311,18 @@ function App() {
           alertedSosIds.delete(alertedId);
         }
       }
+      for (const alertedId of alertedBackupIds) {
+        if (!nextBackupIds.has(alertedId)) {
+          alertedBackupIds.delete(alertedId);
+        }
+      }
 
       openIncidentIdsRef.current = nextIncidentIds;
       openSosIdsRef.current = nextSosIds;
-      setAlarmActive(nextIncidentIds.size + nextSosIds.size > 0);
+      openBackupIdsRef.current = nextBackupIds;
+      setAlarmActive(nextIncidentIds.size + nextSosIds.size + nextBackupIds.size > 0);
 
-      if (hasNewIncident || hasNewSos) {
+      if (hasNewIncident || hasNewSos || hasNewBackup) {
         setAlarmPulse((pulse) => pulse + 1);
         playAlarmSound(); // Instantly trigger alarm on new incidents!
       }
@@ -311,6 +336,7 @@ function App() {
   // Subscriptions & Listeners
   useEffect(() => {
     let incidentUnsubscribe;
+    let backupUnsubscribe;
     let sosUnsubscribe;
 
     isMountedRef.current = true;
@@ -433,6 +459,18 @@ function App() {
             if (!isMountedRef.current || !e?.record) return;
             handleSosEvent(e.record, e.action);
           });
+          
+        backupUnsubscribe = await pb
+          .collection("backup_requests")
+          .subscribe("*", (e) => {
+            if (!isMountedRef.current || !e?.record) return;
+            const shouldAlert = syncSignalStateFromRecord(
+              "backup_requests",
+              e.record,
+              e.action
+            );
+            // Optionally could emit a global event for the backup map like handled for SOS
+          });
       } catch (subError) {
         console.error(
           "Real-time telemetry streaming failed to mount:",
@@ -447,6 +485,7 @@ function App() {
       isMountedRef.current = false;
       if (incidentUnsubscribe) incidentUnsubscribe().catch(() => {});
       if (sosUnsubscribe) sosUnsubscribe().catch(() => {});
+      if (backupUnsubscribe) backupUnsubscribe().catch(() => {});
     };
   }, [
     settings,

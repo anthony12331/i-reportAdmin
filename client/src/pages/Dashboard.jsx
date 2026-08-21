@@ -41,6 +41,7 @@ export default function Dashboard() {
     responders: [],
     dispatches: [],
     auditLogs: [],
+    backupRequests: [],
   });
   const [addresses, setAddresses] = useState({});
   const [soundMuted, setSoundMuted] = useState(false);
@@ -91,7 +92,7 @@ export default function Dashboard() {
     try {
       if (!pb.authStore.isValid) return;
 
-      const [users, reports, sos, responders, dispatches, auditLogs] = await Promise.all([
+      const [users, reports, sos, responders, dispatches, auditLogs, backupRequests] = await Promise.all([
         pb.collection("users").getFullList({ requestKey: null }).catch(() => []),
         pb.collection("incident_reports").getFullList({
           sort: "-created",
@@ -109,6 +110,10 @@ export default function Dashboard() {
           requestKey: null,
         }).catch(() => []),
         pb.collection("audit_logs").getList(1, 5, { sort: "-created", requestKey: null }).catch(() => ({ items: [] })),
+        pb.collection("backup_requests").getFullList({
+          expand: "requester_id,assigned_responder,incident_id,sos_id",
+          requestKey: null,
+        }).catch(() => []),
       ]);
 
       // Sound trigger on incoming SOS
@@ -124,6 +129,7 @@ export default function Dashboard() {
         responders,
         dispatches,
         auditLogs: auditLogs.items || [],
+        backupRequests,
       });
 
       const itemsToResolve = [
@@ -382,7 +388,7 @@ export default function Dashboard() {
               </h2>
             </div>
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-              <DashboardMap reports={data.reports} sos={activeSosList} responders={data.responders} dispatches={data.dispatches} />
+              <DashboardMap reports={data.reports} sos={activeSosList} responders={data.responders} dispatches={data.dispatches} backupRequests={data.backupRequests} />
             </div>
           </div>
 

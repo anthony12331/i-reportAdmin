@@ -33,9 +33,25 @@ export const requestBackupStyles = {
     color: "#94a3b8",
     margin: 0,
   },
+  contentWrapper: {
+    display: "flex",
+    gap: "24px",
+    alignItems: "flex-start",
+  },
+  leftColumn: {
+    flex: "1 1 50%",
+    minWidth: "350px",
+  },
+  rightColumn: {
+    flex: "1 1 50%",
+    position: "sticky",
+    top: "32px",
+    height: "calc(100vh - 120px)",
+    minWidth: "350px",
+  },
   cardGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
+    display: "flex",
+    flexDirection: "column",
     gap: "24px",
   },
   card: {
