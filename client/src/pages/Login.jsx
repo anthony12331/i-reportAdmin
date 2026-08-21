@@ -36,7 +36,7 @@ export default function Login() {
 
     try {
       // 2. Single POST request to Node API server
-      const response = await fetch("http://localhost:5001/api/admin-login", {
+      const response = await fetch("https://api.ireportsystem.com/express-api/admin-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -66,7 +66,7 @@ export default function Login() {
     if (!resetEmail.trim()) return alert("Please enter your email.");
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5001/api/forgot-password-otp", {
+      const res = await fetch("https://api.ireportsystem.com/express-api/forgot-password-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail.trim() }),
@@ -89,7 +89,7 @@ export default function Login() {
     
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5001/api/reset-password-otp", {
+      const res = await fetch("https://api.ireportsystem.com/express-api/reset-password-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail.trim(), otp: otp.trim(), newPassword }),

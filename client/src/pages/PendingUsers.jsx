@@ -256,7 +256,7 @@ export default function PendingUserRegistration() {
       });
 
       if (user.email) {
-        await fetch("http://localhost:5001/api/send-verification", {
+        await fetch("https://api.ireportsystem.com/express-api/send-verification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: user.email, name: user.first_name }),
@@ -297,7 +297,7 @@ export default function PendingUserRegistration() {
     );
     try {
       if (rejectionModal.userEmail) {
-        await fetch("http://localhost:5001/api/send-rejection", {
+        await fetch("https://api.ireportsystem.com/express-api/send-rejection", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -358,7 +358,7 @@ export default function PendingUserRegistration() {
 
           if (targetUser.email) {
             emailPromises.push(
-              fetch("http://localhost:5001/api/send-verification", {
+              fetch("https://api.ireportsystem.com/express-api/send-verification", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
