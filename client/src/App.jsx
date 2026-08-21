@@ -111,20 +111,24 @@ function App() {
   const playAlarmSound = useCallback(() => {
     if (!settings.soundEnabled) return;
     try {
-      const audio = new Audio("/notification_sound.mp3");
-      audio.play().catch((err) => console.warn("Autoplay blocked globally:", err));
+      const alertSound = alarmAudioRef.current || document.getElementById("emergency-alert-sound");
+      if (alertSound) {
+        alertSound.play().catch((err) => console.warn("Autoplay blocked globally:", err));
+      }
     } catch (e) {
       console.error("Audio playback error:", e);
     }
   }, [settings.soundEnabled]);
 
   const pauseAlarmSound = useCallback(() => {
-    const alertSound =
-      alarmAudioRef.current || document.getElementById("emergency-alert-sound");
-    if (alertSound) {
-      alertSound.pause();
-      // eslint-disable-next-line react-hooks/immutability
-      alertSound.currentTime = 0;
+    try {
+      const alertSound = alarmAudioRef.current || document.getElementById("emergency-alert-sound");
+      if (alertSound) {
+        alertSound.pause();
+        alertSound.currentTime = 0;
+      }
+    } catch (err) {
+      console.warn("Audio pause failed:", err);
     }
   }, []);
 
