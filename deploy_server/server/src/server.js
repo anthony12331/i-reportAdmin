@@ -234,6 +234,19 @@ app.post("/api/reset-password-otp", async (req, res) => {
   }
 });
 
+app.post("/api/send-otp", async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ ok: false, error: "Missing fields" });
+
+  try {
+    await sendOtpEmail(email, otp);
+    return res.json({ ok: true, message: "OTP sent" });
+  } catch (error) {
+    console.error("[SERVER] Send OTP error:", error);
+    return res.status(500).json({ ok: false, error: "Internal server error." });
+  }
+});
+
 app.post("/api/send-verification", async (req, res) => {
   const { email, name } = req.body;
 
