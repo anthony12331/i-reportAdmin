@@ -1,44 +1,36 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Note: Until you verify a custom domain in Resend, 
+// you can only send emails TO yourself using this generic FROM address.
+const SENDER_EMAIL = "onboarding@resend.dev";
 
 async function sendVerificationEmail(email, name) {
-  const mailOptions = {
-    from: `"LAGONGLONG LGU" <${process.env.EMAIL_USER}>`,
+  return resend.emails.send({
+    from: SENDER_EMAIL,
     to: email,
     subject: "Account Verified - LAGONGLONG INCIDENT REPORT",
-    text: `Hello ${name || "User"},\n\nyou are now verified in LAGONGLONG INCIDENT REPORT, your account can now login to the app.`,
-  };
-
-  return transporter.sendMail(mailOptions);
+    html: `<p>Hello ${name || "User"},</p><p>You are now verified in LAGONGLONG INCIDENT REPORT, your account can now login to the app.</p>`,
+  });
 }
 
 async function sendRejectionEmail(email, reason) {
-  const mailOptions = {
-    from: `"LAGONGLONG LGU" <${process.env.EMAIL_USER}>`,
+  return resend.emails.send({
+    from: SENDER_EMAIL,
     to: email,
     subject: "Registration Update - LAGONGLONG INCIDENT REPORT",
-    text: `Your registration was not approved.\n\nReason: ${reason}\n\nPlease update your information and try again.`,
-  };
-
-  return transporter.sendMail(mailOptions);
+    html: `<p>Your registration was not approved.</p><p>Reason: ${reason}</p><p>Please update your information and try again.</p>`,
+  });
 }
 
 async function sendOtpEmail(email, otp) {
-  const mailOptions = {
-    from: `"LAGONGLONG LGU" <${process.env.EMAIL_USER}>`,
+  return resend.emails.send({
+    from: SENDER_EMAIL,
     to: email,
     subject: "Your OTP Code - LAGONGLONG INCIDENT REPORT",
-    text: `Your OTP code for password reset is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share this with anyone.`,
-  };
-
-  return transporter.sendMail(mailOptions);
+    html: `<p>Your OTP code for password reset is: <strong>${otp}</strong></p><p>This code is valid for 10 minutes. Please do not share this with anyone.</p>`,
+  });
 }
 
 module.exports = {
