@@ -218,37 +218,63 @@ export default function RequestBackup() {
                       </div>
                     )}
 
-                    <div style={{ marginTop: "auto" }}>
-                      <select
-                        style={styles.selectBox}
-                        value={selectedResponderIds[backup.id] || ""}
-                        onChange={(e) =>
-                          setSelectedResponderIds({
-                            ...selectedResponderIds,
-                            [backup.id]: e.target.value,
+                    <div style={{ marginTop: "auto", display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '12px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#64748b', letterSpacing: '0.5px' }}>
+                        ASSIGN RESPONDER
+                      </div>
+                      
+                      <div style={{ maxHeight: '120px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px', backgroundColor: 'rgba(15, 23, 42, 0.4)' }} onClick={(e) => e.stopPropagation()}>
+                        {availableResponders.length === 0 ? (
+                          <div style={{ padding: '8px', fontSize: '12px', color: '#94a3b8' }}>No Standby Responders</div>
+                        ) : (
+                          availableResponders
+                            .filter(r => !backup.department || r.department === backup.department || backup.department === "ANY")
+                            .map((r) => {
+                              const isSelected = selectedResponderIds[backup.id] === r.id;
+                              return (
+                                <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.1)' : 'transparent', borderRadius: '4px', marginBottom: '2px' }}>
+                                  <input 
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => {
+                                      setSelectedResponderIds(prev => ({ ...prev, [backup.id]: prev[backup.id] === r.id ? null : r.id }));
+                                    }}
+                                    style={{ accentColor: '#38bdf8' }}
+                                  />
+                                  <span style={{ fontSize: '13px', color: isSelected ? '#f8fafc' : '#cbd5e1' }}>
+                                    {r.unit_name || `${r.first_name} ${r.last_name}`} <span style={{ color: '#94a3b8', fontSize: '11px' }}>({r.department?.toUpperCase() || 'ANY'})</span>
+                                  </span>
+                                </label>
+                              );
                           })
-                        }
-                      >
-                        <option value="" disabled>Select Backup Unit...</option>
-                        {availableResponders
-                          .filter(r => !backup.department || r.department === backup.department || backup.department === "ANY")
-                          .map((r) => (
-                            <option key={r.id} value={r.id}>
-                              [{r.department?.toUpperCase()}] {r.unit_name || `${r.first_name} ${r.last_name}`}
-                            </option>
-                        ))}
-                        {availableResponders.length > 0 && backup.department && (
-                           <optgroup label="Other Available Units">
-                             {availableResponders
-                               .filter(r => r.department !== backup.department)
-                               .map((r) => (
-                               <option key={r.id} value={r.id}>
-                                 [{r.department?.toUpperCase()}] {r.unit_name || `${r.first_name} ${r.last_name}`}
-                               </option>
-                             ))}
-                           </optgroup>
                         )}
-                      </select>
+                        {/* OTHER UNITS SECTION */}
+                        {availableResponders.length > 0 && backup.department && (
+                          <>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', padding: '8px 8px 4px 8px', textTransform: 'uppercase', fontWeight: 'bold' }}>Other Available Units</div>
+                            {availableResponders
+                              .filter(r => r.department !== backup.department)
+                              .map((r) => {
+                                const isSelected = selectedResponderIds[backup.id] === r.id;
+                                return (
+                                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.1)' : 'transparent', borderRadius: '4px', marginBottom: '2px' }}>
+                                    <input 
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        setSelectedResponderIds(prev => ({ ...prev, [backup.id]: prev[backup.id] === r.id ? null : r.id }));
+                                      }}
+                                      style={{ accentColor: '#38bdf8' }}
+                                    />
+                                    <span style={{ fontSize: '13px', color: isSelected ? '#f8fafc' : '#cbd5e1' }}>
+                                      {r.unit_name || `${r.first_name} ${r.last_name}`} <span style={{ color: '#94a3b8', fontSize: '11px' }}>({r.department?.toUpperCase() || 'ANY'})</span>
+                                    </span>
+                                  </label>
+                                );
+                            })}
+                          </>
+                        )}
+                      </div>
 
                       <button
                         onClick={() => handleDispatch(backup.id)}
