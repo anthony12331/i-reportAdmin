@@ -2,9 +2,8 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Note: Until you verify a custom domain in Resend, 
-// you can only send emails TO yourself using this generic FROM address.
-const SENDER_EMAIL = "onboarding@resend.dev";
+// Now that the domain is verified, we can use a professional email address!
+const SENDER_EMAIL = "no-reply@ireportsystem.com";
 
 async function sendVerificationEmail(email, name) {
   return resend.emails.send({
