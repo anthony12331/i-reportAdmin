@@ -34,6 +34,7 @@ export default function Sidebar({
     ongoingIncidents: 0,
     pendingUsers: 0,
     pendingSos: 0,
+    pendingBackups: 0,
   });
 
   const isSuperAdmin = admin?.collectionName === "super_admins" || admin?.collectionName === "_superusers";
@@ -73,14 +74,16 @@ export default function Sidebar({
     let unsubUsersFn = null;
     let unsubSosFn = null;
     let unsubDispatchesFn = null;
+    let unsubBackupsFn = null;
 
     const fetchCounts = async () => {
       try {
-        const [reports, users, sos, allDispatches] = await Promise.all([
+        const [reports, users, sos, allDispatches, backups] = await Promise.all([
           pb.collection("incident_reports").getFullList({ fields: "id,status", requestKey: null }),
           pb.collection("users").getFullList({ fields: "id,status", requestKey: null }),
           pb.collection("sos_tracking").getFullList({ fields: "id,status,dispatch_status", requestKey: null }),
-          pb.collection("dispatches").getFullList({ fields: "incident_id,sos_id,status", requestKey: null })
+          pb.collection("dispatches").getFullList({ fields: "incident_id,sos_id,status", requestKey: null }),
+          pb.collection("backup_requests").getFullList({ fields: "id,dispatch_status", requestKey: null })
         ]);
 
         if (!isMounted) return;
@@ -94,6 +97,7 @@ export default function Sidebar({
           ongoingIncidents: reports.filter((r) => ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)).length,
           pendingUsers: users.filter((u) => u.status === "pending").length,
           pendingSos: sos.filter((s) => s.status?.toLowerCase() !== "resolved" || activeSosIds.has(s.id)).length,
+          pendingBackups: backups.filter((b) => b.dispatch_status === "pending").length,
         });
       } catch (error) {
         if (!error.isAbort) console.error("Sidebar count error:", error);
@@ -114,6 +118,7 @@ export default function Sidebar({
       unsubUsersFn = await pb.collection("users").subscribe("*", debouncedFetchCounts);
       unsubSosFn = await pb.collection("sos_tracking").subscribe("*", debouncedFetchCounts);
       unsubDispatchesFn = await pb.collection("dispatches").subscribe("*", debouncedFetchCounts);
+      unsubBackupsFn = await pb.collection("backup_requests").subscribe("*", debouncedFetchCounts);
     };
 
     startSubscriptions();
@@ -125,6 +130,7 @@ export default function Sidebar({
       if (typeof unsubUsersFn === "function") unsubUsersFn();
       if (typeof unsubSosFn === "function") unsubSosFn();
       if (typeof unsubDispatchesFn === "function") unsubDispatchesFn();
+      if (typeof unsubBackupsFn === "function") unsubBackupsFn();
     };
   }, []);
 
@@ -133,6 +139,7 @@ export default function Sidebar({
     ongoingIncidents: typeof ongoingIncidentsCount === "number" ? ongoingIncidentsCount : liveCounts.ongoingIncidents,
     pendingUsers: typeof pendingUsersCount === "number" ? pendingUsersCount : liveCounts.pendingUsers,
     pendingSos: liveCounts.pendingSos,
+    pendingBackups: liveCounts.pendingBackups,
   };
 
   const handleLogout = async () => {
@@ -228,6 +235,7 @@ export default function Sidebar({
                 <ShieldCheck size={18} />
                 <span>Request Backup</span>
               </div>
+              {counts.pendingBackups > 0 && <span style={styles.badge}>{counts.pendingBackups}</span>}
             </div>
 
             <div

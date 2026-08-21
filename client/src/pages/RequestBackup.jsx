@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
-import DashboardMap from "../components/DashboardMap";
 import { requestBackupStyles as styles } from "../themes/requestBackupStyles";
 import { useMessageBox } from "../components/MessageBox";
 import {
@@ -134,15 +133,13 @@ export default function RequestBackup() {
           </div>
         </header>
 
-        <div style={styles.contentWrapper}>
-          <div style={styles.leftColumn}>
-            <div style={styles.cardGrid}>
-              {!loading && backups.length === 0 && (
-                <div style={styles.emptyState}>
-                  <CheckCircle size={48} style={styles.emptyIcon} />
-                  <p style={styles.emptyText}>No pending backup requests at this time.</p>
-                </div>
-              )}
+        <div style={styles.cardGrid}>
+          {!loading && backups.length === 0 && (
+            <div style={styles.emptyState}>
+              <CheckCircle size={48} style={styles.emptyIcon} />
+              <p style={styles.emptyText}>No pending backup requests at this time.</p>
+            </div>
+          )}
 
               {backups.map((backup) => {
                 const requester = backup.expand?.requester_id;
@@ -168,10 +165,24 @@ export default function RequestBackup() {
                     </div>
 
                     {requester?.latitude != null && requester?.longitude != null ? (
-                      <div style={styles.metaText}>
-                        <MapPin size={14} color="#3b82f6" /> 
-                        Location: {requester.latitude.toFixed(6)}, {requester.longitude.toFixed(6)}
-                      </div>
+                      <>
+                        <div style={styles.metaText}>
+                          <MapPin size={14} color="#3b82f6" /> 
+                          <span>Location: {requester.latitude.toFixed(6)}, {requester.longitude.toFixed(6)}</span>
+                          <a href={`https://www.google.com/maps?q=${requester.latitude},${requester.longitude}`} target="_blank" rel="noreferrer" style={{ marginLeft: '8px', color: '#3b82f6', textDecoration: 'underline', fontSize: '12px', fontWeight: 'bold' }}>View on Google Maps</a>
+                        </div>
+                        <div style={{ marginTop: '8px', marginBottom: '12px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #1e293b' }}>
+                          <iframe 
+                            title={`Map for backup request ${backup.id}`}
+                            width="100%" 
+                            height="180" 
+                            style={{ border: 0, display: 'block' }} 
+                            loading="lazy" 
+                            allowFullScreen 
+                            src={`https://maps.google.com/maps?q=${requester.latitude},${requester.longitude}&t=m&z=15&output=embed&iwloc=near`}
+                          ></iframe>
+                        </div>
+                      </>
                     ) : (
                       <div style={styles.metaText}>
                         <MapPin size={14} color="#94a3b8" /> 
@@ -241,12 +252,6 @@ export default function RequestBackup() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-          
-          <div style={styles.rightColumn}>
-            <DashboardMap backupRequests={backups} />
-          </div>
         </div>
       </main>
     </div>
