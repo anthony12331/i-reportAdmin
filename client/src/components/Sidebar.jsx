@@ -143,6 +143,14 @@ export default function Sidebar({
     });
 
     if (!shouldLogout) return;
+    
+    // Unsubscribe from realtime events before logging out to prevent 403 errors
+    try {
+      pb.realtime.unsubscribe();
+    } catch (err) {
+      console.log("Realtime unsubscribe error:", err);
+    }
+    
     pb.authStore.clear();
     navigate("/");
   };
