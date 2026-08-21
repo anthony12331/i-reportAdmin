@@ -12,13 +12,16 @@ import {
   Siren,
   Truck,
   Activity,
-  MapPin
+  MapPin,
+  Map as MapIcon,
+  X
 } from "lucide-react";
 
 export default function OngoingBackup() {
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [selectedMap, setSelectedMap] = useState(null);
   
   const { confirm, showAlert } = useMessageBox();
 
@@ -127,16 +130,37 @@ export default function OngoingBackup() {
                 </div>
 
                 {requester?.latitude != null && requester?.longitude != null ? (
-                  <div style={styles.metaText}>
-                    <MapPin size={14} color="#3b82f6" /> 
-                    Location: {requester.latitude.toFixed(6)}, {requester.longitude.toFixed(6)}
-                  </div>
-                ) : (
-                  <div style={styles.metaText}>
-                    <MapPin size={14} color="#94a3b8" /> 
-                    Location: Unknown
-                  </div>
-                )}
+                    <>
+                      <div style={styles.metaText}>
+                        <MapPin size={14} color="#3b82f6" /> 
+                        <span>Location: {requester.latitude.toFixed(6)}, {requester.longitude.toFixed(6)}</span>
+                      </div>
+                      <div
+                        style={styles.miniMapContainer}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMap({ lat: requester.latitude, lng: requester.longitude, address: `Backup Request Location (${requester.latitude.toFixed(6)}, ${requester.longitude.toFixed(6)})` });
+                        }}
+                      >
+                        <iframe
+                          title={`Map for backup request ${backup.id}`}
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          loading="lazy" 
+                          referrerPolicy="no-referrer-when-downgrade" 
+                          src={`https://maps.google.com/maps?q=${requester.latitude},${requester.longitude}&z=15&output=embed`}
+                          style={{ pointerEvents: "none" }}
+                        />
+                        <span style={styles.mapHoverTag}>ENLARGE MAP</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={styles.metaText}>
+                      <MapPin size={14} color="#94a3b8" /> 
+                      Location: Unknown
+                    </div>
+                  )}
 
                 {backup.incident_id && (
                   <div style={styles.metaText}>
@@ -172,6 +196,27 @@ export default function OngoingBackup() {
           })}
         </div>
       </main>
+
+      {/* MODAL: MAP FULLSCREEN */}
+      {selectedMap && (
+        <div style={styles.modalBackdrop} onClick={() => setSelectedMap(null)}>
+          <div style={styles.modalWindow} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHead}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', fontSize: '16px' }}><MapIcon size={18} color="#38bdf8" /> {selectedMap.address}</h3>
+              <button onClick={() => setSelectedMap(null)} style={styles.closeBtn}><X size={18} /></button>
+            </div>
+            <iframe
+              title="Full Map"
+              width="100%"
+              height="500px"
+              frameBorder="0"
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade" 
+              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

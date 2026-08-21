@@ -35,6 +35,7 @@ export default function Sidebar({
     pendingUsers: 0,
     pendingSos: 0,
     pendingBackups: 0,
+    ongoingBackups: 0,
   });
 
   const isSuperAdmin = admin?.collectionName === "super_admins" || admin?.collectionName === "_superusers";
@@ -98,6 +99,7 @@ export default function Sidebar({
           pendingUsers: users.filter((u) => u.status === "pending").length,
           pendingSos: sos.filter((s) => s.status?.toLowerCase() !== "resolved" || activeSosIds.has(s.id)).length,
           pendingBackups: backups.filter((b) => b.dispatch_status === "pending").length,
+          ongoingBackups: backups.filter((b) => b.dispatch_status !== "pending" && b.dispatch_status !== "completed" && b.dispatch_status !== "declined").length,
         });
       } catch (error) {
         if (!error.isAbort) console.error("Sidebar count error:", error);
@@ -140,6 +142,7 @@ export default function Sidebar({
     pendingUsers: typeof pendingUsersCount === "number" ? pendingUsersCount : liveCounts.pendingUsers,
     pendingSos: liveCounts.pendingSos,
     pendingBackups: liveCounts.pendingBackups,
+    ongoingBackups: liveCounts.ongoingBackups,
   };
 
   const handleLogout = async () => {
@@ -235,7 +238,7 @@ export default function Sidebar({
                 <ShieldCheck size={18} />
                 <span>Request Backup</span>
               </div>
-              {counts.pendingBackups > 0 && <span style={styles.badge}>{counts.pendingBackups}</span>}
+              {counts.pendingBackups > 0 && <span style={styles.badgeRed}>{counts.pendingBackups}</span>}
             </div>
 
             <div
@@ -246,6 +249,7 @@ export default function Sidebar({
                 <Activity size={18} />
                 <span>Ongoing Backup</span>
               </div>
+              {counts.ongoingBackups > 0 && <span style={styles.badgeOrange}>{counts.ongoingBackups}</span>}
             </div>
 
           </>
