@@ -25,7 +25,7 @@ import {
 const USERS_PER_PAGE = 12;
 
 const getFileUrl = (record, field) =>
-  record && record[field] ? pb.files.getUrl(record, record[field]) : null;
+  record && record[field] ? pb.files.getURL(record, record[field]) : null;
 
 export default function VerifiedUsers() {
   const [users, setUsers] = useState([]);
