@@ -172,6 +172,18 @@ app.post("/api/forgot-password-otp", async (req, res) => {
       }
     }
 
+    // If not found, search in users (Android app citizens)
+    if (!targetRecord) {
+      searchRes = await fetch(`${POCKETBASE_URL}/api/collections/users/records?filter=email='${cleanEmail}'`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      searchData = await searchRes.json();
+      if (searchData.items && searchData.items.length > 0) {
+        targetRecord = searchData.items[0];
+        collectionName = "users";
+      }
+    }
+
     if (!targetRecord) {
       // Return true anyway to prevent email enumeration attacks
       return res.json({ ok: true, message: "If an account exists, an OTP was sent." });

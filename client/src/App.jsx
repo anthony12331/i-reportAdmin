@@ -46,6 +46,7 @@ function App() {
   const [incidentAlerts, setIncidentAlerts] = useState([]);
   const [alarmActive, setAlarmActive] = useState(false);
   const [alarmPulse, setAlarmPulse] = useState(0);
+  const [authState, setAuthState] = useState(pb.authStore.isValid);
   const alarmAudioRef = useRef(null);
   const openIncidentIdsRef = useRef(new Set());
   const openSosIdsRef = useRef(new Set());
@@ -53,6 +54,14 @@ function App() {
   const isMountedRef = useRef(true);
 
   useEffect(() => subscribeToSettings(setSettings), []);
+
+  useEffect(() => {
+    // Listen to auth changes so App re-renders and starts global subscriptions!
+    const unsubscribeAuth = pb.authStore.onChange(() => {
+      setAuthState(pb.authStore.isValid);
+    });
+    return () => unsubscribeAuth();
+  }, []);
 
   useEffect(() => {
     const audio = document.getElementById("emergency-alert-sound");
@@ -95,19 +104,17 @@ function App() {
   const isAuthorizedAdmin = useCallback(() => {
     if (!pb.authStore.isValid || !pb.authStore.model) return false;
     const role = pb.authStore.model.collectionName;
-    return role === "admins" || role === "super_admins";
-  }, []);
+    return role === "admins" || role === "super_admins" || role === "_superusers";
+  }, [authState]);
 
   const playAlarmSound = useCallback(() => {
-    const alertSound =
-      alarmAudioRef.current || document.getElementById("emergency-alert-sound");
-    if (!alertSound || !settings.soundEnabled) return;
-
-    // eslint-disable-next-line react-hooks/immutability
-    alertSound.currentTime = 0;
-    alertSound.play().catch(() => {}).catch((error) => {
-      console.warn("Autoplay blocked. Admin must click screen first.", error);
-    });
+    if (!settings.soundEnabled) return;
+    try {
+      const audio = new Audio("/notification_sound.mp3");
+      audio.play().catch((err) => console.warn("Autoplay blocked globally:", err));
+    } catch (e) {
+      console.error("Audio playback error:", e);
+    }
   }, [settings.soundEnabled]);
 
   const pauseAlarmSound = useCallback(() => {
@@ -226,11 +233,12 @@ function App() {
       if (shouldPulse) {
         alertSet.add(record.id);
         setAlarmPulse((pulse) => pulse + 1);
+        playAlarmSound(); // Instantly trigger the alarm sound!
       }
 
       return shouldPulse;
     },
-    [isAuthorizedAdmin, isOpenIncident, isOpenSos]
+    [isAuthorizedAdmin, isOpenIncident, isOpenSos, playAlarmSound]
   );
 
   const reconcileAlarmState = useCallback(async () => {
@@ -286,13 +294,14 @@ function App() {
 
       if (hasNewIncident || hasNewSos) {
         setAlarmPulse((pulse) => pulse + 1);
+        playAlarmSound(); // Instantly trigger alarm on new incidents!
       }
     } catch (error) {
       const isAbort =
         error instanceof Error && "isAbort" in error && error.isAbort;
       if (!isAbort) console.error("Failed to reconcile alarm state:", error);
     }
-  }, [isAuthorizedAdmin]);
+  }, [isAuthorizedAdmin, playAlarmSound]);
 
   // Subscriptions & Listeners
   useEffect(() => {
@@ -440,6 +449,7 @@ function App() {
     reconcileAlarmState,
     syncSignalStateFromRecord,
     getAlertKey,
+    authState,
   ]);
 
   useEffect(() => {
