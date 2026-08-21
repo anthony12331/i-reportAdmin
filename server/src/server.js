@@ -70,74 +70,76 @@ app.post("/api/admin-login", async (req, res) => {
 
   const cleanEmail = email.trim();
 
-  let superError = null;
-  let adminError = null;
-  let pbAdminError = null;
-
   try {
-    const superRes = await fetch(`${POCKETBASE_URL}/api/collections/super_admins/auth-with-password`, {
+    // Optimization: Find which collection the user belongs to first (takes ~10ms)
+    // instead of trying to hash the password 3 separate times (takes ~3000ms)
+    const token = await getAdminToken();
+    let targetCollection = null;
+    let targetRole = null;
+
+    // Check super_admins
+    let searchRes = await fetch(`${POCKETBASE_URL}/api/collections/super_admins/records?filter=email='${cleanEmail}'`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    let searchData = await searchRes.json();
+    if (searchData.items && searchData.items.length > 0) {
+      targetCollection = "super_admins";
+      targetRole = "super_admin";
+    }
+
+    // Check admins
+    if (!targetCollection) {
+      searchRes = await fetch(`${POCKETBASE_URL}/api/collections/admins/records?filter=email='${cleanEmail}'`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      searchData = await searchRes.json();
+      if (searchData.items && searchData.items.length > 0) {
+        targetCollection = "admins";
+        targetRole = "admin";
+      }
+    }
+
+    // Check _superusers (Master DB Admins)
+    if (!targetCollection) {
+      searchRes = await fetch(`${POCKETBASE_URL}/api/collections/_superusers/records?filter=email='${cleanEmail}'`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      searchData = await searchRes.json();
+      if (searchData.items && searchData.items.length > 0) {
+        targetCollection = "_superusers";
+        targetRole = "super_admin"; // Master DB admins get super_admin UI rights
+      }
+    }
+
+    // If email doesn't exist in any collection, fail instantly
+    if (!targetCollection) {
+      return res.status(401).json({ ok: false, error: "Invalid email or password." });
+    }
+
+    // Perform the heavy password hash ONLY ONCE on the correct collection
+    const authRes = await fetch(`${POCKETBASE_URL}/api/collections/${targetCollection}/auth-with-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identity: cleanEmail, password }),
     });
 
-    if (superRes.ok) {
-      const data = await superRes.json();
+    if (authRes.ok) {
+      const data = await authRes.json();
       if (data.record?.suspended === true) {
         return res.status(403).json({ ok: false, error: "Account Suspended." });
       }
-      return res.json({ ok: true, token: data.token, record: data.record, role: "super_admin" });
+      return res.json({ ok: true, token: data.token, record: data.record, role: targetRole });
     } else {
-      superError = `${superRes.status} ${await superRes.text()}`;
+      return res.status(401).json({ ok: false, error: "Invalid email or password." });
     }
+
   } catch (e) {
-    console.error("[SERVER] Auth error (super_admins):", e.message);
+    console.error("[SERVER] Optimized Auth error:", e.message);
     if (e.cause?.code === 'ECONNREFUSED' || e.message.includes('fetch failed')) {
       return res.status(502).json({ ok: false, error: "Database connection failed. Please check PocketBase." });
     }
+    return res.status(500).json({ ok: false, error: "Internal server error." });
   }
-
-  try {
-    const adminRes = await fetch(`${POCKETBASE_URL}/api/collections/admins/auth-with-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identity: cleanEmail, password }),
-    });
-
-    if (adminRes.ok) {
-      const data = await adminRes.json();
-      if (data.record?.suspended === true) {
-        return res.status(403).json({ ok: false, error: "Account Suspended." });
-      }
-      return res.json({ ok: true, token: data.token, record: data.record, role: "admin" });
-    } else {
-      adminError = `${adminRes.status} ${await adminRes.text()}`;
-    }
-  } catch (e) {
-    console.error("[SERVER] Auth error (admins):", e.message);
-  }
-
-  // Fallback: Check if they are trying to login with the master PocketBase _superusers account
-  try {
-    const pbAdminRes = await fetch(`${POCKETBASE_URL}/api/collections/_superusers/auth-with-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identity: cleanEmail, password }),
-    });
-
-    if (pbAdminRes.ok) {
-      const data = await pbAdminRes.json();
-      // Master DB Admins are treated as super_admins in the UI
-      return res.json({ ok: true, token: data.token, record: data.record, role: "super_admin" });
-    } else {
-      pbAdminError = `${pbAdminRes.status} ${await pbAdminRes.text()}`;
-    }
-  } catch (e) {
-    console.error("[SERVER] Auth error (_superusers):", e.message);
-  }
-
-  console.log(`[SERVER] Failed login attempt for ${cleanEmail}. SuperAdmin: ${superError}. Admin: ${adminError}. PB_Superuser: ${pbAdminError}`);
-  return res.status(401).json({ ok: false, error: "Invalid email or password." });
 });
 
 app.post("/api/forgot-password-otp", async (req, res) => {
