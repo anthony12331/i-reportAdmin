@@ -60,14 +60,15 @@ export default function PendingSos() {
   const fetchSosSignals = useCallback(async () => {
     setLoading(true);
     try {
-      const activeDispatches = await pb.collection("dispatches").getFullList({
-        filter: 'sos_id != "" && status != "resolved"',
+      const allDispatches = await pb.collection("dispatches").getFullList({
+        filter: 'sos_id != ""',
         expand: "responder_id",
         requestKey: null
       });
-      setDispatches(activeDispatches);
+      setDispatches(allDispatches);
 
-      const activeSosIds = [...new Set(activeDispatches.map(d => d.sos_id))];
+      const activeDispatches = allDispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
+      const activeSosIds = [...new Set(activeDispatches.map(d => d.sos_id).filter(id => !!id))];
       let filterString = 'status = "active"';
       if (activeSosIds.length > 0) {
         const idFilters = activeSosIds.map(id => `id = "${id}"`).join(" || ");
@@ -259,9 +260,11 @@ export default function PendingSos() {
         {/* SOS Cards Grid */}
         <div style={sosStyles.grid}>
           {sosSignals.map((sos) => {
-            const responderOptions = availableResponders;
-            const selectedIds = selectedResponderIds[sos.id] || [];
             const sosDispatches = dispatches.filter(d => d.sos_id === sos.id);
+            const activeSosDispatches = sosDispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
+            const previouslyDispatchedIds = new Set(sosDispatches.map(d => d.responder_id));
+            const responderOptions = availableResponders.filter(r => !previouslyDispatchedIds.has(r.id));
+            const selectedIds = selectedResponderIds[sos.id] || [];
 
             return (
               <div key={sos.id} style={sosStyles.card}>
@@ -318,17 +321,17 @@ export default function PendingSos() {
                   <div style={sosStyles.assignmentBox}>
                     <div style={sosStyles.statusHeader}>
                       <span style={sosStyles.statusLabel}>CURRENT STATUS:</span>
-                      <span style={sosStyles.statusBadge(sos.dispatch_status === "assigned" || sosDispatches.length > 0)}>
-                        {sos.dispatch_status === "assigned" || sosDispatches.length > 0
+                      <span style={sosStyles.statusBadge(sos.dispatch_status === "assigned" || activeSosDispatches.length > 0)}>
+                        {sos.dispatch_status === "assigned" || activeSosDispatches.length > 0
                           ? "DISPATCHED"
                           : "UNASSIGNED"}
                       </span>
                     </div>
 
-                    {sosDispatches.length > 0 && (
+                    {activeSosDispatches.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px", background: "rgba(0,0,0,0.3)", borderRadius: "6px", marginBottom: "10px" }}>
                         <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold", textTransform: "uppercase" }}>🚀 DEPLOYED UNITS:</span>
-                        {sosDispatches.map(d => {
+                        {activeSosDispatches.map(d => {
                           const r = d.expand?.responder_id;
                           return (
                             <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "rgba(255,255,255,0.05)", padding: "4px 8px", borderRadius: "4px" }}>

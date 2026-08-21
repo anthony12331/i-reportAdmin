@@ -76,22 +76,24 @@ export default function Sidebar({
 
     const fetchCounts = async () => {
       try {
-        const [reports, users, sos, activeDispatches] = await Promise.all([
+        const [reports, users, sos, allDispatches] = await Promise.all([
           pb.collection("incident_reports").getFullList({ fields: "id,status", requestKey: null }),
           pb.collection("users").getFullList({ fields: "id,status", requestKey: null }),
-          pb.collection("sos_tracking").getFullList({ fields: "id,status", requestKey: null }),
-          pb.collection("dispatches").getFullList({ filter: 'status != "resolved"', fields: "incident_id", requestKey: null })
+          pb.collection("sos_tracking").getFullList({ fields: "id,status,dispatch_status", requestKey: null }),
+          pb.collection("dispatches").getFullList({ fields: "incident_id,sos_id,status", requestKey: null })
         ]);
 
         if (!isMounted) return;
 
+        const activeDispatches = allDispatches.filter(d => d.status?.toLowerCase() !== "resolved");
         const activeIncidentIds = new Set(activeDispatches.map(d => d.incident_id).filter(id => id));
+        const activeSosIds = new Set(activeDispatches.map(d => d.sos_id).filter(id => id));
 
         setLiveCounts({
           pendingIncidents: reports.filter((r) => r.status === "new" || r.status === "pending").length,
           ongoingIncidents: reports.filter((r) => ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)).length,
           pendingUsers: users.filter((u) => u.status === "pending").length,
-          pendingSos: sos.filter((s) => s.status !== "resolved").length,
+          pendingSos: sos.filter((s) => s.status?.toLowerCase() !== "resolved" || activeSosIds.has(s.id)).length,
         });
       } catch (error) {
         if (!error.isAbort) console.error("Sidebar count error:", error);

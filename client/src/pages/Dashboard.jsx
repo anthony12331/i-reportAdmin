@@ -99,7 +99,6 @@ export default function Dashboard() {
           requestKey: null,
         }).catch(() => []),
         pb.collection("sos_tracking").getFullList({
-          filter: 'status != "resolved"',
           sort: "-created",
           expand: "user,incident_id",
           requestKey: null,
@@ -166,12 +165,18 @@ export default function Dashboard() {
   }, [loadData]);
 
   // Derived Dashboard Metrics
+  const activeDispatches = data.dispatches.filter(d => d.status?.toLowerCase() !== "resolved");
+  const activeIncidentIds = new Set(activeDispatches.map(d => d.incident_id).filter(id => !!id));
+  const activeSosIds = new Set(activeDispatches.map(d => d.sos_id).filter(id => !!id));
+
+  const activeSosList = data.sos.filter(s => s.status?.toLowerCase() !== "resolved" || activeSosIds.has(s.id));
+
   const stats = {
     pending: sortIncidentReportsByPriority(
       data.reports.filter((r) => ["new", "pending"].includes(r.status))
     ),
     ongoing: data.reports.filter((r) =>
-      ONGOING_STATUSES.includes(r.status?.toLowerCase())
+      ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)
     ).length,
     resolved: data.reports.filter((r) => r.status === "resolved").length,
     uPending: data.users.filter((u) => u.status === "pending").length,
@@ -199,7 +204,7 @@ export default function Dashboard() {
         pendingIncidentsCount={stats.pending.length}
         ongoingIncidentsCount={stats.ongoing}
         pendingUsersCount={stats.uPending}
-        pendingSosCount={data.sos.length}
+        pendingSosCount={activeSosList.length}
       />
 
       
@@ -228,10 +233,10 @@ export default function Dashboard() {
         <div style={darkStyles.cardGrid}>
           <SummaryCard
             title="Active SOS"
-            val={data.sos.length}
+            val={activeSosList.length}
             icon={<Radio size={16} color="#ef4444" />}
             accent="#ef4444"
-            urgent={data.sos.length > 0}
+            urgent={activeSosList.length > 0}
             onClick={() => navigate("/pending-sos")}
           />
           <SummaryCard
@@ -268,11 +273,11 @@ export default function Dashboard() {
         <div style={darkStyles.masterGrid}>
           {/* LEFT COLUMN: SOS & QUEUE */}
           <div style={darkStyles.gridCol}>
-            {data.sos.length > 0 && (
+            {activeSosList.length > 0 && (
               <div style={darkStyles.sosPanel}>
                 <div style={darkStyles.sosHeader}>
                   <h2 style={darkStyles.sosHeading}>
-                    <Radio className="animate-pulse" size={12} /> CRITICAL ALERTS ({data.sos.length})
+                    <Radio className="animate-pulse" size={12} /> CRITICAL ALERTS ({activeSosList.length})
                   </h2>
                   <button onClick={() => navigate("/pending-sos")} style={darkStyles.sosViewBtn}>
                     HUB <ArrowUpRight size={10} />
@@ -288,7 +293,7 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.sos.slice(0, 3).map((s) => {
+                      {activeSosList.slice(0, 3).map((s) => {
                         const citizenName = s.expand?.user?.first_name || s.expand?.users?.first_name || "Resident";
                         return (
                           <tr key={s.id} style={darkStyles.tr}>
@@ -377,7 +382,7 @@ export default function Dashboard() {
               </h2>
             </div>
             <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-              <DashboardMap reports={data.reports} sos={data.sos} responders={data.responders} dispatches={data.dispatches} />
+              <DashboardMap reports={data.reports} sos={activeSosList} responders={data.responders} dispatches={data.dispatches} />
             </div>
           </div>
 

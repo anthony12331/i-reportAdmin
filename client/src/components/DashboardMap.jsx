@@ -162,13 +162,24 @@ function MapFlyToListener({ reports, sos }) {
 }
 
 export default function DashboardMap({ reports = [], sos = [], responders = [], dispatches = [] }) {
-  const validReports = useMemo(() => 
-    reports.filter(r => r.latitude && r.longitude && r.status?.toLowerCase() !== 'resolved' && r.status?.toLowerCase() !== 'false_alarm'), 
-  [reports]);
+  const validReports = useMemo(() => {
+    const activeDispatches = dispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
+    const activeIncidentIds = new Set(activeDispatches.map(d => d.incident_id).filter(id => !!id));
+    return reports.filter(r => 
+      r.latitude && r.longitude && 
+      (r.status?.toLowerCase() !== 'resolved' || activeIncidentIds.has(r.id)) && 
+      r.status?.toLowerCase() !== 'false_alarm'
+    );
+  }, [reports, dispatches]);
   
-  const validSos = useMemo(() => 
-    sos.filter(s => s.latitude && s.longitude && s.status?.toLowerCase() !== 'resolved'), 
-  [sos]);
+  const validSos = useMemo(() => {
+    const activeDispatches = dispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
+    const activeSosIds = new Set(activeDispatches.map(d => d.sos_id).filter(id => !!id));
+    return sos.filter(s => 
+      s.latitude && s.longitude && 
+      (s.status?.toLowerCase() !== 'resolved' || activeSosIds.has(s.id))
+    );
+  }, [sos, dispatches]);
 
   return (
     <div style={{ width: '100%', height: '100%', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>

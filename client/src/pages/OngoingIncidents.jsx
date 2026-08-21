@@ -36,15 +36,16 @@ export default function OngoingIncidents() {
   const fetchIncidents = useCallback(async () => {
     setLoading(true);
     try {
-      const activeDispatches = await pb.collection("dispatches").getFullList({
-        filter: 'status != "resolved"',
+      const allDispatches = await pb.collection("dispatches").getFullList({
         expand: "responder_id",
         requestKey: null
       });
-      setDispatches(activeDispatches);
+      setDispatches(allDispatches);
+
+      const activeDispatches = allDispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
 
       // If there are active dispatches on an incident, it should stay visible even if one responder marked it resolved.
-      const activeIncidentIds = [...new Set(activeDispatches.map(d => d.incident_id))];
+      const activeIncidentIds = [...new Set(activeDispatches.map(d => d.incident_id).filter(id => !!id))];
       let filterString = 'status = "ongoing" || status = "accepted" || status = "en_route" || status = "at_scene" || status = "dispatched"';
       if (activeIncidentIds.length > 0) {
         const idFilters = activeIncidentIds.map(id => `id = "${id}"`).join(" || ");
@@ -242,6 +243,8 @@ export default function OngoingIncidents() {
           {filteredIncidents.map((incident) => {
             const reporter = incident.expand?.users;
             const incidentDispatches = dispatches.filter(d => d.incident_id === incident.id);
+            const activeIncidentDispatches = incidentDispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
+            const previouslyDispatchedIds = new Set(incidentDispatches.map(d => d.responder_id));
 
             const imgUrl = incident.incident_image
               ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}`
@@ -301,11 +304,11 @@ export default function OngoingIncidents() {
                         DEPLOYED UNITS:
                       </span>
                     </div>
-                    {incidentDispatches.length === 0 ? (
+                    {activeIncidentDispatches.length === 0 ? (
                       <span style={{ fontSize: "12px", color: "#cbd5e1", paddingLeft: "24px" }}>No active units found.</span>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px", paddingLeft: "24px", width: "100%", boxSizing: "border-box" }}>
-                        {incidentDispatches.map(d => {
+                        {activeIncidentDispatches.map(d => {
                           const r = d.expand?.responder_id;
                           return (
                             <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", background: "rgba(0,0,0,0.2)", padding: "6px 8px", borderRadius: "4px" }}>
@@ -382,7 +385,7 @@ export default function OngoingIncidents() {
                       {availableResponders.length === 0 ? (
                         <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders</div>
                       ) : (() => {
-                        const filtered = availableResponders.filter(r => !departmentFilters[incident.id] || r.department === departmentFilters[incident.id]);
+                        const filtered = availableResponders.filter(r => !previouslyDispatchedIds.has(r.id) && (!departmentFilters[incident.id] || r.department === departmentFilters[incident.id]));
                         if (filtered.length === 0) {
                           return <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders for this department</div>;
                         }

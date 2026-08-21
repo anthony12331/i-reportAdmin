@@ -68,8 +68,8 @@ export default function GenerateResponderPin() {
 
     if (!isConfirmed) return;
 
-    // Generate random 6 character alphanumeric PIN
-    const newPin = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Generate random 5 character alphanumeric PIN
+    const newPin = Math.random().toString(36).substring(2, 7).toUpperCase();
 
     try {
       await pb.collection("registration_access").update(record.id, {
