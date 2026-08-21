@@ -10,7 +10,9 @@ import {
   Clock,
   CheckCircle,
   Siren,
-  MapPin
+  MapPin,
+  Map as MapIcon,
+  X
 } from "lucide-react";
 
 export default function RequestBackup() {
@@ -19,6 +21,7 @@ export default function RequestBackup() {
   const [availableResponders, setAvailableResponders] = useState([]);
   const [selectedResponderIds, setSelectedResponderIds] = useState({});
   const [processingId, setProcessingId] = useState(null);
+  const [selectedMap, setSelectedMap] = useState(null);
   
   const { confirm, showAlert } = useMessageBox();
 
@@ -169,18 +172,25 @@ export default function RequestBackup() {
                         <div style={styles.metaText}>
                           <MapPin size={14} color="#3b82f6" /> 
                           <span>Location: {requester.latitude.toFixed(6)}, {requester.longitude.toFixed(6)}</span>
-                          <a href={`https://www.google.com/maps?q=${requester.latitude},${requester.longitude}`} target="_blank" rel="noreferrer" style={{ marginLeft: '8px', color: '#3b82f6', textDecoration: 'underline', fontSize: '12px', fontWeight: 'bold' }}>View on Google Maps</a>
                         </div>
-                        <div style={{ marginTop: '8px', marginBottom: '12px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #1e293b' }}>
-                          <iframe 
+                        <div
+                          style={styles.miniMapContainer}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMap({ lat: requester.latitude, lng: requester.longitude, address: `Backup Request Location (${requester.latitude.toFixed(6)}, ${requester.longitude.toFixed(6)})` });
+                          }}
+                        >
+                          <iframe
                             title={`Map for backup request ${backup.id}`}
-                            width="100%" 
-                            height="180" 
-                            style={{ border: 0, display: 'block' }} 
+                            width="100%"
+                            height="100%"
+                            frameBorder="0"
                             loading="lazy" 
-                            allowFullScreen 
-                            src={`https://maps.google.com/maps?q=${requester.latitude},${requester.longitude}&t=m&z=15&output=embed&iwloc=near`}
-                          ></iframe>
+                            referrerPolicy="no-referrer-when-downgrade" 
+                            src={`https://maps.google.com/maps?q=${requester.latitude},${requester.longitude}&z=15&output=embed`}
+                            style={{ pointerEvents: "none" }}
+                          />
+                          <span style={styles.mapHoverTag}>ENLARGE MAP</span>
                         </div>
                       </>
                     ) : (
@@ -254,6 +264,27 @@ export default function RequestBackup() {
               })}
         </div>
       </main>
+
+      {/* MODAL: MAP FULLSCREEN */}
+      {selectedMap && (
+        <div style={styles.modalBackdrop} onClick={() => setSelectedMap(null)}>
+          <div style={styles.modalWindow} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHead}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', fontSize: '16px' }}><MapIcon size={18} color="#38bdf8" /> {selectedMap.address}</h3>
+              <button onClick={() => setSelectedMap(null)} style={styles.closeBtn}><X size={18} /></button>
+            </div>
+            <iframe
+              title="Full Map"
+              width="100%"
+              height="500px"
+              frameBorder="0"
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade" 
+              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
