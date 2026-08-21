@@ -156,11 +156,11 @@ export default function Dashboard() {
 
     return () => {
       isSubscribed = false;
-      unsubUsers?.();
-      unsubReports?.();
-      unsubSos?.();
-      unsubResponders?.();
-      unsubDispatches?.();
+      if (unsubUsers) unsubUsers().catch(() => {});
+      if (unsubReports) unsubReports().catch(() => {});
+      if (unsubSos) unsubSos().catch(() => {});
+      if (unsubResponders) unsubResponders().catch(() => {});
+      if (unsubDispatches) unsubDispatches().catch(() => {});
     };
   }, [loadData]);
 

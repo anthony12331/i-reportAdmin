@@ -179,7 +179,7 @@ export default function PendingIncidents() {
     return () => {
       isMounted = false;
       clearInterval(timer);
-      unsubscribe?.();
+      if (typeof unsubscribe === 'function') unsubscribe().catch(() => {});
     };
   }, [fetchIncidents, isOpenIncident, resolveAddresses, triggerEmergencyAlert]);
 
@@ -193,7 +193,9 @@ export default function PendingIncidents() {
       });
     };
     startResponderSubscription();
-    return () => unsubscribe?.();
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe().catch(() => {});
+    };
   }, [fetchAvailableResponders]);
 
   const filteredIncidents = incidents.filter((incident) => {

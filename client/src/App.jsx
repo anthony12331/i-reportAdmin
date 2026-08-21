@@ -58,6 +58,7 @@ function App() {
   useEffect(() => {
     // Listen to auth changes so App re-renders and starts global subscriptions!
     const unsubscribeAuth = pb.authStore.onChange(() => {
+      pb.realtime.disconnect(); // Force connection reset to use the new token
       setAuthState(pb.authStore.isValid);
     });
     return () => unsubscribeAuth();
@@ -440,8 +441,8 @@ function App() {
 
     return () => {
       isMountedRef.current = false;
-      incidentUnsubscribe?.();
-      sosUnsubscribe?.();
+      if (incidentUnsubscribe) incidentUnsubscribe().catch(() => {});
+      if (sosUnsubscribe) sosUnsubscribe().catch(() => {});
     };
   }, [
     settings,
