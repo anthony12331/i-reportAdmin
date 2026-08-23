@@ -46,6 +46,13 @@ export default function Dashboard() {
   const [addresses, setAddresses] = useState({});
   const [soundMuted, setSoundMuted] = useState(false);
   const prevSosCount = useRef(0);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Auth Guard
   useEffect(() => {
