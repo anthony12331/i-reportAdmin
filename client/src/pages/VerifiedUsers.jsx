@@ -275,14 +275,14 @@ export default function VerifiedUsers() {
       <main style={styles.main}>
         {/* Header */}
         <header style={styles.header}>
-          <div>
+          <div style={styles.headerContent}>
             <div style={styles.headerTitleGroup}>
               <div style={styles.statusDot} />
               <h1 style={styles.title}>VERIFIED CITIZENS DATABASE</h1>
             </div>
             <p style={styles.subtitle}>
               Official verified resident members of Lagonglong Emergency System. Total:{" "}
-              <strong style={{ color: "#10b981" }}>{totalItems}</strong>
+              <strong style={{ color: "#1d7a4d" }}>{totalItems}</strong>
             </p>
           </div>
 
@@ -334,7 +334,7 @@ export default function VerifiedUsers() {
               color="#64748b"
               style={{ marginBottom: "16px", opacity: 0.8 }}
             />
-            <h3 style={{ color: "#f8fafc", margin: "0 0 8px 0" }}>
+            <h3 style={{ color: "#111827", margin: "0 0 8px 0" }}>
               No Verified Citizens Found
             </h3>
             <p style={{ margin: 0, fontSize: "14px" }}>

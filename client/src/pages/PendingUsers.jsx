@@ -444,7 +444,7 @@ export default function PendingUserRegistration() {
               color="#10b981"
               style={{ marginBottom: "16px", opacity: 0.8 }}
             />
-            <h3 style={{ color: "#f8fafc", margin: "0 0 8px 0" }}>
+            <h3 style={{ color: "#111827", margin: "0 0 8px 0" }}>
               No Pending Verifications
             </h3>
             <p style={{ margin: 0, fontSize: "14px" }}>
@@ -576,7 +576,7 @@ export default function PendingUserRegistration() {
           <div style={styles.rejectionModalCard}>
             <div style={styles.rejectionHeader}>
               <MessageSquare color="#ef4444" size={24} />
-              <h3 style={{ margin: 0, fontSize: "18px", color: "#f8fafc" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", color: "#111827" }}>
                 Rejection Notice Reason
               </h3>
             </div>
@@ -631,13 +631,13 @@ export default function PendingUserRegistration() {
           >
             <div style={styles.previewHeader}>
               <div>
-                <h2 style={{ margin: 0, fontSize: "20px", color: "#f8fafc" }}>
+                <h2 style={{ margin: 0, fontSize: "20px", color: "#111827" }}>
                   Applicant ID Document Verification
                 </h2>
                 <p
                   style={{
                     margin: "4px 0 0 0",
-                    color: "#cbd5e1",
+                    color: "#5f7b69",
                     fontSize: "13px",
                   }}
                 >
@@ -693,10 +693,10 @@ export default function PendingUserRegistration() {
         <div style={styles.overlayBackdrop}>
           <div style={styles.overlayCard}>
             <div style={styles.spinner} />
-            <h3 style={{ margin: 0, fontSize: "18px", color: "#f8fafc" }}>
+            <h3 style={{ margin: 0, fontSize: "18px", color: "#111827" }}>
               {operationState.title}
             </h3>
-            <p style={{ margin: 0, color: "#cbd5e1", fontSize: "13px" }}>
+            <p style={{ margin: 0, color: "#5f7b69", fontSize: "13px" }}>
               {operationState.message}
             </p>
           </div>

@@ -3,6 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { getReadableAddress } from "../utils/utils";
 import { resolvedStyles as ui, getUnitStyles } from "../themes/resolvedStyles"; 
+import { pendingIncidentsStyles as detailStyles } from "../themes/pendingIncidentsStyles";
 import {
   CheckCircle,
   MapPin,
@@ -13,6 +14,8 @@ import {
   ClipboardList,
   IdCard,
   X,
+  ImageIcon,
+  Activity,
 } from "lucide-react";
 
 export default function ResolvedIncidents() {
@@ -24,6 +27,9 @@ export default function ResolvedIncidents() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedMap, setSelectedMap] = useState(null);
 
   const perPage = 10;
 
@@ -155,18 +161,19 @@ export default function ResolvedIncidents() {
                 <th style={ui.th}>Location / Barangay</th>
                 <th style={ui.th}>Unit Assigned</th>
                 <th style={ui.th}>Resolved Date</th>
+                <th style={ui.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && incidents.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: "80px", textAlign: "center", color: "#18864b", fontWeight: "800" }}>
+                  <td colSpan="6" style={{ padding: "80px", textAlign: "center", color: "#18864b", fontWeight: "800" }}>
                     ⚡ LOADING HISTORY...
                   </td>
                 </tr>
               ) : incidents.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: "#477257" }}>
+                  <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: "#477257" }}>
                     No records found.
                   </td>
                 </tr>
@@ -227,6 +234,16 @@ export default function ResolvedIncidents() {
                         </div>
                         <div style={ui.mutedText}>Case: {incident.id}</div>
                       </td>
+
+                      <td style={ui.td}>
+                        <button
+                          type="button"
+                          style={ui.detailsButton}
+                          onClick={() => setSelectedIncident(incident)}
+                        >
+                          View Details
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
@@ -264,6 +281,232 @@ export default function ResolvedIncidents() {
           </div>
         </div>
       </main>
+
+      {selectedIncident && (
+        <div style={detailStyles.detailBackdrop} onClick={() => setSelectedIncident(null)}>
+          <div style={detailStyles.detailWindow} onClick={(event) => event.stopPropagation()}>
+            <header style={detailStyles.detailHeader}>
+              <button type="button" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
+                <X size={16} /> Back to History
+              </button>
+              <div style={detailStyles.detailHeaderTitle}>
+                <span>Resolved Incident</span>
+                <strong>#{selectedIncident.id}</strong>
+              </div>
+              <span style={detailStyles.detailStatus}>Resolved</span>
+            </header>
+
+            <div style={{ ...detailStyles.detailBody, gridTemplateColumns: "1fr" }}>
+              <div style={detailStyles.detailMainColumn}>
+                <section style={detailStyles.detailPanel}>
+                  <h3 style={detailStyles.detailSectionTitle}>Reporter Information</h3>
+                  <div style={detailStyles.reporterDetail}>
+                    <div style={detailStyles.reporterAvatar}>
+                      {selectedIncident.expand?.users?.selfie ? (
+                        <img
+                          src={pb.files.getURL(
+                            selectedIncident.expand.users,
+                            selectedIncident.expand.users.selfie
+                          )}
+                          alt="Reporter"
+                          style={detailStyles.reporterAvatarImage}
+                        />
+                      ) : (
+                        <ShieldCheck size={20} />
+                      )}
+                    </div>
+                    <div style={detailStyles.reporterSummary}>
+                      <strong style={detailStyles.reporterName}>
+                        {selectedIncident.expand?.users?.first_name || "Unknown"} {selectedIncident.expand?.users?.last_name || "Resident"}
+                      </strong>
+                      <span style={detailStyles.reporterSub}>Verified Resident</span>
+                      <span style={detailStyles.reporterSub}>ID: {selectedIncident.expand?.users?.user_id || "Not available"}</span>
+                    </div>
+                  </div>
+                  <div style={detailStyles.detailContactRow}>
+                    <div style={detailStyles.contactItem}>
+                      <span style={detailStyles.detailContactLabel}>Phone</span>
+                      <strong style={detailStyles.contactValue}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong>
+                    </div>
+                    <div style={detailStyles.contactItem}>
+                      <span style={detailStyles.detailContactLabel}>Email</span>
+                      <strong style={detailStyles.contactValue}>{selectedIncident.expand?.users?.email || "N/A"}</strong>
+                    </div>
+                  </div>
+                  <div style={{ ...detailStyles.metadataGrid, marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #edf3ee" }}>
+                    {[
+                      ["Age", selectedIncident.expand?.users?.age],
+                      ["Barangay", selectedIncident.expand?.users?.barangay || selectedIncident.expand?.users?.baranggay],
+                      ["Municipality", selectedIncident.expand?.users?.municipality],
+                      ["Province", selectedIncident.expand?.users?.province],
+                      ["Street Address", selectedIncident.expand?.users?.street_address || selectedIncident.expand?.users?.address],
+                      ["Birthdate", selectedIncident.expand?.users?.birthdate || selectedIncident.expand?.users?.date_of_birth],
+                      ["Position", selectedIncident.expand?.users?.position],
+                    ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
+                      <React.Fragment key={label}>
+                        <span style={detailStyles.metadataLabel}>{label}</span>
+                        <strong style={detailStyles.metadataValue}>{String(value)}</strong>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </section>
+
+                <section style={detailStyles.detailPanel}>
+                  <h3 style={detailStyles.detailSectionTitle}>Incident Data</h3>
+                  <div style={detailStyles.metadataGrid}>
+                    <span style={detailStyles.metadataLabel}>Type</span><strong style={detailStyles.metadataValue}>{selectedIncident.type || "Unknown"}</strong>
+                    <span style={detailStyles.metadataLabel}>Reported</span><strong style={detailStyles.metadataValue}>{new Date(selectedIncident.created).toLocaleString()}</strong>
+                    <span style={detailStyles.metadataLabel}>Resolved</span><strong style={detailStyles.metadataValue}>{new Date(selectedIncident.updated).toLocaleString()}</strong>
+                    <span style={detailStyles.metadataLabel}>Location</span><strong style={detailStyles.metadataValue}>{addresses[selectedIncident.id] || "GPS Telemetry Locating..."}</strong>
+                  </div>
+                </section>
+
+                <section style={detailStyles.detailPanel}>
+                  <h3 style={detailStyles.detailSectionTitle}>Assigned Responders</h3>
+                  {selectedIncident.dispatches?.length > 0 ? (
+                    <div style={{ display: "grid", gap: "8px" }}>
+                      {selectedIncident.dispatches.map((dispatch) => {
+                        const responder = dispatch.expand?.responder_id;
+                        const department = responder?.department || dispatch.department || "Response Unit";
+                        return (
+                          <div
+                            key={dispatch.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "12px",
+                              padding: "10px 12px",
+                              border: "1px solid #dfeae3",
+                              borderRadius: "8px",
+                              backgroundColor: "#f6faf7",
+                            }}
+                          >
+                            <div style={{ minWidth: 0 }}>
+                              <strong style={{ display: "block", color: "#177a4a", fontSize: "13px" }}>
+                                {responder
+                                  ? `${responder.first_name || ""} ${responder.last_name || ""}`.trim()
+                                  : `${department} Unit`}
+                              </strong>
+                              <span style={{ color: "#5f7b69", fontSize: "11px" }}>
+                                {department}
+                              </span>
+                            </div>
+                            <span style={{ color: "#5f7b69", fontSize: "10px", fontWeight: "800", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                              {dispatch.status || "Resolved"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, color: "#5f7b69", fontSize: "13px" }}>
+                      No responder assignment recorded.
+                    </p>
+                  )}
+                </section>
+
+                <section style={detailStyles.detailPanel}>
+                  <h3 style={detailStyles.detailSectionTitle}>Proof of Incident</h3>
+                  <div style={detailStyles.detailMediaGrid}>
+                    {selectedIncident.incident_image ? (
+                      <button
+                        type="button"
+                        style={detailStyles.detailMediaButton}
+                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`)}
+                      >
+                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
+                        <img
+                          src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`}
+                          alt="Incident evidence"
+                          style={detailStyles.detailMedia}
+                        />
+                      </button>
+                    ) : <div style={detailStyles.detailMediaEmpty}><ImageIcon size={24} /> No photo available</div>}
+                    {selectedIncident.incident_video ? (
+                      <button
+                        type="button"
+                        style={detailStyles.detailMediaButton}
+                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`)}
+                      >
+                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
+                        <video
+                          src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`}
+                          controls
+                          style={detailStyles.detailMedia}
+                        />
+                      </button>
+                    ) : <div style={detailStyles.detailMediaEmpty}><Activity size={24} /> No video available</div>}
+                  </div>
+                </section>
+
+                {selectedIncident.latitude && (
+                  <section style={detailStyles.detailPanel}>
+                    <div style={detailStyles.detailSectionHeader}>
+                      <h3 style={detailStyles.detailSectionTitle}>Geographic Location</h3>
+                      <button
+                        type="button"
+                        style={detailStyles.detailMapButton}
+                        onClick={() => window.open(`https://www.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}`, "_blank", "noopener,noreferrer")}
+                      >
+                        Open in Maps
+                      </button>
+                    </div>
+                    <div
+                      style={{ ...detailStyles.detailMapPreview, cursor: "zoom-in" }}
+                      onClick={() => setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] })}
+                    >
+                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
+                        <iframe
+                            title="Resolved incident location"
+                            src={`https://maps.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}&z=15&output=embed`}
+                            style={{ ...detailStyles.detailMapFrame, pointerEvents: "none" }}
+                          />
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedMap && (
+        <div style={detailStyles.modalBackdrop} onClick={() => setSelectedMap(null)}>
+          <div style={detailStyles.modalWindow} onClick={(event) => event.stopPropagation()}>
+            <div style={detailStyles.modalHead}>
+              <h3 style={{ margin: 0, color: "#111827", fontSize: "16px" }}>
+                {selectedMap.address || "Resolved Incident Location"}
+              </h3>
+              <button type="button" onClick={() => setSelectedMap(null)} style={detailStyles.closeBtn}>
+                <X size={18} />
+              </button>
+            </div>
+            <iframe
+              title="Full resolved incident map"
+              width="100%"
+              height="500px"
+              frameBorder="0"
+              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+            />
+          </div>
+        </div>
+      )}
+
+      {selectedImage && (
+        <div style={detailStyles.modalBackdrop} onClick={() => setSelectedImage(null)}>
+          <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }} onClick={(event) => event.stopPropagation()}>
+            {selectedImage.match(/\.(mp4|mov|avi|webm|ogg)(\?.*)?$/i) ? (
+              <video src={selectedImage} controls autoPlay style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "10px" }} />
+            ) : (
+              <img src={selectedImage} alt="Incident media preview" style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "10px" }} />
+            )}
+            <button type="button" onClick={() => setSelectedImage(null)} style={detailStyles.closeFloatBtn}>
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

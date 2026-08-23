@@ -393,7 +393,7 @@ export default function Sidebar({
           >
             Logged in as: <b>{(`${admin?.first_name || ''} ${admin?.last_name || ''}`.trim()) || "Admin"}</b>
           </p>
-          <button onClick={handleLogout} style={styles.logoutBtn}>
+          <button className="sidebarLogoutBtn" onClick={handleLogout} style={styles.logoutBtn}>
             <LogOut size={16} /> Logout
           </button>
         </div>

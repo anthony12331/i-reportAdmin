@@ -31,6 +31,122 @@ textarea {
   background: transparent;
 }
 
+.sidebarNavNoScroll > div {
+  will-change: transform;
+}
+
+.sidebarNavNoScroll > div:hover {
+  transform: translateX(3px);
+  box-shadow: inset 3px 0 0 #1d7a4d;
+  background-color: #f6faf7;
+}
+
+.sidebarLogoutBtn:hover {
+  background-color: #f6faf7 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(24, 95, 53, 0.1);
+}
+
+.adminActionButton {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
+  will-change: transform;
+}
+
+.adminActionButton:not(:disabled):hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+}
+
+.adminActionButton:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.98);
+}
+
+.sosDispatchButton {
+  will-change: transform;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
+}
+
+.sosDispatchButton:not(:disabled):hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow: 0 10px 22px rgba(239, 68, 68, 0.22);
+}
+
+.sosDispatchButton:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+}
+
+.sosDispatchButton.sosDispatching {
+  animation: sosDispatchPulse 1.2s ease-in-out infinite;
+}
+
+.ongoingDispatchButton {
+  will-change: transform;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
+}
+
+.ongoingDispatchButton:not(:disabled):hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow: 0 8px 18px rgba(24, 95, 53, 0.18);
+}
+
+.ongoingDispatchButton:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+}
+
+.ongoingDispatchButton.ongoingDispatching {
+  animation: ongoingDispatchPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ongoingDispatchPulse {
+  0%,
+  100% {
+    box-shadow: 0 6px 14px rgba(24, 95, 53, 0.12);
+  }
+  50% {
+    box-shadow: 0 9px 22px rgba(24, 95, 53, 0.3);
+  }
+}
+
+@keyframes sosDispatchPulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.18);
+  }
+  50% {
+    box-shadow: 0 10px 26px rgba(239, 68, 68, 0.36);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebarNavNoScroll > div,
+  .sidebarLogoutBtn,
+  .adminActionButton,
+  .sosDispatchButton,
+  .ongoingDispatchButton {
+    transition: none !important;
+  }
+
+  .sidebarNavNoScroll > div:hover,
+  .sidebarLogoutBtn:hover,
+  .adminActionButton:not(:disabled):hover,
+  .sosDispatchButton:not(:disabled):hover,
+  .ongoingDispatchButton:not(:disabled):hover {
+    transform: none;
+  }
+
+  .sosDispatchButton.sosDispatching {
+    animation: none;
+  }
+
+  .ongoingDispatchButton.ongoingDispatching {
+    animation: none;
+  }
+}
+
 @media (max-width: 900px) {
   aside[style] {
     position: relative !important;

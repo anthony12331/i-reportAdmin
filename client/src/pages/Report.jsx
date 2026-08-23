@@ -404,7 +404,7 @@ export default function Report() {
       const {ctx} = chart;
       ctx.save();
       ctx.globalCompositeOperation = 'destination-over';
-      ctx.fillStyle = options.color || '#0f172a'; // Match the UI dark background
+      ctx.fillStyle = options.color || '#ffffff';
       ctx.fillRect(0, 0, chart.width, chart.height);
       ctx.restore();
     }
@@ -415,18 +415,18 @@ export default function Report() {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        labels: { color: "#cbd5e1", font: { weight: "700", size: 11 } },
+        labels: { color: "#374151", font: { weight: "700", size: 11 } },
       },
-      customCanvasBackgroundColor: { color: '#0f172a' }
+      customCanvasBackgroundColor: { color: '#ffffff' }
     },
     scales: {
       x: {
-        ticks: { color: "#cbd5e1", font: { weight: "600" } },
-        grid: { color: "#334155" }, // Softer grid lines
+        ticks: { color: "#5f7b69", font: { weight: "600" } },
+        grid: { color: "#dfeae3" },
       },
       y: {
-        ticks: { color: "#cbd5e1", font: { weight: "600" } },
-        grid: { color: "#334155" }, // Softer grid lines
+        ticks: { color: "#5f7b69", font: { weight: "600" } },
+        grid: { color: "#dfeae3" },
       },
     },
   };
@@ -437,16 +437,16 @@ export default function Report() {
     maintainAspectRatio: false,
     plugins: { 
       legend: { display: false },
-      customCanvasBackgroundColor: { color: '#0f172a' } 
+      customCanvasBackgroundColor: { color: '#ffffff' }
     },
     scales: {
       x: {
-        ticks: { color: "#cbd5e1", font: { weight: "600" } },
-        grid: { color: "#334155" }, // Softer grid lines
+        ticks: { color: "#5f7b69", font: { weight: "600" } },
+        grid: { color: "#dfeae3" },
       },
       y: {
-        ticks: { color: "#cbd5e1", font: { weight: "700" } },
-        grid: { color: "#334155" }, // Softer grid lines
+        ticks: { color: "#5f7b69", font: { weight: "700" } },
+        grid: { color: "#dfeae3" },
       },
     },
   };
@@ -594,7 +594,7 @@ export default function Report() {
             <div style={styles.metricsGrid}>
               <div style={styles.metricCardDefault}>
                 <span style={styles.metricLabel("#94a3b8")}>TOTAL LOGGED</span>
-                <h2 style={styles.metricValue("#f8fafc")}>{reports.length}</h2>
+                <h2 style={styles.metricValue("#111827")}>{reports.length}</h2>
               </div>
 
               <div style={styles.metricCardOngoing}>
@@ -694,7 +694,7 @@ export default function Report() {
                       <span
                         style={{
                           fontWeight: "700",
-                          color: "#f8fafc",
+                          color: "#111827",
                           fontSize: "13px",
                         }}
                       >
@@ -712,7 +712,7 @@ export default function Report() {
                 <h3 style={styles.chartTitle}>LOG ENTRIES AUDIT</h3>
                 <div style={{ maxHeight: "300px", overflowY: "auto", paddingRight: "8px" }}>
                   <table style={styles.auditTable}>
-                    <thead style={{ position: "sticky", top: 0, backgroundColor: "#0f172a", zIndex: 1 }}>
+                    <thead style={{ position: "sticky", top: 0, backgroundColor: "#f6faf7", zIndex: 1 }}>
                       <tr>
                         <th style={styles.auditTh}>{reportSource === "incident" ? "Type" : "Department"}</th>
                         <th style={styles.auditTh}>Location</th>

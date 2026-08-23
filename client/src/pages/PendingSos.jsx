@@ -340,7 +340,7 @@ export default function PendingSos() {
                       handleToggleVideo(sos.id);
                     }}
                     style={{
-                      backgroundColor: activeVideoId === sos.id ? "#3f3f46" : "#ef4444",
+                      backgroundColor: activeVideoId === sos.id ? "#374151" : "#b91c1c",
                       color: "white",
                       padding: "8px 12px",
                       borderRadius: "6px",
@@ -377,33 +377,33 @@ export default function PendingSos() {
                     </div>
 
                     {activeSosDispatches.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px", background: "rgba(0,0,0,0.3)", borderRadius: "6px", marginBottom: "10px" }}>
-                        <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold", textTransform: "uppercase" }}>🚀 DEPLOYED UNITS:</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px", background: "#ffffff", border: "1px solid #dfeae3", borderRadius: "8px", marginBottom: "10px" }}>
+                        <span style={{ fontSize: "11px", color: "#5f7b69", fontWeight: "bold", textTransform: "uppercase" }}>DEPLOYED UNITS:</span>
                         {activeSosDispatches.map(d => {
                           const r = d.expand?.responder_id;
                           return (
-                            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "rgba(255,255,255,0.05)", padding: "4px 8px", borderRadius: "4px" }}>
-                              <span style={{ color: "#38bdf8", fontWeight: "bold" }}>
+                            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "#f6faf7", padding: "6px 8px", borderRadius: "6px" }}>
+                              <span style={{ color: "#177a4a", fontWeight: "bold" }}>
                                 {r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department} 
-                                {d.is_primary_responder && <span style={{ color: "#f59e0b", marginLeft: "6px", fontSize: "10px" }}>(PRIMARY)</span>}
+                                {d.is_primary_responder && <span style={{ color: "#b45309", marginLeft: "6px", fontSize: "10px" }}>(PRIMARY)</span>}
                               </span>
-                              <span style={{ color: "#94a3b8", textTransform: "uppercase", fontSize: "10px", fontWeight: "bold" }}>{d.status}</span>
+                              <span style={{ color: "#5f7b69", textTransform: "uppercase", fontSize: "10px", fontWeight: "bold" }}>{d.status}</span>
                             </div>
                           );
                         })}
                       </div>
                     )}
 
-                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "4px", marginBottom: "10px" }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid #dfeae3", borderRadius: "8px", padding: "4px", marginBottom: "10px", backgroundColor: "#ffffff" }} onClick={(e) => e.stopPropagation()}>
                       {respondersLoading ? (
-                        <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>Loading responders...</div>
+                        <div style={{ padding: "8px", fontSize: "12px", color: "#5f7b69" }}>Loading responders...</div>
                       ) : responderOptions.length === 0 ? (
-                        <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders</div>
+                        <div style={{ padding: "8px", fontSize: "12px", color: "#5f7b69" }}>No Standby Responders</div>
                       ) : (
                         responderOptions.map((r) => {
                           const isSelected = selectedIds.includes(r.id);
                           return (
-                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "rgba(56, 189, 248, 0.1)" : "transparent", borderRadius: "4px", marginBottom: "2px" }}>
+                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "#e7f5eb" : "transparent", borderRadius: "6px", marginBottom: "2px" }}>
                               <input 
                                 type="checkbox" 
                                 checked={isSelected}
@@ -419,7 +419,7 @@ export default function PendingSos() {
                                 }}
                                 style={{ cursor: "pointer" }}
                               />
-                              <span style={{ fontSize: "12px", color: isSelected ? "#38bdf8" : "#e2e8f0", fontWeight: isSelected ? "600" : "400" }}>
+                              <span style={{ fontSize: "12px", color: isSelected ? "#177a4a" : "#374151", fontWeight: isSelected ? "700" : "600" }}>
                                 {getResponderOptionLabel(r)} ({r.department})
                               </span>
                             </label>
@@ -429,6 +429,7 @@ export default function PendingSos() {
                     </div>
 
                     <button
+                      className={assigningId === sos.id ? "sosDispatchButton sosDispatching" : "sosDispatchButton"}
                       onClick={(e) => {
                         e.stopPropagation();
                         assignResponderToSos(sos, selectedIds);

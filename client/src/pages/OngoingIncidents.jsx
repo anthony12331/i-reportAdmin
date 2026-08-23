@@ -3,6 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { getReadableAddress } from "../utils/utils";
 import { ongoingStyles, getIncidentTheme } from "../themes/ongoingStyles"; 
+import { pendingIncidentsStyles as detailStyles } from "../themes/pendingIncidentsStyles";
 import {
   MapPin,
   User,
@@ -24,6 +25,7 @@ export default function OngoingIncidents() {
   const [addresses, setAddresses] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
+  const [selectedIncident, setSelectedIncident] = useState(null);
   const [selectedTypeFilter, setSelectedTypeFilter] = useState("ALL");
   const [departmentFilters, setDepartmentFilters] = useState({});
   const [selectedResponderIds, setSelectedResponderIds] = useState({});
@@ -257,7 +259,11 @@ export default function OngoingIncidents() {
             const HeaderIcon = theme.icon;
 
             return (
-              <div key={incident.id} style={ongoingStyles.card(theme.border)}>
+              <div
+                key={incident.id}
+                style={ongoingStyles.card(theme.border)}
+                onClick={() => setSelectedIncident(incident)}
+              >
                 {/* Header Banner */}
                 <div style={ongoingStyles.cardHeader(theme.headerBg)}>
                   <span style={ongoingStyles.typeLabel(theme.accentText)}>
@@ -311,12 +317,12 @@ export default function OngoingIncidents() {
                         {activeIncidentDispatches.map(d => {
                           const r = d.expand?.responder_id;
                           return (
-                            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", background: "rgba(0,0,0,0.2)", padding: "6px 8px", borderRadius: "4px" }}>
-                              <span style={{ color: theme.accentText, fontWeight: "bold" }}>
+                            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", background: "#ffffff", border: "1px solid #dfeae3", padding: "7px 8px", borderRadius: "6px" }}>
+                              <span style={{ color: "#177a4a", fontWeight: "700" }}>
                                 {r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department} 
                                 {d.is_primary_responder && <span style={{ color: "#f59e0b", marginLeft: "6px", fontSize: "10px" }}>(PRIMARY)</span>}
                               </span>
-                              <span style={{ color: "#94a3b8", textTransform: "uppercase" }}>{d.status}</span>
+                              <span style={{ color: "#5f7b69", textTransform: "uppercase", fontWeight: "700" }}>{d.status}</span>
                             </div>
                           );
                         })}
@@ -336,13 +342,14 @@ export default function OngoingIncidents() {
                     </p>
 
                     <div
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedMap({
                           lat: incident.latitude,
                           lng: incident.longitude,
                           address: addresses[incident.id],
-                        })
-                      }
+                        });
+                      }}
                       style={ongoingStyles.mapPreviewWrapper}
                     >
                       <iframe
@@ -361,8 +368,8 @@ export default function OngoingIncidents() {
                   </div>
 
                   {/* RESPONDER DISPATCH MULTI-SELECTOR */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: "8px", background: "rgba(15, 23, 42, 0.6)", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)", marginBottom: "20px" }}>
-                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#94a3b8", letterSpacing: "1px" }}>
+                  <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: "8px", background: "#f6faf7", padding: "12px", borderRadius: "10px", border: "1px solid #dfeae3", marginBottom: "20px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#5f7b69", letterSpacing: "1px" }}>
                       <span>DISPATCH ADDITIONAL UNITS</span>
                     </div>
 
@@ -371,7 +378,7 @@ export default function OngoingIncidents() {
                       <select 
                         value={departmentFilters[incident.id] || ""} 
                         onChange={(e) => setDepartmentFilters(prev => ({ ...prev, [incident.id]: e.target.value }))}
-                        style={{ width: "100%", padding: "6px", borderRadius: "4px", backgroundColor: "#1e293b", color: "#f8fafc", border: "1px solid #334155", fontSize: "12px", outline: "none", cursor: "pointer" }}
+                        style={{ width: "100%", padding: "8px", borderRadius: "6px", backgroundColor: "#ffffff", color: "#111827", border: "1px solid #dfeae3", fontSize: "12px", outline: "none", cursor: "pointer" }}
                       >
                         <option value="">All Departments</option>
                         <option value="police">Police</option>
@@ -381,18 +388,18 @@ export default function OngoingIncidents() {
                       </select>
                     </div>
 
-                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", padding: "4px" }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid #dfeae3", borderRadius: "8px", padding: "4px", backgroundColor: "#ffffff" }} onClick={(e) => e.stopPropagation()}>
                       {availableResponders.length === 0 ? (
-                        <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders</div>
+                        <div style={{ padding: "8px", fontSize: "12px", color: "#5f7b69" }}>No Standby Responders</div>
                       ) : (() => {
                         const filtered = availableResponders.filter(r => !previouslyDispatchedIds.has(r.id) && (!departmentFilters[incident.id] || r.department === departmentFilters[incident.id]));
                         if (filtered.length === 0) {
-                          return <div style={{ padding: "8px", fontSize: "12px", color: "#94a3b8" }}>No Standby Responders for this department</div>;
+                          return <div style={{ padding: "8px", fontSize: "12px", color: "#5f7b69" }}>No Standby Responders for this department</div>;
                         }
                         return filtered.map((r) => {
                           const isSelected = (selectedResponderIds[incident.id] || []).includes(r.id);
                           return (
-                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "rgba(56, 189, 248, 0.1)" : "transparent", borderRadius: "4px", marginBottom: "2px" }}>
+                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "#e7f5eb" : "transparent", borderRadius: "6px", marginBottom: "2px" }}>
                               <input 
                                 type="checkbox" 
                                 checked={isSelected}
@@ -408,7 +415,7 @@ export default function OngoingIncidents() {
                                 }}
                                 style={{ cursor: "pointer" }}
                               />
-                              <span style={{ fontSize: "12px", color: isSelected ? "#38bdf8" : "#e2e8f0", fontWeight: isSelected ? "600" : "400" }}>
+                              <span style={{ fontSize: "12px", color: isSelected ? "#177a4a" : "#374151", fontWeight: isSelected ? "700" : "600" }}>
                                 {r.first_name} {r.last_name} ({r.department})
                               </span>
                             </label>
@@ -418,12 +425,13 @@ export default function OngoingIncidents() {
                     </div>
                     
                     <button
+                      className={processingId === incident.id ? "ongoingDispatchButton ongoingDispatching" : "ongoingDispatchButton"}
                       onClick={(e) => { e.stopPropagation(); updateStatus(incident, "ongoing", selectedResponderIds[incident.id] || []); }}
                       disabled={processingId === incident.id || (selectedResponderIds[incident.id] || []).length === 0}
                       style={{
                         padding: "8px 12px",
-                        backgroundColor: (selectedResponderIds[incident.id] || []).length === 0 ? "#334155" : "#2563eb",
-                        color: (selectedResponderIds[incident.id] || []).length === 0 ? "#94a3b8" : "#ffffff",
+                        backgroundColor: (selectedResponderIds[incident.id] || []).length === 0 ? "#dfe9e2" : "#1a874f",
+                        color: (selectedResponderIds[incident.id] || []).length === 0 ? "#6d7d73" : "#ffffff",
                         border: "none",
                         borderRadius: "4px",
                         fontSize: "12px",
@@ -445,7 +453,7 @@ export default function OngoingIncidents() {
                     {/* Image Tile */}
                     <div
                       style={ongoingStyles.mediaTile(Boolean(imgUrl))}
-                      onClick={() => imgUrl && setSelectedImage(imgUrl)}
+                      onClick={(e) => { e.stopPropagation(); if (imgUrl) setSelectedImage(imgUrl); }}
                     >
                       {imgUrl ? (
                         <img
@@ -470,7 +478,7 @@ export default function OngoingIncidents() {
                     {/* Video Tile */}
                     <div
                       style={ongoingStyles.mediaTile(Boolean(videoUrl))}
-                      onClick={() => videoUrl && setSelectedImage(videoUrl)}
+                      onClick={(e) => { e.stopPropagation(); if (videoUrl) setSelectedImage(videoUrl); }}
                     >
                       {videoUrl ? (
                         <video
@@ -500,6 +508,115 @@ export default function OngoingIncidents() {
           })}
         </div>
       </main>
+
+      {selectedIncident && (
+        <div style={detailStyles.detailBackdrop} onClick={() => setSelectedIncident(null)}>
+          <div style={detailStyles.detailWindow} onClick={(e) => e.stopPropagation()}>
+            <header style={detailStyles.detailHeader}>
+              <button type="button" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
+                <X size={16} /> Back to List
+              </button>
+              <div style={detailStyles.detailHeaderTitle}>
+                <span>Incident Details</span>
+                <strong>#{selectedIncident.id}</strong>
+              </div>
+              <span style={detailStyles.detailStatus}>Ongoing Dispatch</span>
+            </header>
+
+            <div style={{ ...detailStyles.detailBody, gridTemplateColumns: "1fr" }}>
+              <div style={detailStyles.detailMainColumn}>
+                <section style={detailStyles.detailPanel}>
+                  <h3 style={detailStyles.detailSectionTitle}>Reporter Information</h3>
+                  <div style={detailStyles.reporterDetail}>
+                    <div style={detailStyles.reporterAvatar}>
+                      {selectedIncident.expand?.users?.selfie ? (
+                        <img
+                          src={pb.files.getURL(selectedIncident.expand.users, selectedIncident.expand.users.selfie)}
+                          alt="Reporter"
+                          style={detailStyles.reporterAvatarImage}
+                        />
+                      ) : (
+                        <User size={20} />
+                      )}
+                    </div>
+                    <div style={detailStyles.reporterSummary}>
+                      <strong style={detailStyles.reporterName}>
+                        {selectedIncident.expand?.users?.first_name || "Unknown"} {selectedIncident.expand?.users?.last_name || "Resident"}
+                      </strong>
+                      <span style={detailStyles.reporterSub}>Registered Resident</span>
+                    </div>
+                  </div>
+                  <div style={detailStyles.detailContactRow}>
+                    <div style={detailStyles.contactItem}>
+                      <span style={detailStyles.detailContactLabel}>Phone</span>
+                      <strong style={detailStyles.contactValue}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong>
+                    </div>
+                    <div style={detailStyles.contactItem}>
+                      <span style={detailStyles.detailContactLabel}>Email</span>
+                      <strong style={detailStyles.contactValue}>{selectedIncident.expand?.users?.email || "N/A"}</strong>
+                    </div>
+                  </div>
+                  <div style={{ ...detailStyles.metadataGrid, marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #edf3ee" }}>
+                    {[
+                      ["Age", selectedIncident.expand?.users?.age],
+                      ["Barangay", selectedIncident.expand?.users?.baranggay || selectedIncident.expand?.users?.barangay],
+                      ["Municipality", selectedIncident.expand?.users?.municipality],
+                      ["Province", selectedIncident.expand?.users?.province],
+                      ["Street Address", selectedIncident.expand?.users?.street_address],
+                      ["Birthdate", selectedIncident.expand?.users?.birthdate],
+                    ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
+                      <React.Fragment key={label}>
+                        <span style={detailStyles.metadataLabel}>{label}</span>
+                        <strong style={detailStyles.metadataValue}>{String(value)}</strong>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </section>
+
+                <section style={detailStyles.detailPanel}>
+                  <h3 style={detailStyles.detailSectionTitle}>Incident Data</h3>
+                  <div style={detailStyles.metadataGrid}>
+                    <span style={detailStyles.metadataLabel}>Type</span><strong style={detailStyles.metadataValue}>{selectedIncident.type || "Unknown"}</strong>
+                    <span style={detailStyles.metadataLabel}>Reported</span><strong style={detailStyles.metadataValue}>{new Date(selectedIncident.created).toLocaleString()}</strong>
+                    <span style={detailStyles.metadataLabel}>Location</span><strong style={detailStyles.metadataValue}>{addresses[selectedIncident.id] || "GPS Telemetry Locating..."}</strong>
+                  </div>
+                </section>
+
+                <section style={detailStyles.detailPanel}>
+                  <h3 style={detailStyles.detailSectionTitle}>Proof of Incident</h3>
+                  <div style={detailStyles.detailMediaGrid}>
+                    {selectedIncident.incident_image ? (
+                      <button type="button" style={detailStyles.detailMediaButton} onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`)}>
+                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
+                        <img src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`} alt="Incident evidence" style={detailStyles.detailMedia} />
+                      </button>
+                    ) : <div style={detailStyles.detailMediaEmpty}><ImageIcon size={24} /> No photo available</div>}
+                    {selectedIncident.incident_video ? (
+                      <button type="button" style={detailStyles.detailMediaButton} onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`)}>
+                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
+                        <video src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`} controls style={detailStyles.detailMedia} />
+                      </button>
+                    ) : <div style={detailStyles.detailMediaEmpty}><Activity size={24} /> No video available</div>}
+                  </div>
+                </section>
+
+                {selectedIncident.latitude && (
+                  <section style={detailStyles.detailPanel}>
+                    <div style={detailStyles.detailSectionHeader}>
+                      <h3 style={detailStyles.detailSectionTitle}>Geographic Location</h3>
+                      <button type="button" style={detailStyles.detailMapButton} onClick={() => window.open(`https://www.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}`, "_blank", "noopener,noreferrer")}>Open in Maps</button>
+                    </div>
+                    <div style={{ ...detailStyles.detailMapPreview, cursor: "pointer" }} onClick={() => setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] })}>
+                      <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
+                      <iframe title="Incident location" src={`https://maps.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}&z=15&output=embed`} style={{ ...detailStyles.detailMapFrame, pointerEvents: "none" }} />
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: FULLSCREEN MAP */}
       {selectedMap && (

@@ -2,9 +2,9 @@
 
 const glassPanel = {
   backgroundColor: "#ffffff",
-  border: "1px solid #d7e5da",
-  boxShadow: "0 8px 24px rgba(24, 95, 53, 0.06)",
-  borderRadius: "12px",
+  border: "1px solid #dfeae3",
+  boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)",
+  borderRadius: "14px",
 };
 
 export const getActionStyle = (action = "") => {
@@ -15,16 +15,16 @@ export const getActionStyle = (action = "") => {
     act.includes("revoke")
   ) {
     return {
-      bg: "rgba(239, 68, 68, 0.15)",
-      color: "#fca5a5",
-      border: "1px solid rgba(239,68,68,0.4)",
+      bg: "#fee2e2",
+      color: "#b91c1c",
+      border: "1px solid #f5d6d6",
     };
   }
   if (act.includes("create") || act.includes("add") || act.includes("grant")) {
     return {
-      bg: "rgba(16, 185, 129, 0.15)",
-      color: "#34d399",
-      border: "1px solid rgba(16,185,129,0.4)",
+      bg: "#dcfce7",
+      color: "#15803d",
+      border: "1px solid #bbf7d0",
     };
   }
   if (
@@ -33,15 +33,15 @@ export const getActionStyle = (action = "") => {
     act.includes("modify")
   ) {
     return {
-      bg: "rgba(245, 158, 11, 0.15)",
-      color: "#fcd34d",
-      border: "1px solid rgba(245,158,11,0.4)",
+      bg: "#fef3c7",
+      color: "#b45309",
+      border: "1px solid #f9d49c",
     };
   }
   return {
-    bg: "rgba(56, 189, 248, 0.15)",
-    color: "#7dd3fc",
-    border: "1px solid rgba(6, 182, 212, 0.4)",
+    bg: "#e0f2fe",
+    color: "#0369a1",
+    border: "1px solid #bae6fd",
   };
 };
 
@@ -50,21 +50,21 @@ export const auditStyles = {
     display: "flex",
     minHeight: "100vh",
     background: "radial-gradient(circle at 50% -20%, #ffffff 0%, #f6faf7 80%)",
-    color: "#111111",
+    color: "#111827",
     fontFamily: "Inter, Arial, sans-serif",
   },
   main: {
     flex: 1,
-    padding: "28px 24px 40px",
+    padding: "16px 24px 40px",
     marginLeft: "216px",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "32px",
-    paddingBottom: "24px",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    alignItems: "flex-end",
+    marginBottom: "24px",
+    paddingBottom: "12px",
+    borderBottom: "1px solid #dfeae3",
   },
   titleWrapper: {
     display: "flex",
@@ -75,16 +75,14 @@ export const auditStyles = {
     width: "12px",
     height: "12px",
     borderRadius: "50%",
-    backgroundColor: "#06b6d4",
-    boxShadow: "0 0 15px rgba(56, 189, 248, 0.8)",
+    backgroundColor: "#1d7a4d",
+    boxShadow: "0 0 15px rgba(29, 122, 77, 0.28)",
   },
   titleText: {
-    fontSize: "32px",
-    fontWeight: "900",
-    letterSpacing: "-0.5px",
-    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
-    
-    
+    fontSize: "clamp(24px, 3vw, 32px)",
+    fontWeight: "800",
+    letterSpacing: "-0.03em",
+    color: "#111111",
     margin: 0,
 
   },
@@ -92,40 +90,38 @@ export const auditStyles = {
     fontSize: "10px",
     margin: "8px 0 0 0",
     fontWeight: "600",
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    letterSpacing: "3px",
+    color: "#477257",
+    textTransform: "none",
+    letterSpacing: "0.3px",
   },
   searchBar: {
     ...glassPanel,
-    padding: "20px 24px",
+    padding: "16px 20px",
     display: "flex",
     alignItems: "center",
-    gap: "16px",
-    marginBottom: "32px",
+    gap: "12px",
+    marginBottom: "24px",
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.7)",
-    backdropFilter: "blur(40px)",
-    WebkitBackdropFilter: "blur(40px)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "32px",
-    padding: "16px 20px",
-    color: "#ffffff",
-    fontSize: "15px",
-    fontWeight: "800",
+    backgroundColor: "#fbfdfb",
+    border: "1px solid #dfeae3",
+    borderRadius: "10px",
+    padding: "12px 14px",
+    color: "#111827",
+    fontSize: "14px",
+    fontWeight: "600",
     outline: "none",
   },
   clearBtn: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    color: "#ffffff",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dfeae3",
+    color: "#1f3a2f",
     cursor: "pointer",
     fontSize: "14px",
     fontWeight: "900",
     padding: "12px 24px",
-    borderRadius: "32px",
+    borderRadius: "10px",
     transition: "all 0.3s",
   },
   tableCard: {
@@ -138,7 +134,7 @@ export const auditStyles = {
     alignItems: "center",
     justifyContent: "center",
     padding: "100px 20px",
-    color: "#94a3b8",
+    color: "#5f7b69",
     gap: "20px",
   },
   centerText: {
@@ -148,19 +144,19 @@ export const auditStyles = {
   emptyStateText: {
     textAlign: "center",
     padding: "100px 20px",
-    color: "#94a3b8",
+    color: "#5f7b69",
     fontSize: "16px",
     fontWeight: "800",
   },
   table: {
     width: "100%",
     borderCollapse: "separate",
-    borderSpacing: "0 4px",
+    borderSpacing: "0",
     textAlign: "left",
   },
   theadRow: {
-    backgroundColor: "rgba(255, 255, 255, 0.02)",
-    color: "#94a3b8",
+    backgroundColor: "#f6faf7",
+    color: "#5f7b69",
     fontSize: "12px",
     fontWeight: "900",
     textTransform: "uppercase",
@@ -168,13 +164,13 @@ export const auditStyles = {
   },
   th: {
     textAlign: "left",
-    padding: "24px 32px",
+    padding: "14px 20px",
     fontSize: "9px",
     fontWeight: "700",
-    color: "#94a3b8",
+    color: "#5f7b69",
     letterSpacing: "2px",
     textTransform: "uppercase",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid #dfeae3",
     backgroundColor: "transparent",
   },
   thFlex: {
@@ -183,39 +179,39 @@ export const auditStyles = {
     gap: "10px",
   },
   tr: {
-    backgroundColor: "rgba(255, 255, 255, 0.01)",
+    backgroundColor: "#ffffff",
     transition: "background-color 0.2s ease",
   },
   tdTimestamp: {
-    padding: "clamp(32px, 5vw, 64px)",
+    padding: "18px 20px",
     whiteSpace: "nowrap",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.02)",
+    borderBottom: "1px solid #edf3ee",
   },
   dateText: {
     fontSize: "14px",
     fontWeight: "900",
-    color: "#ffffff",
+    color: "#111827",
   },
   timeText: {
     fontSize: "13px",
-    color: "#94a3b8",
+    color: "#5f7b69",
     marginTop: "6px",
     fontWeight: "700",
   },
   tdAdmin: {
-    padding: "clamp(32px, 5vw, 64px)",
+    padding: "18px 20px",
     fontWeight: "900",
-    color: "#06b6d4",
+    color: "#177a4a",
     fontSize: "15px",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.02)",
+    borderBottom: "1px solid #edf3ee",
   },
   tdAction: {
-    padding: "clamp(32px, 5vw, 64px)",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.02)",
+    padding: "18px 20px",
+    borderBottom: "1px solid #edf3ee",
   },
   actionBadge: (actionStyle) => ({
-    padding: "8px 16px",
-    borderRadius: "32px",
+    padding: "6px 12px",
+    borderRadius: "999px",
     fontSize: "12px",
     fontWeight: "900",
     backgroundColor: actionStyle.bg,
@@ -225,25 +221,25 @@ export const auditStyles = {
     textTransform: "uppercase",
   }),
   tdTarget: {
-    padding: "clamp(32px, 5vw, 64px)",
+    padding: "18px 20px",
     borderBottom: "1px solid rgba(255, 255, 255, 0.02)",
   },
   targetBadge: {
     fontFamily: "monospace",
-    color: "#d8b4fe",
-    backgroundColor: "rgba(168, 85, 247, 0.15)",
+    color: "#6d28d9",
+    backgroundColor: "#f3e8ff",
     padding: "6px 12px",
     borderRadius: "10px",
     fontSize: "13px",
-    border: "1px solid rgba(168, 85, 247, 0.3)",
+    border: "1px solid #e9d5ff",
     fontWeight: "800",
   },
   tdDetails: {
-    padding: "clamp(32px, 5vw, 64px)",
-    color: "#cbd5e1",
+    padding: "18px 20px",
+    color: "#374151",
     fontSize: "14px",
     maxWidth: "350px",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.02)",
+    borderBottom: "1px solid #edf3ee",
     lineHeight: "1.6",
   },
 };

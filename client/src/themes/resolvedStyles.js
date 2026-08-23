@@ -139,6 +139,18 @@ export const resolvedStyles = {
     color: "#94a3b8",
     marginTop: "6px",
   },
+  detailsButton: {
+    padding: "9px 12px",
+    border: "1px solid #b8d7c1",
+    borderRadius: "8px",
+    backgroundColor: "#f6faf7",
+    color: "#177a4a",
+    cursor: "pointer",
+    fontSize: "12px",
+    fontWeight: "800",
+    whiteSpace: "nowrap",
+    transition: "all 0.2s ease",
+  },
 };
 
 export const ui = resolvedStyles;

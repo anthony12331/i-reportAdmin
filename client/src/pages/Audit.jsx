@@ -92,7 +92,7 @@ export default function Audit() {
 
         {/* Search Bar */}
         <div style={auditStyles.searchBar}>
-          <Search size={18} color="#38bdf8" style={{ marginLeft: "8px" }} />
+          <Search size={18} color="#1d7a4d" style={{ marginLeft: "8px" }} />
           <input
             type="text"
             placeholder="Search audit trail by admin name, target ID, action type, or details..."
@@ -114,7 +114,7 @@ export default function Audit() {
         <div style={auditStyles.tableCard}>
           {loading && logs.length === 0 ? (
             <div style={auditStyles.centerBox}>
-              <Loader className="animate-spin" size={28} color="#38bdf8" />
+              <Loader className="animate-spin" size={28} color="#1d7a4d" />
               <span style={auditStyles.centerText}>
                 Accessing secure audit logs from central database...
               </span>
@@ -133,22 +133,22 @@ export default function Audit() {
                 <tr style={auditStyles.theadRow}>
                   <th style={auditStyles.th}>
                     <div style={auditStyles.thFlex}>
-                      <Clock size={14} color="#38bdf8" /> TIMESTAMP
+                      <Clock size={14} color="#1d7a4d" /> TIMESTAMP
                     </div>
                   </th>
                   <th style={auditStyles.th}>
                     <div style={auditStyles.thFlex}>
-                      <User size={14} color="#38bdf8" /> ADMIN ACTOR
+                      <User size={14} color="#1d7a4d" /> ADMIN ACTOR
                     </div>
                   </th>
                   <th style={auditStyles.th}>
                     <div style={auditStyles.thFlex}>
-                      <Activity size={14} color="#38bdf8" /> ACTION
+                      <Activity size={14} color="#1d7a4d" /> ACTION
                     </div>
                   </th>
                   <th style={auditStyles.th}>
                     <div style={auditStyles.thFlex}>
-                      <Target size={14} color="#38bdf8" /> TARGET REF ID
+                      <Target size={14} color="#1d7a4d" /> TARGET REF ID
                     </div>
                   </th>
                   <th style={auditStyles.th}>DETAILS</th>

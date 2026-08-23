@@ -117,7 +117,7 @@ export default function RBACManager() {
           {/* Admin List Panel */}
           <div style={rbacStyles.leftPanel}>
             <div style={rbacStyles.leftPanelHeader}>
-              <UserCheck size={18} color="#38bdf8" />
+              <UserCheck size={18} color="#1d7a4d" />
               <h2 style={rbacStyles.leftPanelTitle}>
                 Admin Accounts ({admins.length})
               </h2>
@@ -125,7 +125,7 @@ export default function RBACManager() {
 
             {fetching ? (
               <div style={rbacStyles.loaderWrapper}>
-                <Loader className="animate-spin" size={24} color="#38bdf8" />
+                <Loader className="animate-spin" size={24} color="#1d7a4d" />
               </div>
             ) : admins.length === 0 ? (
               <div style={rbacStyles.emptyListText}>
@@ -187,7 +187,7 @@ export default function RBACManager() {
                         : "Administrator"}
                     </h2>
                     <p style={rbacStyles.activeAdminSubtext}>
-                      {selectedAdmin.email} • ID: <code style={{ color: "#cbd5e1" }}>{selectedAdmin.id}</code>
+                      {selectedAdmin.email} • ID: <code style={{ color: "#5f7b69" }}>{selectedAdmin.id}</code>
                     </p>
                   </div>
 
@@ -203,7 +203,7 @@ export default function RBACManager() {
 
                 {/* Modules Checkbox Grid */}
                 <h3 style={rbacStyles.moduleSectionTitle}>
-                  <Layers size={16} color="#38bdf8" /> Authorizable Modules
+                  <Layers size={16} color="#1d7a4d" /> Authorizable Modules
                 </h3>
 
                 <div style={rbacStyles.moduleListContainer}>
@@ -257,7 +257,7 @@ export default function RBACManager() {
               </div>
             ) : (
               <div style={rbacStyles.unselectedPlaceholder}>
-                <Lock size={32} color="#64748b" />
+                <Lock size={32} color="#1d7a4d" />
                 <div style={{ fontSize: "16px", fontWeight: "700" }}>No Administrator Selected</div>
                 <div style={{ fontSize: "13px", color: "#64748b" }}>
                   Select an account from the left pane to edit module privileges.

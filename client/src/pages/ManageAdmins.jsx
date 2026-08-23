@@ -122,7 +122,7 @@ export default function ManageAdmins() {
       <>
         <Sidebar />
         <div style={styles.container}>
-          <h2 style={{ color: "#f8fafc" }}>Loading Admin Management...</h2>
+          <h2 style={styles.loadingTitle}>Loading Admin Management...</h2>
         </div>
       </>
     );
@@ -137,7 +137,7 @@ export default function ManageAdmins() {
         </div>
 
       <div style={styles.card}>
-        <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Create New Admin</h3>
+        <h3 style={styles.sectionTitle}>Create New Admin</h3>
         <form onSubmit={handleCreateAdmin} style={{ display: "flex", gap: "15px", alignItems: "flex-end" }}>
           <div style={{ flex: 1 }}>
             <label style={styles.label}>First Name</label>
@@ -169,14 +169,14 @@ export default function ManageAdmins() {
               placeholder="e.g. admin@lgu.gov.ph"
             />
           </div>
-          <button type="submit" style={styles.buttonPrimary} disabled={isCreating}>
+          <button className="adminActionButton" type="submit" style={styles.buttonPrimary} disabled={isCreating}>
             {isCreating ? "Creating..." : "Create Admin (Pwd: 12345678)"}
           </button>
         </form>
       </div>
 
       <div style={styles.card}>
-        <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Super Admins</h3>
+        <h3 style={styles.sectionTitle}>Super Admins</h3>
         <table style={styles.table}>
           <thead>
             <tr>
@@ -197,12 +197,12 @@ export default function ManageAdmins() {
                   {admin.suspended ? (
                     <span style={styles.badgeSuspended}>Suspended</span>
                   ) : (
-                    <span style={{ color: "#34d399", fontSize: "12px", fontWeight: "600" }}>Active</span>
+                    <span style={styles.activeStatus}>Active</span>
                   )}
                 </td>
                 <td style={styles.td}>
                   {pb.authStore.model.id !== admin.id && (
-                    <button 
+                    <button className="adminActionButton"
                       style={admin.suspended ? styles.buttonUnsuspend : styles.buttonSuspend}
                       onClick={() => handleToggleSuspend(admin, "super_admins")}
                     >
@@ -220,7 +220,7 @@ export default function ManageAdmins() {
       </div>
 
       <div style={styles.card}>
-        <h3 style={{ marginTop: 0, color: "#f8fafc" }}>Standard Admins</h3>
+        <h3 style={styles.sectionTitle}>Standard Admins</h3>
         <table style={styles.table}>
           <thead>
             <tr>
@@ -241,17 +241,17 @@ export default function ManageAdmins() {
                   {admin.suspended ? (
                     <span style={styles.badgeSuspended}>Suspended</span>
                   ) : (
-                    <span style={{ color: "#34d399", fontSize: "12px", fontWeight: "600" }}>Active</span>
+                    <span style={styles.activeStatus}>Active</span>
                   )}
                 </td>
                 <td style={styles.td}>
-                  <button 
+                  <button className="adminActionButton"
                     style={styles.buttonPromote}
                     onClick={() => handlePromote(admin)}
                   >
                     Promote to Super
                   </button>
-                  <button 
+                  <button className="adminActionButton"
                     style={admin.suspended ? styles.buttonUnsuspend : styles.buttonSuspend}
                     onClick={() => handleToggleSuspend(admin, "admins")}
                   >

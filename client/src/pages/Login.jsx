@@ -293,9 +293,9 @@ export default function Login() {
                 sx={loginStyles.textField}
               />
             </div>
-            <button type="submit" style={loginStyles.button} disabled={loading}>
+            <RadialButton disabled={loading}>
               {loading ? "SENDING..." : "SEND OTP"}
-            </button>
+            </RadialButton>
           </form>
         )}
 

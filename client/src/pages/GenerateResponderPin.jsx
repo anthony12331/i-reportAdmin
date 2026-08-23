@@ -122,13 +122,13 @@ export default function GenerateResponderPin() {
         </div>
 
         <div style={styles.card}>
-          <div style={{ marginBottom: "15px", color: "#94a3b8", fontSize: "14px" }}>
+          <div style={styles.infoText}>
             <ShieldAlert size={16} style={{ verticalAlign: "middle", marginRight: "6px" }} />
             These PINs are strictly required by Responder accounts during the mobile registration process.
           </div>
 
           {loading ? (
-            <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8" }}>
+            <div style={styles.loadingText}>
               Loading registration PINs...
             </div>
           ) : (

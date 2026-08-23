@@ -602,25 +602,56 @@ export default function PendingIncidents() {
                 <section style={tStyle.detailPanel}>
                   <h3 style={tStyle.detailSectionTitle}>Reporter Information</h3>
                   <div style={tStyle.reporterDetail}>
-                    <div style={tStyle.reporterAvatar}><User size={20} /></div>
-                    <div>
+                    <div style={tStyle.reporterAvatar}>
+                      {selectedIncident.expand?.users?.selfie ? (
+                        <img
+                          src={pb.files.getURL(selectedIncident.expand.users, selectedIncident.expand.users.selfie)}
+                          alt="Reporter"
+                          style={tStyle.reporterAvatarImage}
+                        />
+                      ) : (
+                        <User size={20} />
+                      )}
+                    </div>
+                    <div style={tStyle.reporterSummary}>
                       <strong style={tStyle.reporterName}>{selectedIncident.expand?.users?.first_name || "Unknown"} {selectedIncident.expand?.users?.last_name || "Resident"}</strong>
                       <span style={tStyle.reporterSub}>Registered Resident</span>
                       <span style={tStyle.reporterSub}>ID: {selectedIncident.expand?.users?.user_id || "Not available"}</span>
                     </div>
                   </div>
                   <div style={tStyle.detailContactRow}>
-                    <span><b>Phone</b>{selectedIncident.expand?.users?.contact_number || "N/A"}</span>
-                    <span><b>Email</b>{selectedIncident.expand?.users?.email || "N/A"}</span>
+                    <div style={tStyle.contactItem}>
+                      <span style={tStyle.detailContactLabel}>Phone</span>
+                      <strong style={tStyle.contactValue}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong>
+                    </div>
+                    <div style={tStyle.contactItem}>
+                      <span style={tStyle.detailContactLabel}>Email</span>
+                      <strong style={tStyle.contactValue}>{selectedIncident.expand?.users?.email || "N/A"}</strong>
+                    </div>
+                  </div>
+                  <div style={{ ...tStyle.metadataGrid, marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #edf3ee" }}>
+                    {[
+                      ["Age", selectedIncident.expand?.users?.age],
+                      ["Barangay", selectedIncident.expand?.users?.baranggay || selectedIncident.expand?.users?.barangay],
+                      ["Municipality", selectedIncident.expand?.users?.municipality],
+                      ["Province", selectedIncident.expand?.users?.province],
+                      ["Street Address", selectedIncident.expand?.users?.street_address],
+                      ["Birthdate", selectedIncident.expand?.users?.birthdate],
+                    ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
+                      <React.Fragment key={label}>
+                        <span style={tStyle.metadataLabel}>{label}</span>
+                        <strong style={tStyle.metadataValue}>{String(value)}</strong>
+                      </React.Fragment>
+                    ))}
                   </div>
                 </section>
 
                 <section style={tStyle.detailPanel}>
-                  <h3 style={tStyle.detailSectionTitle}>Incident Metadata</h3>
+                  <h3 style={tStyle.detailSectionTitle}>Incident Data</h3>
                   <div style={tStyle.metadataGrid}>
-                    <span>Type</span><strong>{selectedIncident.type || "Unknown"}</strong>
-                    <span>Reported</span><strong>{new Date(selectedIncident.created).toLocaleString()}</strong>
-                    <span>Location</span><strong>{addresses[selectedIncident.id] || "GPS Telemetry Locating..."}</strong>
+                    <span style={tStyle.metadataLabel}>Type</span><strong style={tStyle.metadataValue}>{selectedIncident.type || "Unknown"}</strong>
+                    <span style={tStyle.metadataLabel}>Reported</span><strong style={tStyle.metadataValue}>{new Date(selectedIncident.created).toLocaleString()}</strong>
+                    <span style={tStyle.metadataLabel}>Location</span><strong style={tStyle.metadataValue}>{addresses[selectedIncident.id] || "GPS Telemetry Locating..."}</strong>
                   </div>
                 </section>
 
@@ -628,10 +659,26 @@ export default function PendingIncidents() {
                   <h3 style={tStyle.detailSectionTitle}>Proof of Incident</h3>
                   <div style={tStyle.detailMediaGrid}>
                     {selectedIncident.incident_image ? (
-                      <img src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`} alt="Incident evidence" style={tStyle.detailMedia} />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`)}
+                        style={tStyle.detailMediaButton}
+                        aria-label="Open incident image"
+                      >
+                        <span style={tStyle.mediaZoomLabel}>Click to enlarge</span>
+                        <img src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`} alt="Incident evidence" style={tStyle.detailMedia} />
+                      </button>
                     ) : <div style={tStyle.detailMediaEmpty}><ImageIcon size={24} /> No photo available</div>}
                     {selectedIncident.incident_video ? (
-                      <video src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`} controls style={tStyle.detailMedia} />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`)}
+                        style={tStyle.detailMediaButton}
+                        aria-label="Open incident video"
+                      >
+                        <span style={tStyle.mediaZoomLabel}>Click to enlarge</span>
+                        <video src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`} controls style={tStyle.detailMedia} />
+                      </button>
                     ) : <div style={tStyle.detailMediaEmpty}><Activity size={24} /> No video available</div>}
                   </div>
                 </section>
@@ -640,10 +687,39 @@ export default function PendingIncidents() {
                   <section style={tStyle.detailPanel}>
                     <div style={tStyle.detailSectionHeader}>
                       <h3 style={tStyle.detailSectionTitle}>Geographic Location</h3>
-                      <button type="button" style={tStyle.detailMapButton} onClick={() => setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] })}>Open in Maps</button>
+                      <button
+                        type="button"
+                        style={tStyle.detailMapButton}
+                        onClick={() => {
+                          const mapUrl = `https://www.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}`;
+                          window.open(mapUrl, "_blank", "noopener,noreferrer");
+                        }}
+                      >
+                        Open in Maps
+                      </button>
                     </div>
-                    <div style={tStyle.detailMapPreview}>
-                      <iframe title="Incident location" src={`https://maps.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}&z=15&output=embed`} style={tStyle.detailMapFrame} />
+                    <div
+                      style={{ ...tStyle.detailMapPreview, cursor: "pointer" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] });
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] });
+                        }
+                      }}
+                    >
+                      <span style={tStyle.mediaZoomLabel}>Click to enlarge</span>
+                      <iframe
+                        title="Incident location"
+                        src={`https://maps.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}&z=15&output=embed`}
+                        style={{ ...tStyle.detailMapFrame, pointerEvents: "none" }}
+                      />
                     </div>
                   </section>
                 )}
@@ -677,7 +753,11 @@ export default function PendingIncidents() {
                   <RadialActionButton
                     disabled={processingId === selectedIncident.id || (selectedResponderIds[selectedIncident.id] || []).length === 0}
                     onClick={() => updateStatus(selectedIncident, "ongoing", selectedResponderIds[selectedIncident.id] || [])}
-                    style={tStyle.deployBtn}
+                    style={
+                      (selectedResponderIds[selectedIncident.id] || []).length === 0
+                        ? { ...tStyle.deployBtn, ...tStyle.deployBtnDisabled }
+                        : tStyle.deployBtn
+                    }
                   >
                     <Send size={14} /> {processingId === selectedIncident.id ? "DISPATCHING..." : "DISPATCH UNITS"}
                   </RadialActionButton>

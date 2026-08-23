@@ -116,11 +116,11 @@ export const VerifiedUserDetailsModal = memo(function VerifiedUserDetailsModal({
 
   return (
     <div style={styles.staticOverlay}>
-      <button type="button" onClick={onClose} style={styles.modalCloseButton}>
-        <X size={18} />
-      </button>
-
       <div style={styles.detailsModal}>
+        <button type="button" onClick={onClose} style={styles.modalCloseButton}>
+          <X size={18} />
+        </button>
+
         <div style={styles.detailsHeader}>
           <div>
             <h2 style={styles.detailsTitle}>
@@ -336,7 +336,7 @@ const styles = {
   darkOverlay: {
     position: "fixed",
     inset: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.95)",
+    backgroundColor: "rgba(15, 23, 42, 0.42)",
     zIndex: 1100,
     display: "flex",
     justifyContent: "center",
@@ -346,7 +346,7 @@ const styles = {
   staticOverlay: {
     position: "fixed",
     inset: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.82)",
+    backgroundColor: "rgba(15, 23, 42, 0.42)",
     backdropFilter: "blur(8px)",
     zIndex: 1000,
     display: "flex",
@@ -388,7 +388,7 @@ const styles = {
     width: "min(1120px, 100%)",
     maxHeight: "92vh",
     overflow: "auto",
-    backgroundColor: "#0f172a",
+    backgroundColor: "#ffffff",
     borderRadius: "18px",
     boxShadow: "0 30px 80px rgba(15, 23, 42, 0.45)",
     padding: "22px",
@@ -403,7 +403,7 @@ const styles = {
   reviewTitle: {
     margin: 0,
     fontSize: "22px",
-    color: "#f8fafc",
+    color: "#111827",
   },
   reviewSubtitle: {
     margin: "6px 0 0",
@@ -411,11 +411,11 @@ const styles = {
     fontSize: "13px",
   },
   closeButton: {
-    border: "none",
-    backgroundColor: "#f1f5f9",
-    color: "#f8fafc",
-    width: "40px",
-    height: "40px",
+    border: "1px solid #b8d7c1",
+    backgroundColor: "#ffffff",
+    color: "#1f3a2f",
+    width: "42px",
+    height: "42px",
     borderRadius: "10px",
     cursor: "pointer",
     display: "flex",
@@ -429,8 +429,8 @@ const styles = {
     marginBottom: "18px",
   },
   reviewPanel: {
-    backgroundColor: "#0f172a",
-    border: "1px solid #e2e8f0",
+    backgroundColor: "#f6faf7",
+    border: "1px solid #dfeae3",
     borderRadius: "16px",
     padding: "14px",
   },
@@ -438,7 +438,7 @@ const styles = {
     display: "block",
     fontSize: "12px",
     fontWeight: 800,
-    color: "#cbd5e1",
+    color: "#5f7b69",
     marginBottom: "10px",
     textTransform: "uppercase",
     letterSpacing: "0.6px",
@@ -448,19 +448,19 @@ const styles = {
     height: "320px",
     objectFit: "cover",
     borderRadius: "12px",
-    backgroundColor: "#0f172a",
+    backgroundColor: "#f6faf7",
   },
   emptyMedia: {
     width: "100%",
     height: "320px",
     borderRadius: "12px",
-    backgroundColor: "#0f172a",
+    backgroundColor: "#f6faf7",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "column",
     gap: "8px",
-    color: "#cbd5e1",
+    color: "#5f7b69",
   },
   emptyMediaText: {
     fontSize: "13px",
@@ -473,7 +473,7 @@ const styles = {
   reviewName: {
     fontSize: "18px",
     fontWeight: 900,
-    color: "#f8fafc",
+    color: "#111827",
     marginBottom: "12px",
   },
   detailsGrid: {
@@ -482,8 +482,8 @@ const styles = {
     gap: "10px",
   },
   detailItem: {
-    backgroundColor: "#0f172a",
-    border: "1px solid #e2e8f0",
+    backgroundColor: "#ffffff",
+    border: "1px solid #dfeae3",
     borderRadius: "12px",
     padding: "12px 14px",
     display: "grid",
@@ -498,30 +498,32 @@ const styles = {
   },
   detailValue: {
     fontSize: "14px",
-    color: "#f8fafc",
+    color: "#111827",
     fontWeight: 700,
     lineHeight: "1.35",
   },
   detailsModal: {
     width: "100%",
     maxWidth: "960px",
-    backgroundColor: "#0f172a",
-    borderRadius: "24px",
-    padding: "32px",
+    backgroundColor: "#ffffff",
+    borderRadius: "16px",
+    padding: "28px 32px 32px",
     boxShadow: "0 30px 80px rgba(15, 23, 42, 0.22)",
     overflowY: "auto",
     maxHeight: "90vh",
     border: "1px solid rgba(15, 23, 42, 0.08)",
+    position: "relative",
   },
   modalCloseButton: {
     position: "absolute",
-    top: "24px",
-    right: "24px",
-    width: "46px",
-    height: "46px",
-    borderRadius: "16px",
-    border: "1px solid rgba(226,232,240,0.8)",
-    backgroundColor: "#0f172a",
+    top: "18px",
+    right: "18px",
+    width: "44px",
+    height: "44px",
+    borderRadius: "10px",
+    border: "1px solid #b8d7c1",
+    backgroundColor: "#f6faf7",
+    color: "#1f3a2f",
     cursor: "pointer",
     display: "grid",
     placeItems: "center",
@@ -536,12 +538,13 @@ const styles = {
     marginBottom: "22px",
     borderBottom: "1px solid #e2e8f0",
     paddingBottom: "18px",
+    paddingRight: "60px",
     flexWrap: "wrap",
   },
   detailsTitle: {
     margin: 0,
     fontSize: "24px",
-    color: "#f8fafc",
+    color: "#111827",
     letterSpacing: "-0.02em",
     lineHeight: "1.15",
   },
@@ -596,7 +599,7 @@ const styles = {
     alignItems: "start",
   },
   profileCard: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#f6faf7",
     borderRadius: "20px",
     padding: "20px",
     display: "grid",
@@ -614,7 +617,7 @@ const styles = {
     margin: 0,
     fontSize: "20px",
     lineHeight: 1.15,
-    color: "#f8fafc",
+    color: "#111827",
   },
   profileSubtitle: {
     margin: "6px 0 0",
@@ -665,7 +668,7 @@ const styles = {
   imageLabel: {
     margin: 0,
     fontSize: "12px",
-    color: "#cbd5e1",
+    color: "#5f7b69",
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
@@ -682,7 +685,7 @@ const styles = {
   panelTitle: {
     margin: 0,
     fontSize: "17px",
-    color: "#f8fafc",
+    color: "#111827",
   },
   panelSubtitle: {
     margin: "6px 0 0",
@@ -732,7 +735,7 @@ const styles = {
     padding: "18px 20px",
     borderRadius: "18px",
     border: "1px solid #e5e7eb",
-    backgroundColor: "#0f172a",
+    backgroundColor: "#f6faf7",
   },
   suspendedMeta: {
     margin: "6px 0 0",
