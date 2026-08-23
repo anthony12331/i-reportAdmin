@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Camera } from "lucide-react";
 
 const APP_ID = "4bf767c547a04dfeb581065f5fa11e63"; // Your specific App ID
 const TEMP_TOKEN = "007eJxTYJhc0Pp0vXC+lXN7SJbsGrOtCnXTv8486BLANPf2JMGLqQoKDCZJaeZm5smmJuaJBiYpaalJphaGBmamaaZpiYaGqWbGmtVdWZp1YbU+M9sZGBkYGVgYGBlAgAlMMoNJFjDJw5CcWFBckp+XGl+cX8zAAAD5eCFP";
@@ -85,6 +85,15 @@ export default function LiveVideoPlayer({ channelName }) {
     }
   };
 
+  const handleFlipCamera = async () => {
+    try {
+      const { pb } = await import("../config/pocketbase");
+      await pb.collection("sos_tracking").update(channelName, { description: "FLIP_CAMERA_REQ" });
+    } catch (err) {
+      console.error("Failed to request camera flip:", err);
+    }
+  };
+
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#1e1e1e", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
       {!joined && !error && <p style={{ color: "white", padding: "15px", fontFamily: "sans-serif" }}>Connecting to Live SOS Stream...</p>}
@@ -99,6 +108,31 @@ export default function LiveVideoPlayer({ channelName }) {
           <div style={{ position: "absolute", top: "10px", right: "10px", background: "rgba(239,68,68,0.8)", padding: "4px 8px", borderRadius: "4px", color: "white", fontSize: "12px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
             <div style={{ width: "8px", height: "8px", background: "white", borderRadius: "50%" }}></div>
             LIVE
+          </div>
+
+          <div style={{ position: "absolute", top: "10px", left: "10px", zIndex: 10 }}>
+            <button
+              onClick={handleFlipCamera}
+              style={{
+                background: "rgba(15, 23, 42, 0.8)",
+                color: "white",
+                border: "1px solid rgba(255,255,255,0.2)",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                fontWeight: "bold",
+                backdropFilter: "blur(10px)",
+                transition: "background 0.2s"
+              }}
+              onMouseEnter={(e) => e.target.style.background = "rgba(15, 23, 42, 1)"}
+              onMouseLeave={(e) => e.target.style.background = "rgba(15, 23, 42, 0.8)"}
+            >
+              <Camera size={14} /> FLIP
+            </button>
           </div>
 
           <div style={{ position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
