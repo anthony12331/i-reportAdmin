@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
 
 const APP_ID = "16ebfc7d6aae44e489327638ba3e0d16"; // Your specific App ID
+const TEMP_TOKEN = "007eJxTYEhwTY5cd6l9wy57uYAPnz+8y99x09vtMePlf+KzrC56Pj2nwGBolpqUlmyeYpaYmGpikmpiYWlsZG5mbJGUaJxqkGJo1lLRldUQyMhwvPEQEyMDBIL4PAzJiQXFJfl5qfHF+cUMDABipSY0";
+const HARDCODED_CHANNEL = "capstone_sos";
 
 // Initialize the client outside the component so it doesn't recreate on re-renders.
 // 'rtc' mode is for 1-to-1 or small group calls.
 // 'vp8' is a highly compatible video codec for web and mobile.
 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-export default function LiveVideoPlayer({ channelName, token = null }) {
+export default function LiveVideoPlayer({ channelName }) {
   const videoContainerRef = useRef(null);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState("");
@@ -33,9 +35,9 @@ export default function LiveVideoPlayer({ channelName, token = null }) {
           }
         });
 
-        // 2. Join the specific SOS channel
+        // 2. Join the specific SOS channel using the Temp Token
         // We pass 'null' for uid so Agora automatically assigns a random User ID to the Admin
-        await client.join(APP_ID, channelName, token, null);
+        await client.join(APP_ID, HARDCODED_CHANNEL, TEMP_TOKEN, null);
         
         if (isMounted) setJoined(true);
       } catch (err) {
