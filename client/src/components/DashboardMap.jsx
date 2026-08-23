@@ -266,7 +266,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Marker>
       );
     });
-  }, [validReports]);
+  }, [JSON.stringify(validReports)]);
 
   const sosMarkers = useMemo(() => {
     return validSos.map(s => (
@@ -288,7 +288,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Popup>
       </Marker>
     ));
-  }, [validSos]);
+  }, [JSON.stringify(validSos)]);
 
   const backupMarkers = useMemo(() => {
     return validBackups.map(b => {
@@ -313,7 +313,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Marker>
       );
     });
-  }, [validBackups]);
+  }, [JSON.stringify(validBackups)]);
 
   const dispatchPaths = useMemo(() => {
     return dispatches.map(dispatch => {
@@ -367,39 +367,38 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </React.Fragment>
       );
     });
-  }, [dispatches, responders, validReports, validSos]);
+  }, [JSON.stringify(dispatches), JSON.stringify(responders), JSON.stringify(validReports), JSON.stringify(validSos)]);
 
   return (
     <div style={{ width: '100%', height: '100%', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
       <style>{`
+        .leaflet-container {
+          background: #0f172a;
+        }
         @keyframes radar-pulse-map {
           0% { transform: scale(1); opacity: 0.8; }
           100% { transform: scale(3.5); opacity: 0; }
         }
       `}</style>
       
-      <div style={{
-        position: 'absolute', top: 16, right: 16, zIndex: 1000,
-        background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)',
-        color: '#f8fafc', padding: '12px', borderRadius: '8px',
-        fontSize: '12px', fontWeight: 'bold', display: 'flex',
-        flexDirection: 'column', gap: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
-          🚨 ACTIVE SOS
-        </div>
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', width: '100%' }}></div>
-        <div style={{ fontSize: '10px', color: '#94a3b8' }}>DYNAMIC INCIDENT TYPES:</div>
-        {Array.from(new Set(validReports.map(r => r.type || r.incident_type || r.category || 'Unknown'))).map(type => (
-          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: stringToColor(type) }}></div>
-            <span style={{ textTransform: 'capitalize' }}>{type}</span>
+      <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '10px', width: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
+            <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#f8fafc' }}>🎉 ACTIVE SOS</span>
           </div>
-        ))}
-        {validReports.length === 0 && (
-          <div style={{ color: '#64748b' }}>No active incidents.</div>
-        )}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', width: '100%' }}></div>
+          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '8px' }}>DYNAMIC INCIDENT TYPES:</div>
+        {Array.from(new Set(validReports.map(r => r.type || r.incident_type || r.category || 'Unknown'))).map(type => (
+            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc' }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: stringToColor(type) }}></div>
+              <span style={{ textTransform: 'capitalize' }}>{type}</span>
+            </div>
+          ))}
+          {validReports.length === 0 && (
+            <div style={{ color: '#64748b' }}>No active incidents.</div>
+          )}
+        </div>
       </div>
 
       <MapContainer 
@@ -408,8 +407,9 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         maxBounds={MAP_BOUNDS}
-        maxBoundsViscosity={1.0}
+        maxBoundsViscosity={0.8}
         minZoom={11}
+        preferCanvas={true}
       >
         <MapFlyToListener reports={validReports} sos={validSos} />
         
