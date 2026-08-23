@@ -157,7 +157,6 @@ export default function Dashboard() {
       ];
       resolveAddresses(itemsToResolve);
 
-      setLoading(false);
     } catch (error) {
       if (!error.isAbort) console.error("Dashboard data load error:", error);
     }
