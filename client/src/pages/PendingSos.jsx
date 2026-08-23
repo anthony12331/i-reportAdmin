@@ -91,6 +91,19 @@ export default function PendingSos() {
     setLoading(false);
   }, [resolveAddresses]);
 
+  // Handle Video Toggle
+  const handleToggleVideo = (sosId) => {
+    if (activeVideoId === sosId) {
+      setActiveVideoId(null);
+      window.__isMutedByLiveVideo = false;
+    } else {
+      setActiveVideoId(sosId);
+      window.__isMutedByLiveVideo = true;
+      const audio = document.getElementById("emergency-alert-sound");
+      if (audio) audio.pause();
+    }
+  };
+
   // Fetch Responders
   const fetchAvailableResponders = useCallback(async () => {
     setRespondersLoading(true);
@@ -321,7 +334,10 @@ export default function PendingSos() {
 
                   {/* Live Camera Button */}
                   <button
-                    onClick={() => setActiveVideoId(activeVideoId === sos.id ? null : sos.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleVideo(sos.id);
+                    }}
                     style={{
                       backgroundColor: activeVideoId === sos.id ? "#3f3f46" : "#ef4444",
                       color: "white",

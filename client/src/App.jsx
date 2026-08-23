@@ -119,7 +119,7 @@ function App() {
   }, [authState]);
 
   const playAlarmSound = useCallback(() => {
-    if (!settings.soundEnabled) return;
+    if (!settings.soundEnabled || window.__isMutedByLiveVideo) return;
     try {
       const alertSound = alarmAudioRef.current || document.getElementById("emergency-alert-sound");
       if (alertSound) {
@@ -167,6 +167,7 @@ function App() {
         alarmAudioRef.current ||
         document.getElementById("emergency-alert-sound");
       if (!alertSound) return;
+      if (window.__isMutedByLiveVideo) { if (!alertSound.paused) alertSound.pause(); return; }
       if (alertSound.paused || alertSound.ended) {
         playAlarmSound();
       }
