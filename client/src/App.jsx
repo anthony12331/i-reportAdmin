@@ -162,6 +162,11 @@ function App() {
   useEffect(() => {
     if (!alarmActive || !audioEnabled || !settings.soundEnabled) return;
 
+    window.addEventListener('force-pause-alarm', () => {
+      const alertSound = alarmAudioRef.current || document.getElementById('emergency-alert-sound');
+      if (alertSound) { alertSound.pause(); alertSound.currentTime = 0; }
+    });
+
     const ensureAlarmPlaying = () => {
       const alertSound =
         alarmAudioRef.current ||

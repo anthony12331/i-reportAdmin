@@ -99,8 +99,9 @@ export default function PendingSos() {
     } else {
       setActiveVideoId(sosId);
       window.__isMutedByLiveVideo = true;
+      window.dispatchEvent(new CustomEvent('force-pause-alarm'));
       const audio = document.getElementById("emergency-alert-sound");
-      if (audio) audio.pause();
+      if (audio) { audio.pause(); audio.currentTime = 0; }
     }
   };
 
