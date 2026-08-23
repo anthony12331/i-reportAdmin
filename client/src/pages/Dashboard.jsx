@@ -407,7 +407,7 @@ export default function Dashboard() {
           </div>
 
           {/* MIDDLE COLUMN: MAP */}
-          <div style={darkStyles.panelFlex}>
+          <div style={darkStyles.mapPanel}>
             <div style={darkStyles.panelHeader}>
               <h2 style={darkStyles.sectionTitle}>
                 <MapPin size={14} color="#34d399" /> Live Tactical Map
@@ -419,7 +419,7 @@ export default function Dashboard() {
           </div>
 
           {/* RIGHT COLUMN: Fleet & Audit */}
-          <div style={darkStyles.gridCol}>
+          <div style={darkStyles.rightGridCol}>
             <div style={darkStyles.panelFixed}>
               <div style={darkStyles.panelHeader}>
                 <h2 style={darkStyles.sectionTitle}>
@@ -441,7 +441,7 @@ export default function Dashboard() {
                 <h2 style={darkStyles.sectionTitle}>
                   <History size={14} color="#818cf8" /> Live Audit Stream
                 </h2>
-                <button onClick={() => navigate("/audit")} style={darkStyles.ghostBtn}>View All</button>
+                <button onClick={() => navigate("/audit-logs")} style={darkStyles.ghostBtn}>View All</button>
               </div>
               {data.auditLogs.length === 0 ? (
                 <p style={darkStyles.emptyState}>No recent records.</p>

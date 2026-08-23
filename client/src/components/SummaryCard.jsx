@@ -2,13 +2,11 @@
 
 const styles = {
   card: {
-    backgroundColor: "rgba(15, 23, 42, 0.7)",
-    backdropFilter: "blur(40px)",
-    WebkitBackdropFilter: "blur(40px)",
-    borderRadius: "32px",
-    padding: "clamp(32px, 3vw, 40px)",
-    border: "1px solid rgba(255, 255, 255, 0.04)",
-    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+    backgroundColor: "#ffffff",
+    borderRadius: "9px",
+    padding: "12px 14px",
+    border: "1px solid #d7e5da",
+    boxShadow: "0 8px 24px rgba(24, 95, 53, 0.06)",
     cursor: "pointer",
     transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
     display: "flex",
@@ -19,20 +17,20 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: "8px",
+    marginBottom: "5px",
   },
   cardTitle: {
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: "600",
-    color: "#52525b",
-    letterSpacing: "2px",
+    color: "#477257",
+    letterSpacing: "1px",
     textTransform: "uppercase",
   },
   bigNumber: {
-    fontFamily: '"Didot", "Bodoni MT", "Times New Roman", serif',
-    fontSize: "36px",
-    fontWeight: "400",
-    color: "#ffffff",
+    fontFamily: "Inter, Arial, sans-serif",
+    fontSize: "25px",
+    fontWeight: "800",
+    color: "#111111",
     margin: 0,
     lineHeight: 1,
   },
@@ -44,7 +42,7 @@ export default function SummaryCard({ title, val, icon, accent, urgent, onClick 
       className="lux-hover"
       style={{
         ...styles.card,
-        border: `1px solid ${urgent ? "rgba(239, 68, 68, 0.3)" : "rgba(255, 255, 255, 0.04)"}`,
+        border: `1px solid ${urgent ? "rgba(239, 68, 68, 0.3)" : "#d7e5da"}`,
       }}
       onClick={onClick}
     >
@@ -52,7 +50,7 @@ export default function SummaryCard({ title, val, icon, accent, urgent, onClick 
         <span style={styles.cardTitle}>{title}</span>
         {icon}
       </div>
-      <p style={{ ...styles.bigNumber, color: urgent ? "#ef4444" : "#ffffff" }}>
+      <p style={{ ...styles.bigNumber, color: urgent ? "#ef4444" : "#111111" }}>
         {val}
       </p>
     </div>

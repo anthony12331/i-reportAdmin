@@ -1,38 +1,32 @@
 // admin-dashboard/src/sosStyles.js
 
 const glassPanel = {
-  backgroundColor: "rgba(15, 23, 42, 0.7)",
-    backdropFilter: "blur(40px)",
-    WebkitBackdropFilter: "blur(40px)",
-  
-  
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  boxShadow: "0 15px 35px 0 rgba(0, 0, 0, 0.5)",
-  borderRadius: "32px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #d7e5da",
+  boxShadow: "0 8px 24px rgba(24, 95, 53, 0.06)",
+  borderRadius: "12px",
 };
 
 export const sosStyles = {
   shell: {
     display: "flex",
     minHeight: "100vh",
-    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
-    backgroundAttachment: "fixed",
-    
-    color: "#f8fafc",
-    fontFamily: "'Inter', sans-serif",
+    background: "radial-gradient(circle at 50% -20%, #ffffff 0%, #f6faf7 80%)",
+    color: "#111111",
+    fontFamily: "Inter, Arial, sans-serif",
   },
   main: {
     flex: 1,
-    padding: "clamp(32px, 5vw, 64px)",
-    marginLeft: "324px",
+    padding: "28px 24px 40px",
+    marginLeft: "216px",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "32px",
-    paddingBottom: "24px",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    marginBottom: "20px",
+    paddingBottom: "14px",
+    borderBottom: "1px solid #d7e5da",
   },
   headerTitleGroup: {
     display: "flex",
@@ -51,7 +45,7 @@ export const sosStyles = {
     fontFamily: '"Didot", "Bodoni MT", "Times New Roman", serif',
     fontSize: "48px",
     fontWeight: "400",
-    color: "#ffffff",
+    color: "#111111",
     letterSpacing: "1px",
     margin: 0,
     textTransform: "capitalize",
@@ -60,9 +54,9 @@ export const sosStyles = {
     fontSize: "10px",
     margin: "8px 0 0 0",
     fontWeight: "600",
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    letterSpacing: "3px",
+    color: "#477257",
+    textTransform: "none",
+    letterSpacing: "0.3px",
   },
   refreshBtn: {
     display: "flex",

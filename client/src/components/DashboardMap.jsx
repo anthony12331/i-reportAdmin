@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, Tooltip, LayersControl } from 'react-leaflet';
 import lagonglongGeoJSON from '../lagonglong_boundary.json';
 import balingasagGeoJSON from '../balingasag_boundary.json';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { dashboardStyles } from '../themes/dashboardStyles';
 
 const style = document.createElement('style');
 style.textContent = `
@@ -209,6 +210,7 @@ function MapFlyToListener({ reports, sos }) {
 }
 
 export default function DashboardMap({ reports = [], sos = [], responders = [], dispatches = [], backupRequests = [] }) {
+  const [showStatusDetails, setShowStatusDetails] = useState(true);
   const validReports = useMemo(() => {
     const activeDispatches = dispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
     const activeIncidentIds = new Set(activeDispatches.map(d => d.incident_id).filter(id => !!id));
@@ -379,24 +381,42 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         }
       `}</style>
       
-      <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '10px', width: '200px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
-            <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#f8fafc' }}>🎉 ACTIVE SOS</span>
+      <div style={dashboardStyles.mapOverlayPosition}>
+        {showStatusDetails ? (
+          <div style={dashboardStyles.mapStatusPanel}>
+            <button
+              type="button"
+              style={dashboardStyles.mapStatusHeaderButton}
+              onClick={() => setShowStatusDetails(false)}
+              aria-label="Collapse incident status"
+            >
+              <div style={dashboardStyles.mapStatusHeader}>
+                <div style={dashboardStyles.mapStatusDot}></div>
+                <span style={dashboardStyles.mapStatusTitle}>ACTIVE SOS</span>
+              </div>
+            </button>
+            <div style={dashboardStyles.mapStatusDivider}></div>
+            <div style={dashboardStyles.mapStatusLabel}>DYNAMIC INCIDENT TYPES</div>
+            {Array.from(new Set(validReports.map(r => r.type || r.incident_type || r.category || 'Unknown'))).map(type => (
+              <div key={type} style={dashboardStyles.mapStatusItem}>
+                <div style={{ ...dashboardStyles.mapStatusTypeDot, background: stringToColor(type) }}></div>
+                <span style={dashboardStyles.mapStatusType}>{type}</span>
+              </div>
+            ))}
+            {validReports.length === 0 && (
+              <div style={dashboardStyles.mapStatusEmpty}>No active incidents.</div>
+            )}
           </div>
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', width: '100%' }}></div>
-          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '8px' }}>DYNAMIC INCIDENT TYPES:</div>
-        {Array.from(new Set(validReports.map(r => r.type || r.incident_type || r.category || 'Unknown'))).map(type => (
-            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc' }}>
-              <div style={{ width: 12, height: 12, borderRadius: '50%', background: stringToColor(type) }}></div>
-              <span style={{ textTransform: 'capitalize' }}>{type}</span>
-            </div>
-          ))}
-          {validReports.length === 0 && (
-            <div style={{ color: '#64748b' }}>No active incidents.</div>
-          )}
-        </div>
+        ) : (
+          <button
+            type="button"
+            style={dashboardStyles.mapStatusCollapsed}
+            onClick={() => setShowStatusDetails(true)}
+            aria-label="Show incident status"
+          >
+            <span style={dashboardStyles.mapStatusDot}></span>
+          </button>
+        )}
       </div>
 
       <MapContainer 
