@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, Tooltip, LayersControl } from 'react-leaflet';
 import lagonglongGeoJSON from '../lagonglong_boundary.json';
+import balingasagGeoJSON from '../balingasag_boundary.json';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -249,6 +250,9 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         zoom={13} 
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
+        maxBounds={[[8.60, 124.60], [8.90, 124.95]]}
+        maxBoundsViscosity={1.0}
+        minZoom={11}
       >
         <MapFlyToListener reports={validReports} sos={validSos} />
         
@@ -271,27 +275,51 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
               attribution='&copy; OpenStreetMap &copy; CARTO'
             />
           </LayersControl.BaseLayer>
-        </LayersControl>
 
-        {/* LAGONGLONG MUNICIPAL BOUNDARY */}
-        <GeoJSON 
-          data={lagonglongGeoJSON}
-          style={{
-            color: '#3b82f6',
-            weight: 2,
-            fillOpacity: 0.1,
-            dashArray: '4, 4'
-          }}
-          onEachFeature={(feature, layer) => {
-            if (feature.properties && feature.properties.NAME_3) {
-              layer.bindTooltip(feature.properties.NAME_3, {
-                permanent: true,
-                direction: 'center',
-                className: 'barangay-label'
-              });
-            }
-          }}
-        />
+          {/* LAGONGLONG MUNICIPAL BOUNDARY */}
+          <LayersControl.Overlay checked name="Lagonglong Area">
+            <GeoJSON 
+              data={lagonglongGeoJSON}
+              style={{
+                color: '#3b82f6',
+                weight: 2,
+                fillOpacity: 0.1,
+                dashArray: '4, 4'
+              }}
+              onEachFeature={(feature, layer) => {
+                if (feature.properties && feature.properties.NAME_3) {
+                  layer.bindTooltip(feature.properties.NAME_3, {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'barangay-label'
+                  });
+                }
+              }}
+            />
+          </LayersControl.Overlay>
+
+          {/* BALINGASAG MUNICIPAL BOUNDARY */}
+          <LayersControl.Overlay name="Balingasag Area">
+            <GeoJSON 
+              data={balingasagGeoJSON}
+              style={{
+                color: '#f59e0b', // Amber/Yellow
+                weight: 2,
+                fillOpacity: 0.1,
+                dashArray: '4, 4'
+              }}
+              onEachFeature={(feature, layer) => {
+                if (feature.properties && feature.properties.NAME_3) {
+                  layer.bindTooltip(feature.properties.NAME_3, {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'barangay-label'
+                  });
+                }
+              }}
+            />
+          </LayersControl.Overlay>
+        </LayersControl>
         
         {validReports.map(report => {
           const typeLabel = report.type || report.incident_type || report.category || "Unknown";
