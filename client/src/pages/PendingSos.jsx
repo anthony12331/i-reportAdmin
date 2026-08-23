@@ -361,7 +361,7 @@ export default function PendingSos() {
                   {/* The Live Video Player */}
                   {activeVideoId === sos.id && (
                     <div style={{ width: "100%", height: "250px", marginBottom: "15px" }}>
-                      <LiveVideoPlayer channelName={sos.id} />
+                      <LiveVideoPlayer channelName={sos.id} responderId={activeSosDispatches[0]?.responder_id || null} />
                     </div>
                   )}
 

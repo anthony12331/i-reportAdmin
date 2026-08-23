@@ -1,21 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { Mic, MicOff, Camera, Video, Square } from "lucide-react";
+import { Mic, MicOff, Camera, Video, Square, Lock } from "lucide-react";
 
 const APP_ID = "4bf767c547a04dfeb581065f5fa11e63"; // Your specific App ID
 const TEMP_TOKEN = "007eJxTYJhc0Pp0vXC+lXN7SJbsGrOtCnXTv8486BLANPf2JMGLqQoKDCZJaeZm5smmJuaJBiYpaalJphaGBmamaaZpiYaGqWbGmtVdWZp1YbU+M9sZGBkYGVgYGBlAgAlMMoNJFjDJw5CcWFBckp+XGl+cX8zAAAD5eCFP";
 const HARDCODED_CHANNEL = "capstone_sos";
 
-// Initialize the client outside the component so it doesn't recreate on re-renders.
-// 'rtc' mode is for 1-to-1 or small group calls.
-// 'vp8' is a highly compatible video codec for web and mobile.
 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+const privateClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-export default function LiveVideoPlayer({ channelName }) {
+export default function LiveVideoPlayer({ channelName, responderId }) {
   const videoContainerRef = useRef(null);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState("");
   const [isTalking, setIsTalking] = useState(false);
+  const [isPrivateTalking, setIsPrivateTalking] = useState(false);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
 
   // Recording states and refs
@@ -57,12 +56,24 @@ export default function LiveVideoPlayer({ channelName }) {
           if (mediaType === "audio") remoteAudioTrackRef.current = null;
         });
 
+        // 1.6 Listen for responder's private audio
+        privateClient.on("user-published", async (user, mediaType) => {
+          await privateClient.subscribe(user, mediaType);
+          if (mediaType === "audio") {
+            user.audioTrack.play();
+          }
+        });
+
         // 2. Join the specific SOS channel using the Temp Token
-        // We pass 'null' for uid so Agora automatically assigns a random User ID to the Admin
         await client.join(APP_ID, HARDCODED_CHANNEL, TEMP_TOKEN, null);
-        
-        // 3. Publish the Admin's muted audio track to the channel
         await client.publish(track);
+
+        // 2.5 Join Private Channel if responder is assigned
+        if (responderId) {
+          // Join the private room for this responder
+          await privateClient.join(APP_ID, `capstone_sos_private_${responderId}`, TEMP_TOKEN, null);
+          await privateClient.publish(track); // Publish same muted track
+        }
 
         if (isMounted) setJoined(true);
       } catch (err) {
@@ -84,20 +95,37 @@ export default function LiveVideoPlayer({ channelName }) {
         mediaRecorderRef.current.stop();
       }
       client.leave();
+      privateClient.leave();
     };
-  }, [channelName]);
+  }, [channelName, responderId]);
 
   const handleTalkStart = async () => {
-    if (localAudioTrack) {
+    if (localAudioTrack && !isPrivateTalking) {
       await localAudioTrack.setMuted(false);
       setIsTalking(true);
     }
   };
 
   const handleTalkEnd = async () => {
-    if (localAudioTrack) {
+    if (localAudioTrack && isTalking) {
       await localAudioTrack.setMuted(true);
       setIsTalking(false);
+    }
+  };
+
+  const handlePrivateTalkStart = async () => {
+    if (localAudioTrack && !isTalking) {
+      await client.unpublish(localAudioTrack);
+      await localAudioTrack.setMuted(false);
+      setIsPrivateTalking(true);
+    }
+  };
+
+  const handlePrivateTalkEnd = async () => {
+    if (localAudioTrack && isPrivateTalking) {
+      await localAudioTrack.setMuted(true);
+      await client.publish(localAudioTrack).catch(() => {});
+      setIsPrivateTalking(false);
     }
   };
 
@@ -246,13 +274,14 @@ export default function LiveVideoPlayer({ channelName }) {
             </button>
           </div>
 
-          <div style={{ position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 10 }}>
+          <div style={{ position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 10, display: "flex", gap: "10px" }}>
             <button
               onMouseDown={handleTalkStart}
               onMouseUp={handleTalkEnd}
               onMouseLeave={handleTalkEnd}
               onTouchStart={handleTalkStart}
               onTouchEnd={handleTalkEnd}
+              disabled={isPrivateTalking}
               style={{
                 background: isTalking ? "#22c55e" : "rgba(15, 23, 42, 0.8)",
                 color: isTalking ? "white" : "#94a3b8",
@@ -261,7 +290,7 @@ export default function LiveVideoPlayer({ channelName }) {
                 padding: "12px 24px",
                 borderRadius: "99px",
                 fontWeight: "bold",
-                cursor: "pointer",
+                cursor: isPrivateTalking ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
@@ -269,12 +298,46 @@ export default function LiveVideoPlayer({ channelName }) {
                 transition: "all 0.2s ease",
                 backdropFilter: "blur(10px)",
                 userSelect: "none",
-                WebkitUserSelect: "none"
+                WebkitUserSelect: "none",
+                opacity: isPrivateTalking ? 0.5 : 1
               }}
             >
               {isTalking ? <Mic size={18} /> : <MicOff size={18} />}
-              {isTalking ? "TALKING..." : "HOLD TO TALK"}
+              {isTalking ? "TALKING (ALL)" : "TALK (ALL)"}
             </button>
+
+            {responderId && (
+              <button
+                onMouseDown={handlePrivateTalkStart}
+                onMouseUp={handlePrivateTalkEnd}
+                onMouseLeave={handlePrivateTalkEnd}
+                onTouchStart={handlePrivateTalkStart}
+                onTouchEnd={handlePrivateTalkEnd}
+                disabled={isTalking}
+                style={{
+                  background: isPrivateTalking ? "#eab308" : "rgba(15, 23, 42, 0.8)",
+                  color: isPrivateTalking ? "white" : "#94a3b8",
+                  border: "1px solid",
+                  borderColor: isPrivateTalking ? "#ca8a04" : "rgba(255,255,255,0.2)",
+                  padding: "12px 24px",
+                  borderRadius: "99px",
+                  fontWeight: "bold",
+                  cursor: isTalking ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                  transition: "all 0.2s ease",
+                  backdropFilter: "blur(10px)",
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                  opacity: isTalking ? 0.5 : 1
+                }}
+              >
+                <Lock size={18} />
+                {isPrivateTalking ? "TALKING (PRIVATE)" : "TALK TO RESPONDER"}
+              </button>
+            )}
           </div>
         </>
       )}
