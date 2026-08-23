@@ -11,10 +11,11 @@ style.textContent = `
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: #4f46e5;
+    color: #bae6fd;
     font-weight: bold;
     font-size: 10px;
-    text-shadow: 1px 1px 2px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9), 1px -1px 2px rgba(255,255,255,0.9), -1px 1px 2px rgba(255,255,255,0.9);
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9), 1px -1px 3px rgba(0,0,0,0.9), -1px 1px 3px rgba(0,0,0,0.9), 0px 0px 4px rgba(0,0,0,1);
   }
   .barangay-label::before {
     display: none !important;
@@ -252,7 +253,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         <MapFlyToListener reports={validReports} sos={validSos} />
         
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; OpenStreetMap &copy; CARTO'
         />
 
@@ -260,10 +261,10 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         <GeoJSON 
           data={lagonglongGeoJSON}
           style={{
-            color: '#6366f1',
+            color: '#38bdf8',
             weight: 2,
-            fillOpacity: 0.05,
-            dashArray: '5, 5'
+            fillOpacity: 0.1,
+            dashArray: '4, 4'
           }}
           onEachFeature={(feature, layer) => {
             if (feature.properties && feature.properties.NAME_3) {
