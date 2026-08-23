@@ -1,0 +1,1 @@
+const q = '[out:json];relation[\"name\"~\"Lagonglong\"][\"boundary\"=\"administrative\"];out geom;'; fetch('https://overpass-api.de/api/interpreter', {method:'POST', body:q}).then(r=>r.json()).then(d=>require('fs').writeFileSync('lag.json', JSON.stringify(d)))
