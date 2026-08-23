@@ -6,7 +6,7 @@ const injectLoginGlobalStyles = () => {
   if (typeof document !== 'undefined' && !document.getElementById('login-custom-style')) {
     const style = document.createElement('style');
     style.id = 'login-custom-style';
-    style.innerHTML = \
+    style.innerHTML = `
       body {
         margin: 0;
         padding: 0;
@@ -96,7 +96,7 @@ const injectLoginGlobalStyles = () => {
         border-color: rgba(0, 210, 255, 0.5) !important;
         box-shadow: 0 0 12px rgba(0, 210, 255, 0.15) !important;
       }
-    \;
+      `;
     document.head.appendChild(style);
   }
 };
