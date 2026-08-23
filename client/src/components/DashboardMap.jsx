@@ -5,6 +5,23 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+const style = document.createElement('style');
+style.textContent = `
+  .barangay-label {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #4f46e5;
+    font-weight: bold;
+    font-size: 10px;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9), 1px -1px 2px rgba(255,255,255,0.9), -1px 1px 2px rgba(255,255,255,0.9);
+  }
+  .barangay-label::before {
+    display: none !important;
+  }
+`;
+document.head.appendChild(style);
+
 // Fix for default marker icon issues in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -245,14 +262,19 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
           style={{
             color: '#6366f1',
             weight: 2,
-            fillOpacity: 0.1,
+            fillOpacity: 0.05,
             dashArray: '5, 5'
           }}
-        >
-          <Tooltip sticky direction="top" opacity={0.8}>
-            Lagonglong Municipality Area (Exact Boundary)
-          </Tooltip>
-        </GeoJSON>
+          onEachFeature={(feature, layer) => {
+            if (feature.properties && feature.properties.NAME_3) {
+              layer.bindTooltip(feature.properties.NAME_3, {
+                permanent: true,
+                direction: 'center',
+                className: 'barangay-label'
+              });
+            }
+          }}
+        />
         
         {validReports.map(report => {
           const typeLabel = report.type || report.incident_type || report.category || "Unknown";
