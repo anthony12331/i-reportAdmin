@@ -21,13 +21,13 @@ const injectGlobalStyles = () => {
         display: none;
       }
       body {
-        background-color: #050505;
+        background-color: #f6faf7;
         margin: 0;
       }
       .lux-hover:hover {
         transform: translateY(-6px);
-        box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(212,175,55,0.3) !important;
-        background-color: rgba(255,255,255,0.02) !important;
+        box-shadow: 0 12px 28px rgba(24, 95, 53, 0.12), inset 0 0 0 1px rgba(24, 134, 75, 0.16) !important;
+        background-color: #ffffff !important;
       }
     `;
     document.head.appendChild(style);
@@ -35,53 +35,53 @@ const injectGlobalStyles = () => {
 };
 injectGlobalStyles();
 
-const champagne = "#d4af37";
-const champagneDim = "rgba(212, 175, 55, 0.1)";
-const midnightSlate = "#09090b";
-const editorialFont = '"Didot", "Bodoni MT", "Times New Roman", serif';
-const sansFont = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+const champagne = "#18864b";
+const champagneDim = "#e7f5eb";
+const midnightSlate = "#111111";
+const editorialFont = "Inter, Arial, sans-serif";
+const sansFont = "Inter, Arial, sans-serif";
 
 const glassPanel = {
-  backgroundColor: "rgba(255, 255, 255, 0.015)",
-  backdropFilter: "blur(40px)",
-  WebkitBackdropFilter: "blur(40px)",
-  border: "1px solid rgba(255, 255, 255, 0.04)",
-  boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
-  borderRadius: "32px",
+  backgroundColor: "#ffffff",
+  border: "1px solid #d7e5da",
+  boxShadow: "0 8px 24px rgba(24, 95, 53, 0.06)",
+  borderRadius: "12px",
 };
 
 export const dashboardStyles = {
   shell: {
     display: "flex",
     height: "100vh",
-    background: "radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 80%)",
-    color: "#f4f4f5",
+    background: "radial-gradient(circle at 50% -20%, #ffffff 0%, #f6faf7 80%)",
+    color: "#111111",
     fontFamily: sansFont,
     overflow: "hidden",
   },
   main: {
     flex: 1,
     padding: "16px 24px",
-    marginLeft: "300px",
+    marginLeft: "216px",
     height: "100vh",
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
-    overflow: "hidden",
+    gap: "20px",
+    overflowX: "hidden",
+    overflowY: "auto",
+    paddingBottom: "28px",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-end",
     paddingBottom: "12px",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.03)",
+    borderBottom: "1px solid #d7e5da",
     flexShrink: 0,
   },
   title: {
     fontFamily: editorialFont,
     fontSize: "clamp(24px, 3vw, 32px)",
-    fontWeight: "400",
-    color: champagne,
+    fontWeight: "800",
+    color: "#111111",
     margin: 0,
     letterSpacing: "-0.5px",
     lineHeight: 1,
@@ -95,7 +95,7 @@ export const dashboardStyles = {
     borderRadius: "99px",
     letterSpacing: "2px",
     textTransform: "uppercase",
-    border: "1px solid rgba(212, 175, 55, 0.2)",
+    border: "1px solid #b8d7c1",
     marginLeft: "12px",
     verticalAlign: "middle",
   },
@@ -103,16 +103,16 @@ export const dashboardStyles = {
     fontSize: "9px",
     margin: "6px 0 0 0",
     fontWeight: "600",
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    letterSpacing: "3px",
+    color: "#477257",
+    textTransform: "none",
+    letterSpacing: "0.3px",
   },
   statusBadge: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
     backgroundColor: "transparent",
-    border: "1px solid rgba(212, 175, 55, 0.3)",
+    border: "1px solid #b8d7c1",
     padding: "8px 16px",
     borderRadius: "99px",
     fontSize: "9px",
@@ -163,14 +163,16 @@ export const dashboardStyles = {
   cardGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(5, 1fr)",
-    gap: "16px",
+    gap: "10px",
     flexShrink: 0,
   },
   masterGrid: {
     display: "grid",
-    gridTemplateColumns: "300px 1fr 300px",
+    gridTemplateColumns: "minmax(340px, 0.85fr) minmax(0, 2fr)",
+    gridTemplateRows: "minmax(0, 1fr) minmax(150px, 0.7fr)",
     gap: "16px",
-    flex: 1,
+    flex: "0 0 auto",
+    height: "clamp(520px, calc(100vh - 220px), 760px)",
     minHeight: 0,
   },
   gridCol: {
@@ -179,13 +181,16 @@ export const dashboardStyles = {
     gap: "16px",
     minHeight: 0,
   },
+  rightGridCol: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+    minHeight: 0,
+    gridColumn: "1",
+    gridRow: "2",
+  },
   panelFlex: {
-    backgroundColor: "rgba(255, 255, 255, 0.015)",
-    backdropFilter: "blur(40px)",
-    WebkitBackdropFilter: "blur(40px)",
-    border: "1px solid rgba(255, 255, 255, 0.04)",
-    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
-    borderRadius: "24px",
+    ...glassPanel,
     display: "flex",
     flexDirection: "column",
     padding: "16px",
@@ -194,22 +199,25 @@ export const dashboardStyles = {
     overflow: "hidden",
   },
   panelFixed: {
-    backgroundColor: "rgba(255, 255, 255, 0.015)",
-    backdropFilter: "blur(40px)",
-    WebkitBackdropFilter: "blur(40px)",
-    border: "1px solid rgba(255, 255, 255, 0.04)",
-    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
-    borderRadius: "24px",
+    ...glassPanel,
     padding: "16px",
     flexShrink: 0,
   },
+  mapPanel: {
+    ...glassPanel,
+    gridColumn: "2",
+    gridRow: "1 / span 2",
+    display: "flex",
+    flexDirection: "column",
+    padding: "16px",
+    minHeight: 0,
+    overflow: "hidden",
+  },
   sosPanel: {
-    backgroundColor: "rgba(220, 38, 38, 0.03)",
-    backdropFilter: "blur(40px)",
-    WebkitBackdropFilter: "blur(40px)",
-    border: "1px solid rgba(220, 38, 38, 0.1)",
-    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
-    borderRadius: "24px",
+    backgroundColor: "#fff7f7",
+    border: "1px solid #f3d3d3",
+    boxShadow: "0 8px 24px rgba(95, 24, 24, 0.06)",
+    borderRadius: "12px",
     padding: "16px",
     flexShrink: 0,
     display: "flex",
@@ -259,7 +267,7 @@ export const dashboardStyles = {
     fontFamily: editorialFont,
     fontSize: "14px",
     fontWeight: "400",
-    color: "#ffffff",
+    color: "#111111",
     margin: 0,
     display: "flex",
     alignItems: "center",
@@ -268,7 +276,7 @@ export const dashboardStyles = {
   ghostBtn: {
     background: "transparent",
     border: "none",
-    color: "#71717a",
+    color: "#18864b",
     fontSize: "8px",
     fontWeight: "600",
     cursor: "pointer",
@@ -277,7 +285,7 @@ export const dashboardStyles = {
     textTransform: "uppercase",
   },
   emptyState: {
-    color: "#52525b",
+    color: "#477257",
     fontSize: "10px",
     textAlign: "center",
     margin: "32px 0",
@@ -295,10 +303,10 @@ export const dashboardStyles = {
     padding: "6px",
     fontSize: "8px",
     fontWeight: "700",
-    color: "#94a3b8",
+    color: "#477257",
     letterSpacing: "1px",
     textTransform: "uppercase",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid #d7e5da",
   },
   thRight: {
     textAlign: "right",
@@ -317,7 +325,7 @@ export const dashboardStyles = {
   td: {
     padding: "6px",
     verticalAlign: "middle",
-    color: "#ffffff",
+    color: "#111111",
     fontWeight: "500",
     fontSize: "10px",
   },
@@ -325,13 +333,13 @@ export const dashboardStyles = {
     padding: "6px",
     fontSize: "10px",
     fontWeight: "600",
-    color: "#ffffff",
+    color: "#111111",
     letterSpacing: "0.5px",
   },
   tdMuted: {
     padding: "6px",
     fontSize: "10px",
-    color: "#71717a",
+    color: "#477257",
     fontWeight: "400",
   },
   tdHighlight: {
@@ -408,15 +416,15 @@ export const dashboardStyles = {
     display: "flex",
     flexDirection: "column",
     gap: "1px",
-    backgroundColor: "rgba(15, 23, 42, 0.7)",
-    borderRadius: "16px",
+    backgroundColor: "#e7f5eb",
+    borderRadius: "8px",
     overflow: "hidden",
   },
   categoryRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "rgba(10, 10, 12, 0.95)",
+    backgroundColor: "#ffffff",
     padding: "10px",
   },
   categoryCountBadge: {
@@ -426,7 +434,7 @@ export const dashboardStyles = {
     fontWeight: "400",
   },
   fleetSubtext: {
-    color: "#71717a",
+    color: "#477257",
     fontSize: "10px",
     margin: 0,
     lineHeight: "1.5",
@@ -440,15 +448,15 @@ export const dashboardStyles = {
     display: "flex",
     flexDirection: "column",
     gap: "1px",
-    backgroundColor: "rgba(15, 23, 42, 0.7)",
-    borderRadius: "16px",
+    backgroundColor: "#e7f5eb",
+    borderRadius: "8px",
     overflow: "auto",
     flex: 1,
   },
   auditItem: {
     display: "flex",
     gap: "10px",
-    backgroundColor: "rgba(10, 10, 12, 0.95)",
+    backgroundColor: "#ffffff",
     padding: "10px",
   },
   auditContent: {
@@ -456,7 +464,7 @@ export const dashboardStyles = {
   },
   auditText: {
     margin: 0,
-    color: "#a1a1aa",
+    color: "#111111",
     fontWeight: "400",
     lineHeight: "1.4",
     fontSize: "10px",
@@ -469,6 +477,108 @@ export const dashboardStyles = {
     display: "block",
     letterSpacing: "1px",
     textTransform: "uppercase",
+  },
+  mapOverlayPosition: {
+    position: "absolute",
+    top: "12px",
+    right: "12px",
+    zIndex: 1000,
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    width: "clamp(200px, 18vw, 50px)",
+    maxWidth: "calc(100% - 24px)",
+  },
+  mapStatusPanel: {
+    width: "100%",
+    minHeight: "120px",
+    maxHeight: "min(260px, 50vh)",
+    overflowY: "auto",
+    padding: "14px",
+    boxSizing: "border-box",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    border: "1px solid #b8d7c1",
+    borderRadius: "10px",
+    boxShadow: "0 8px 20px rgba(24, 95, 53, 0.12)",
+  },
+  mapStatusHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "9px",
+  },
+  mapStatusHeaderButton: {
+    width: "100%",
+    padding: 0,
+    border: "none",
+    backgroundColor: "transparent",
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  mapStatusDot: {
+    width: "10px",
+    height: "10px",
+    flexShrink: 0,
+    borderRadius: "50%",
+    backgroundColor: "#ef4444",
+  },
+  mapStatusTitle: {
+    color: "#111111",
+    fontSize: "13px",
+    fontWeight: "800",
+    letterSpacing: "0.4px",
+  },
+  mapStatusDivider: {
+    width: "100%",
+    height: "1px",
+    backgroundColor: "#d7e5da",
+  },
+  mapStatusLabel: {
+    marginTop: "10px",
+    marginBottom: "7px",
+    color: "#477257",
+    fontSize: "10px",
+    fontWeight: "700",
+    letterSpacing: "0.7px",
+  },
+  mapStatusItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    minHeight: "28px",
+    color: "#111111",
+  },
+  mapStatusTypeDot: {
+    width: "10px",
+    height: "10px",
+    flexShrink: 0,
+    borderRadius: "50%",
+  },
+  mapStatusType: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    fontSize: "12px",
+    textTransform: "capitalize",
+  },
+  mapStatusEmpty: {
+    color: "#477257",
+    fontSize: "12px",
+    lineHeight: "1.4",
+  },
+  mapStatusCollapsed: {
+    width: "42px",
+    height: "42px",
+    alignSelf: "flex-end",
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid #f0b7b7",
+    borderRadius: "50%",
+    backgroundColor: "#ffffff",
+    boxShadow: "0 8px 20px rgba(95, 24, 24, 0.16)",
+    cursor: "pointer",
   },
 };
 export const darkStyles = dashboardStyles;

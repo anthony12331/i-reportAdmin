@@ -1,179 +1,254 @@
-const SVG_SHIELD = "data:image/svg+xml;utf8,<svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' fill='%232a5b8f'/><path d='M7 14l3-3 2 2 4-4' stroke='%23d4af37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M16 10V6h-4' stroke='%23d4af37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>";
-const SVG_MAIL = "data:image/svg+xml;utf8,<svg fill='%2364748b' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path d='M3 5h18c.6 0 1 .4 1 1v12c0 .6-.4 1-1 1H3c-.6 0-1-.4-1-1V6c0-.6.4-1 1-1zm9 8.5L4.5 7.5v8c0 .3.2.5.5.5h14c.3 0 .5-.2.5-.5v-8L12 13.5zM19.3 7H4.7l7.3 5.5L19.3 7z'/></svg>";
-const SVG_LOCK = "data:image/svg+xml;utf8,<svg fill='%2364748b' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path d='M12 2C9.2 2 7 4.2 7 7v4H6c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2h-1V7c0-2.8-2.2-5-5-5zm-3 5c0-1.7 1.3-3 3-3s3 1.3 3 3v4H9V7zm3 11c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z'/></svg>";
-
-const injectLoginGlobalStyles = () => {
-  if (typeof document !== 'undefined' && !document.getElementById('login-custom-style')) {
-    const style = document.createElement('style');
-    style.id = 'login-custom-style';
-    style.innerHTML = `
-      body {
-        margin: 0;
-        padding: 0;
-        background-color: #030612 !important;
-      }
-      
-      /* Network lines background for body */
-      body::before {
-        content: "";
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        pointer-events: none;
-        z-index: 0;
-        background-image: 
-          radial-gradient(circle at 15% 25%, rgba(0,210,255,0.2) 2px, transparent 3px),
-          radial-gradient(circle at 80% 15%, rgba(255,204,0,0.2) 3px, transparent 4px),
-          radial-gradient(circle at 25% 75%, rgba(0,210,255,0.15) 3px, transparent 4px),
-          radial-gradient(circle at 75% 85%, rgba(255,204,0,0.15) 2px, transparent 3px),
-          linear-gradient(45deg, transparent 48%, rgba(0,210,255,0.03) 49%, rgba(0,210,255,0.03) 51%, transparent 52%),
-          linear-gradient(-45deg, transparent 48%, rgba(255,204,0,0.03) 49%, rgba(255,204,0,0.03) 51%, transparent 52%);
-        background-size: 100vw 100vh, 100vw 100vh, 100vw 100vh, 100vw 100vh, 150px 150px, 150px 150px;
-      }
-
-      /* Floating text decorations */
-      #root::before {
-        content: "Secure Incident Management";
-        position: absolute;
-        left: 8%;
-        top: 45%;
-        color: rgba(255, 255, 255, 0.15);
-        font-size: 14px;
-        letter-spacing: 1px;
-        z-index: 1;
-        pointer-events: none;
-      }
-      #root::after {
-        content: "Real-time Response";
-        position: absolute;
-        right: 8%;
-        top: 55%;
-        color: rgba(255, 255, 255, 0.15);
-        font-size: 14px;
-        letter-spacing: 1px;
-        z-index: 1;
-        pointer-events: none;
-      }
-
-      h2 {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-      }
-      h2::before {
-        content: url("\");
-        display: inline-block;
-        width: 32px;
-        height: 32px;
-      }
-      p {
-        white-space: pre-wrap;
-      }
-      p::after {
-        content: "\\\\A INCIDENT REPORTING SYSTEM";
-        display: block;
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        color: #64748b;
-        margin-top: 8px;
-      }
-      
-      input[type="email"] {
-        background-image: url("\");
-        background-position: 18px center;
-        background-repeat: no-repeat;
-        background-size: 20px;
-      }
-      input[type="password"], input[type="text"] {
-        background-image: url("\");
-        background-position: 18px center;
-        background-repeat: no-repeat;
-        background-size: 20px;
-      }
-      
-      input:focus {
-        border-color: rgba(0, 210, 255, 0.5) !important;
-        box-shadow: 0 0 12px rgba(0, 210, 255, 0.15) !important;
-      }
-      `;
-    document.head.appendChild(style);
-  }
-};
-injectLoginGlobalStyles();
+// src/loginStyles.js
 
 export const loginStyles = {
   container: {
     minHeight: "100vh",
+    background: "radial-gradient(circle at 50% 0%, #ffffff 0%, #f6faf7 58%, #edf6ef 100%)",
+    color: "#111111",
+    fontFamily: "Inter, Arial, sans-serif",
+  },
+  header: {
+    height: "64px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "radial-gradient(ellipse at center, #0B132B 0%, #030612 100%)",
-    position: "relative",
-    padding: "20px",
-    fontFamily: "'Inter', sans-serif",
-    zIndex: 10,
+    gap: "9px",
+    backgroundColor: "#ffffff",
+    borderBottom: "1px solid #d7e5da",
+    boxSizing: "border-box",
+  },
+  headerLogo: {
+    width: "40px",
+    height: "40px",
+    objectFit: "contain",
+  },
+  headerTitle: {
+    color: "#111111",
+    fontSize: "17px",
+    fontWeight: "700",
+  },
+  content: {
+    minHeight: "calc(100vh - 64px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "48px 20px",
+    boxSizing: "border-box",
   },
   card: {
-    backgroundColor: "rgba(10, 15, 30, 0.6)",
-    backdropFilter: "blur(20px)",
-    WebkitBackdropFilter: "blur(20px)",
-    background: "linear-gradient(rgba(10, 15, 30, 0.85), rgba(10, 15, 30, 0.85)) padding-box, linear-gradient(135deg, #00d2ff 0%, rgba(10,15,30,0) 40%, rgba(10,15,30,0) 60%, #ffcc00 100%) border-box",
-    border: "2px solid transparent",
-    padding: "50px 48px",
-    borderRadius: "16px",
-    boxShadow: "-10px -10px 40px -10px rgba(0, 210, 255, 0.12), 10px 10px 40px -10px rgba(255, 204, 0, 0.12), 0 25px 50px rgba(0,0,0,0.5)",
+    backgroundColor: "#ffffff",
+    border: "1px solid #c8ddce",
+    borderTop: "4px solid #18864b",
+    padding: "42px 32px 48px",
+    borderRadius: "14px",
+    boxShadow: "0 18px 45px rgba(24, 95, 53, 0.10)",
     width: "100%",
-    maxWidth: "420px",
-    position: "relative",
-    zIndex: 20,
+    maxWidth: "440px",
+    boxSizing: "border-box",
   },
-  brandBox: { 
-    textAlign: "center", 
-    marginBottom: "40px" 
+  brandBox: { textAlign: "center", marginBottom: "24px" },
+  accountIcon: {
+    width: "64px",
+    height: "64px",
+    margin: "0 auto 14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+    color: "#111111",
+  },
+  title: {
+    margin: 0,
+    color: "#111111",
+    fontSize: "30px",
+    lineHeight: 1.15,
+    fontWeight: "800",
+  },
+  subtitle: {
+    margin: "5px 0 0",
+    color: "#477257",
+    fontSize: "14px",
+    lineHeight: 1.35,
+    fontWeight: "500",
   },
   label: {
-    display: "none", 
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: "20px",
+    marginBottom: "8px",
+    color: "#111111",
+    fontSize: "14px",
+    fontWeight: "600",
+  },
+  textField: {
+    "& .MuiOutlinedInput-root": {
+      minHeight: "52px",
+      borderRadius: "7px",
+      backgroundColor: "#fbfefc",
+      color: "#111111",
+      "& input": {
+        caretColor: "#18864b",
+        WebkitTapHighlightColor: "transparent",
+      },
+      transition: "border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease",
+      "& fieldset": {
+        borderColor: "#c8ddce",
+      },
+      "&:hover fieldset": {
+        borderColor: "#18864b",
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: "#18864b",
+        borderWidth: "2px",
+      },
+      "&.Mui-focused": {
+        backgroundColor: "#ffffff",
+      },
+    },
+    "&:hover .MuiOutlinedInput-root": {
+      borderColor: "#18864b",
+      boxShadow: "0 4px 12px rgba(24, 134, 75, 0.14)",
+      transform: "translateY(-1px)",
+    },
+    "&:hover .MuiInputLabel-root:not(.Mui-focused)": {
+      transform: "translate(14px, -9px) scale(0.75)",
+      transformOrigin: "top left",
+      padding: "0 4px",
+      backgroundColor: "#fbfefc",
+      color: "#18864b",
+      zIndex: 1,
+    },
+    "& .MuiInputLabel-root": {
+      color: "#477257",
+    },
+    "& .MuiInputLabel-root.Mui-focused": {
+      color: "#18864b",
+    },
+    "& .MuiInputBase-input": {
+      color: "#111111",
+      fontSize: "15px",
+    },
+    "& .MuiInputBase-input::placeholder": {
+      color: "#6b7280",
+      opacity: 1,
+    },
+    "& .MuiIconButton-root": {
+      color: "#477257",
+    },
   },
   input: {
     width: "100%",
-    padding: "16px 20px 16px 48px", 
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    borderRadius: "99px",
+    height: "48px",
+    padding: "0 14px",
+    border: "1px solid #c8ddce",
+    borderRadius: "7px",
     fontSize: "15px",
     outline: "none",
     boxSizing: "border-box",
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    color: "#ffffff",
+    backgroundColor: "#fbfefc",
+    color: "#111111",
     fontWeight: "500",
-    marginBottom: "20px",
-    transition: "all 0.3s ease",
+    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
   },
   button: {
     width: "100%",
-    padding: "16px 24px",
-    background: "linear-gradient(to right, #b48e2d, #f9d976, #b48e2d)",
-    color: "#111111",
+    height: "48px",
+    padding: "0 24px",
+    backgroundColor: "#18864b",
+    color: "#ffffff",
     border: "none",
-    borderRadius: "99px",
+    borderRadius: "7px",
     cursor: "pointer",
-    fontWeight: "800",
+    fontWeight: "700",
     fontSize: "14px",
-    letterSpacing: "1.5px",
-    textTransform: "uppercase",
-    marginTop: "10px",
-    boxShadow: "0 4px 20px rgba(249, 217, 118, 0.3)",
-    transition: "all 0.3s ease",
+    marginTop: "8px",
+    position: "relative",
+    overflow: "hidden",
+    transition: "background-color 0.2s ease",
+  },
+  buttonText: {
+    position: "relative",
+    zIndex: 1,
+  },
+  buttonReveal: {
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0d5f35",
+    color: "#ffffff",
+    transition: "clip-path 450ms ease-in-out, -webkit-clip-path 450ms ease-in-out",
+    pointerEvents: "none",
   },
   footer: {
     textAlign: "center",
-    marginTop: "35px",
-    paddingTop: "20px",
+    marginTop: "24px",
   },
   link: { 
-    color: "#00d2ff", 
+    color: "#18864b", 
     textDecoration: "none", 
-    fontWeight: "700",
+    fontWeight: "600",
     fontSize: "14px",
+  },
+  alertOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 20000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+    backgroundColor: "rgba(0, 0, 0, 0.42)",
+    backdropFilter: "blur(4px)",
+    transition: "opacity 220ms ease",
+  },
+  alertDialog: {
+    width: "100%",
+    maxWidth: "380px",
+    padding: "28px",
+    border: "1px solid #c8ddce",
+    borderTop: "4px solid #18864b",
+    borderRadius: "10px",
+    backgroundColor: "#ffffff",
+    boxShadow: "0 18px 45px rgba(0, 0, 0, 0.18)",
+    textAlign: "center",
+    boxSizing: "border-box",
+    transition: "opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+  },
+  alertIcon: {
+    width: "48px",
+    height: "48px",
+    margin: "0 auto 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "50%",
+    backgroundColor: "#e7f5eb",
+    color: "#18864b",
+  },
+  alertTitle: {
+    margin: 0,
+    color: "#111111",
+    fontSize: "21px",
+    fontWeight: "800",
+  },
+  alertMessage: {
+    margin: "10px 0 22px",
+    color: "#477257",
+    fontSize: "14px",
+    lineHeight: 1.5,
+  },
+  alertButton: {
+    width: "100%",
+    height: "44px",
+    border: "none",
+    borderRadius: "7px",
+    backgroundColor: "#18864b",
+    color: "#ffffff",
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: "700",
   },
 };

@@ -229,7 +229,7 @@ export default function OngoingIncidents() {
               color="#10b981"
               style={{ marginBottom: "16px", opacity: 0.8 }}
             />
-            <h3 style={{ color: "#f8fafc", margin: "0 0 8px 0" }}>
+            <h3 style={{ color: "#111111", margin: "0 0 8px 0" }}>
               No Ongoing Emergency Dispatches
             </h3>
             <p style={{ margin: 0, fontSize: "14px" }}>

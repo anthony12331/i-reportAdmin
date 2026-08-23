@@ -2,7 +2,50 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import { loginStyles } from "../themes/loginStyles"; 
-import { Eye, EyeOff } from "lucide-react"; 
+import { AlertTriangle, Eye, EyeOff } from "lucide-react"; 
+import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
+
+function RadialButton({ children, disabled = false, type = "submit" }) {
+  const [hover, setHover] = useState(false);
+  const [origin, setOrigin] = useState("50% 50%");
+
+  const updateOrigin = (event) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+    const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+    setOrigin(`${x}% ${y}%`);
+  };
+
+  return (
+    <button
+      type={type}
+      style={loginStyles.button}
+      disabled={disabled}
+      onPointerEnter={(event) => {
+        updateOrigin(event);
+        setHover(true);
+      }}
+      onPointerLeave={(event) => {
+        updateOrigin(event);
+        setHover(false);
+      }}
+    >
+      <span style={loginStyles.buttonText}>{children}</span>
+      <span
+        aria-hidden="true"
+        style={{
+          ...loginStyles.buttonReveal,
+          clipPath: `circle(${hover ? "150%" : "0%"} at ${origin})`,
+          WebkitClipPath: `circle(${hover ? "150%" : "0%"} at ${origin})`,
+        }}
+      >
+        {children}
+      </span>
+    </button>
+  );
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,11 +58,31 @@ export default function Login() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loginButtonHover, setLoginButtonHover] = useState(false);
+  const [loginButtonOrigin, setLoginButtonOrigin] = useState("50% 50%");
+  const [loginAlertMessage, setLoginAlertMessage] = useState("");
+  const [loginAlertVisible, setLoginAlertVisible] = useState(false);
+  const [loginAlertClosing, setLoginAlertClosing] = useState(false);
 
   const navigate = useNavigate();
-
   const unlockAlarmAudio = () => {
     window.dispatchEvent(new Event("alarm-audio-unlock"));
+  };
+
+  const showLoginAlert = (message) => {
+    setLoginAlertMessage(String(message || ""));
+    setLoginAlertClosing(false);
+    setLoginAlertVisible(false);
+    requestAnimationFrame(() => setLoginAlertVisible(true));
+  };
+
+  const closeLoginAlert = () => {
+    setLoginAlertClosing(true);
+    setLoginAlertVisible(false);
+    window.setTimeout(() => {
+      setLoginAlertMessage("");
+      setLoginAlertClosing(false);
+    }, 220);
   };
 
   const handleLogin = async (e) => {
@@ -28,7 +91,7 @@ export default function Login() {
 
     // 1. Client-Side Validation
     if (!email.trim() || !password.trim()) {
-      alert("⚠️ Security Alert: Fields cannot be empty.");
+      showLoginAlert("Security Alert: Fields cannot be empty.");
       return;
     }
 
@@ -36,7 +99,9 @@ export default function Login() {
 
     try {
       // 2. Single POST request to Node API server
+
       const response = await fetch("https://api.ireportsystem.com/express-api/admin-login", {
+      
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -55,7 +120,7 @@ export default function Login() {
       navigate("/dashboard");
     } catch (err) {
       console.warn("Security Block:", err.message);
-      alert(" Access Denied: Invalid Email or Password.");
+      showLoginAlert("Access Denied: Invalid Email or Password.");
     } finally {
       setLoading(false);
     }
@@ -63,7 +128,7 @@ export default function Login() {
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
-    if (!resetEmail.trim()) return alert("Please enter your email.");
+    if (!resetEmail.trim()) return showLoginAlert("Please enter your email.");
     setLoading(true);
     try {
       const res = await fetch("https://api.ireportsystem.com/express-api/forgot-password-otp", {
@@ -73,10 +138,10 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error);
-      alert("If the email exists, an OTP has been sent.");
+      showLoginAlert("If the email exists, an OTP has been sent.");
       setResetStep(2);
     } catch (err) {
-      alert(err.message || "Failed to request OTP.");
+      showLoginAlert(err.message || "Failed to request OTP.");
     } finally {
       setLoading(false);
     }
@@ -84,8 +149,8 @@ export default function Login() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (!otp.trim() || !newPassword.trim()) return alert("OTP and New Password are required.");
-    if (newPassword.length < 8) return alert("Password must be at least 8 characters.");
+    if (!otp.trim() || !newPassword.trim()) return showLoginAlert("OTP and New Password are required.");
+    if (newPassword.length < 8) return showLoginAlert("Password must be at least 8 characters.");
     
     setLoading(true);
     try {
@@ -97,12 +162,12 @@ export default function Login() {
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error);
       
-      alert("Password reset successfully! You can now log in.");
+      showLoginAlert("Password reset successfully! You can now log in.");
       setResetStep(0);
       setOtp("");
       setNewPassword("");
     } catch (err) {
-      alert(err.message || "Failed to reset password.");
+      showLoginAlert(err.message || "Failed to reset password.");
     } finally {
       setLoading(false);
     }
@@ -110,13 +175,21 @@ export default function Login() {
 
   return (
     <div style={loginStyles.container}>
-      <div style={loginStyles.card}>
+      <header style={loginStyles.header}>
+        <img src="/icon.ico" alt="Lagonglong seal" style={loginStyles.headerLogo} />
+        <span style={loginStyles.headerTitle}>Lagonglong Incident System</span>
+      </header>
+      <main style={loginStyles.content}>
+        <div style={loginStyles.card}>
         <div style={loginStyles.brandBox}>
-          <h2 style={{ margin: 0, color: "#f8fafc", fontSize: "28px", fontWeight: "800", textShadow: "0 0 10px rgba(255,255,255,0.2)" }}>
+          <div style={loginStyles.accountIcon} aria-hidden="true">
+            <img src="/assets/admin-panel.svg" alt="" width="60" height="60" />
+          </div>
+          <h2 style={loginStyles.title}>
             Admin Login
           </h2>
-          <p style={{ margin: "5px 0 0", color: "#cbd5e1", fontSize: "15px", fontWeight: "500" }}>
-            Sign in to Command Center
+          <p style={loginStyles.subtitle}>
+            Barangay Lagonglong Incident Reporting System Management
           </p>
         </div>
 
@@ -133,34 +206,76 @@ export default function Login() {
             }}
           >
             <div>
-              <label style={loginStyles.label}>ACCOUNT CREDENTIALS</label>
-              <input
+              <TextField
                 type="email"
-                placeholder="Email Address"
+                label="Enter Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={loginStyles.input}
+                variant="outlined"
+                fullWidth
+                sx={loginStyles.textField}
               />
             </div>
 
-            <div style={{ position: "relative", marginBottom: "24px" }}>
-              <input
+            <div>
+              <TextField
                 type={showPassword ? "text" : "password"}
-                placeholder="Password"
+                label="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ ...loginStyles.input, paddingRight: "40px", marginBottom: 0 }}
+                variant="outlined"
+                fullWidth
+                sx={loginStyles.textField}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        type="button"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
-              <div 
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1", display: "flex", alignItems: "center" }}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </div>
             </div>
 
-            <button type="submit" style={loginStyles.button} disabled={loading}>
-              {loading ? "AUTHENTICATING..." : "LOGIN"}
+            <button
+              type="submit"
+              style={loginStyles.button}
+              disabled={loading}
+              onPointerEnter={(event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+                const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+                setLoginButtonOrigin(`${x}% ${y}%`);
+                setLoginButtonHover(true);
+              }}
+              onPointerLeave={(event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+                const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+                setLoginButtonOrigin(`${x}% ${y}%`);
+                setLoginButtonHover(false);
+              }}
+            >
+              <span style={loginStyles.buttonText}>
+                {loading ? "AUTHENTICATING..." : "LOGIN"}
+              </span>
+              <span
+                aria-hidden="true"
+                style={{
+                  ...loginStyles.buttonReveal,
+                  clipPath: `circle(${loginButtonHover ? "150%" : "0%"} at ${loginButtonOrigin})`,
+                  WebkitClipPath: `circle(${loginButtonHover ? "150%" : "0%"} at ${loginButtonOrigin})`,
+                }}
+              >
+                {loading ? "AUTHENTICATING..." : "LOGIN"}
+              </span>
             </button>
           </form>
         )}
@@ -168,13 +283,14 @@ export default function Login() {
         {resetStep === 1 && (
           <form onSubmit={handleRequestOtp} style={{ marginTop: "30px", display: "flex", flexDirection: "column", gap: "15px" }}>
             <div>
-              <label style={loginStyles.label}>ENTER EMAIL TO RECEIVE OTP</label>
-              <input
+              <TextField
                 type="email"
-                placeholder="Email Address"
+                label="Enter Email to Receive OTP"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
-                style={loginStyles.input}
+                variant="outlined"
+                fullWidth
+                sx={loginStyles.textField}
               />
             </div>
             <button type="submit" style={loginStyles.button} disabled={loading}>
@@ -186,42 +302,51 @@ export default function Login() {
         {resetStep === 2 && (
           <form onSubmit={handleResetPassword} style={{ marginTop: "30px", display: "flex", flexDirection: "column", gap: "15px" }}>
             <div>
-              <label style={loginStyles.label}>ENTER OTP</label>
-              <input
+              <TextField
                 type="text"
-                placeholder="6-digit OTP"
+                label="Enter OTP"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                style={loginStyles.input}
+                variant="outlined"
+                fullWidth
+                sx={loginStyles.textField}
               />
             </div>
             <div>
-              <label style={loginStyles.label}>NEW PASSWORD</label>
-              <div style={{ position: "relative", marginBottom: "24px" }}>
-                <input
+              <TextField
                   type={showPassword ? "text" : "password"}
-                  placeholder="New Password (min 8 chars)"
+                  label="New Password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  style={{ ...loginStyles.input, paddingRight: "40px", marginBottom: 0 }}
+                  variant="outlined"
+                  fullWidth
+                  sx={loginStyles.textField}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          type="button"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
-                <div 
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1", display: "flex", alignItems: "center" }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </div>
-              </div>
             </div>
-            <button type="submit" style={loginStyles.button} disabled={loading}>
+            <RadialButton disabled={loading}>
               {loading ? "UPDATING..." : "RESET PASSWORD"}
-            </button>
+            </RadialButton>
           </form>
         )}
 
         <div style={loginStyles.footer}>
           {resetStep === 0 ? (
-            <p style={{ fontSize: "14px", color: "#cbd5e1", fontWeight: "500" }}>
+            <p style={{ fontSize: "14px", color: "#477257", fontWeight: "500" }}>
               Forgot your password?{" "}
               <span 
                 onClick={() => setResetStep(1)} 
@@ -231,7 +356,7 @@ export default function Login() {
               </span>
             </p>
           ) : (
-            <p style={{ fontSize: "14px", color: "#cbd5e1", fontWeight: "500" }}>
+            <p style={{ fontSize: "14px", color: "#477257", fontWeight: "500" }}>
               Remembered your password?{" "}
               <span 
                 onClick={() => setResetStep(0)} 
@@ -242,7 +367,46 @@ export default function Login() {
             </p>
           )}
         </div>
-      </div>
+        </div>
+      </main>
+      {loginAlertMessage && (
+        <div
+          style={{
+            ...loginStyles.alertOverlay,
+            opacity: loginAlertVisible ? 1 : 0,
+            pointerEvents: loginAlertClosing ? "none" : "auto",
+          }}
+          role="presentation"
+        >
+          <div
+            style={{
+              ...loginStyles.alertDialog,
+              opacity: loginAlertVisible ? 1 : 0,
+              transform: loginAlertVisible ? "translateY(0) scale(1)" : "translateY(10px) scale(0.97)",
+            }}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="login-alert-title"
+          >
+            <div style={loginStyles.alertIcon}>
+              <AlertTriangle size={24} />
+            </div>
+            <h2 id="login-alert-title" style={loginStyles.alertTitle}>
+              System Alert
+            </h2>
+            <p style={loginStyles.alertMessage}>
+              {loginAlertMessage}
+            </p>
+            <button
+              type="button"
+              style={loginStyles.alertButton}
+              onClick={closeLoginAlert}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
