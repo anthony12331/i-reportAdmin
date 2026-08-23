@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { Mic, MicOff, Camera } from "lucide-react";
+import { Mic, MicOff, Camera, Video, Square } from "lucide-react";
 
 const APP_ID = "4bf767c547a04dfeb581065f5fa11e63"; // Your specific App ID
 const TEMP_TOKEN = "007eJxTYJhc0Pp0vXC+lXN7SJbsGrOtCnXTv8486BLANPf2JMGLqQoKDCZJaeZm5smmJuaJBiYpaalJphaGBmamaaZpiYaGqWbGmtVdWZp1YbU+M9sZGBkYGVgYGBlAgAlMMoNJFjDJw5CcWFBckp+XGl+cX8zAAAD5eCFP";
@@ -17,6 +17,13 @@ export default function LiveVideoPlayer({ channelName }) {
   const [error, setError] = useState("");
   const [isTalking, setIsTalking] = useState(false);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
+
+  // Recording states and refs
+  const [isRecording, setIsRecording] = useState(false);
+  const remoteVideoTrackRef = useRef(null);
+  const remoteAudioTrackRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,13 +42,19 @@ export default function LiveVideoPlayer({ channelName }) {
           await client.subscribe(user, mediaType);
           
           if (mediaType === "video") {
-            // Play the video inside our referenced div container
+            remoteVideoTrackRef.current = user.videoTrack;
             user.videoTrack.play(videoContainerRef.current);
           }
           if (mediaType === "audio") {
-            // Play the audio (does not need a container)
+            remoteAudioTrackRef.current = user.audioTrack;
             user.audioTrack.play();
           }
+        });
+
+        // 1.5 Handle unpublishing
+        client.on("user-unpublished", (user, mediaType) => {
+          if (mediaType === "video") remoteVideoTrackRef.current = null;
+          if (mediaType === "audio") remoteAudioTrackRef.current = null;
         });
 
         // 2. Join the specific SOS channel using the Temp Token
@@ -66,6 +79,9 @@ export default function LiveVideoPlayer({ channelName }) {
       if (track) {
         track.stop();
         track.close();
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
       }
       client.leave();
     };
@@ -94,6 +110,77 @@ export default function LiveVideoPlayer({ channelName }) {
     }
   };
 
+  const toggleRecording = () => {
+    if (isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+    } else {
+      const tracks = [];
+      
+      if (remoteVideoTrackRef.current) {
+        const vt = remoteVideoTrackRef.current.getMediaStreamTrack();
+        if (vt) tracks.push(vt);
+      }
+      
+      const rAudio = remoteAudioTrackRef.current ? remoteAudioTrackRef.current.getMediaStreamTrack() : null;
+      const lAudio = localAudioTrack ? localAudioTrack.getMediaStreamTrack() : null;
+
+      // Mix remote and local audio tracks so both are recorded
+      if (rAudio && lAudio) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const dest = ctx.createMediaStreamDestination();
+        ctx.createMediaStreamSource(new MediaStream([rAudio])).connect(dest);
+        ctx.createMediaStreamSource(new MediaStream([lAudio])).connect(dest);
+        const mixedAudioTrack = dest.stream.getAudioTracks()[0];
+        if (mixedAudioTrack) tracks.push(mixedAudioTrack);
+      } else if (rAudio) {
+        tracks.push(rAudio);
+      } else if (lAudio) {
+        tracks.push(lAudio);
+      }
+
+      if (tracks.length === 0) {
+        alert("No video or audio stream available to record yet!");
+        return;
+      }
+
+      const combinedStream = new MediaStream(tracks);
+      
+      try {
+        const recorder = new MediaRecorder(combinedStream, { mimeType: "video/webm" });
+        recordedChunksRef.current = [];
+
+        recorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            recordedChunksRef.current.push(event.data);
+          }
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = url;
+          a.download = `SOS_Incident_Recording_${new Date().getTime()}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+        };
+
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Failed to start recording:", err);
+        alert("Recording is not supported in this browser format.");
+      }
+    }
+  };
+
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#1e1e1e", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
       {!joined && !error && <p style={{ color: "white", padding: "15px", fontFamily: "sans-serif" }}>Connecting to Live SOS Stream...</p>}
@@ -105,12 +192,12 @@ export default function LiveVideoPlayer({ channelName }) {
       
       {joined && (
         <>
-          <div style={{ position: "absolute", top: "10px", right: "10px", background: "rgba(239,68,68,0.8)", padding: "4px 8px", borderRadius: "4px", color: "white", fontSize: "12px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "8px", height: "8px", background: "white", borderRadius: "50%" }}></div>
-            LIVE
+          <div style={{ position: "absolute", top: "10px", right: "10px", background: isRecording ? "rgba(239,68,68,0.9)" : "rgba(239,68,68,0.8)", padding: "4px 8px", borderRadius: "4px", color: "white", fontSize: "12px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "6px", boxShadow: isRecording ? "0 0 10px rgba(239,68,68,0.8)" : "none" }}>
+            <div style={{ width: "8px", height: "8px", background: "white", borderRadius: "50%", animation: isRecording ? "pulse 1.5s infinite" : "none" }}></div>
+            {isRecording ? "REC" : "LIVE"}
           </div>
 
-          <div style={{ position: "absolute", top: "10px", left: "10px", zIndex: 10 }}>
+          <div style={{ position: "absolute", top: "10px", left: "10px", zIndex: 10, display: "flex", gap: "10px" }}>
             <button
               onClick={handleFlipCamera}
               style={{
@@ -132,6 +219,30 @@ export default function LiveVideoPlayer({ channelName }) {
               onMouseLeave={(e) => e.target.style.background = "rgba(15, 23, 42, 0.8)"}
             >
               <Camera size={14} /> FLIP
+            </button>
+            
+            <button
+              onClick={toggleRecording}
+              style={{
+                background: isRecording ? "rgba(239, 68, 68, 0.9)" : "rgba(15, 23, 42, 0.8)",
+                color: "white",
+                border: "1px solid rgba(255,255,255,0.2)",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                fontWeight: "bold",
+                backdropFilter: "blur(10px)",
+                transition: "background 0.2s"
+              }}
+              onMouseEnter={(e) => !isRecording && (e.target.style.background = "rgba(15, 23, 42, 1)")}
+              onMouseLeave={(e) => !isRecording && (e.target.style.background = "rgba(15, 23, 42, 0.8)")}
+            >
+              {isRecording ? <Square size={14} /> : <Video size={14} />}
+              {isRecording ? "STOP REC" : "RECORD"}
             </button>
           </div>
 
@@ -167,6 +278,13 @@ export default function LiveVideoPlayer({ channelName }) {
           </div>
         </>
       )}
+      <style>{`
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.3; }
+          100% { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
