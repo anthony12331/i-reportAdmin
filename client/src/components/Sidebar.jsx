@@ -80,11 +80,11 @@ export default function Sidebar({
     const fetchCounts = async () => {
       try {
         const [reports, users, sos, allDispatches, backups] = await Promise.all([
-          pb.collection("incident_reports").getFullList({ fields: "id,status", requestKey: null }),
-          pb.collection("users").getFullList({ fields: "id,status", requestKey: null }),
-          pb.collection("sos_tracking").getFullList({ fields: "id,status,dispatch_status", requestKey: null }),
-          pb.collection("dispatches").getFullList({ fields: "incident_id,sos_id,status", requestKey: null }),
-          pb.collection("backup_requests").getFullList({ fields: "id,dispatch_status", requestKey: null })
+          pb.collection("incident_reports").getFullList({ filter: 'status != "resolved" && status != "false_alarm"', fields: "id,status", requestKey: null }),
+          pb.collection("users").getFullList({ filter: 'status = "pending"', fields: "id,status", requestKey: null }),
+          pb.collection("sos_tracking").getFullList({ filter: 'status != "resolved"', fields: "id,status,dispatch_status", requestKey: null }),
+          pb.collection("dispatches").getFullList({ filter: 'status != "resolved"', fields: "incident_id,sos_id,status", requestKey: null }),
+          pb.collection("backup_requests").getFullList({ filter: 'dispatch_status != "completed" && dispatch_status != "declined"', fields: "id,dispatch_status", requestKey: null })
         ]);
 
         if (!isMounted) return;

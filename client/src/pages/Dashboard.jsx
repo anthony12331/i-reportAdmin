@@ -92,29 +92,40 @@ export default function Dashboard() {
     try {
       if (!pb.authStore.isValid) return;
 
-      const [users, reports, sos, responders, dispatches, auditLogs, backupRequests] = await Promise.all([
-        pb.collection("users").getFullList({ requestKey: null }).catch(() => []),
+      const [usersRes, reportsRes, sosRes, respondersRes, dispatchesRes, auditLogsRes, backupRequestsRes] = await Promise.all([
+        pb.collection("users").getList(1, 1, { filter: 'status = "pending"', requestKey: "dash-users" }).catch(() => ({ totalItems: 0 })),
         pb.collection("incident_reports").getFullList({
           sort: "-created",
           expand: "users",
-          requestKey: null,
+          requestKey: "dash-reports",
         }).catch(() => []),
         pb.collection("sos_tracking").getFullList({
           sort: "-created",
           expand: "user,incident_id",
-          requestKey: null,
+          requestKey: "dash-sos",
         }).catch(() => []),
-        pb.collection("responder_accounts").getFullList({ requestKey: null }).catch(() => []),
+        pb.collection("responder_accounts").getFullList({ requestKey: "dash-responders" }).catch(() => []),
         pb.collection("dispatches").getFullList({
           expand: "responder_id,incident_id,sos_id",
-          requestKey: null,
+          requestKey: "dash-dispatches",
         }).catch(() => []),
-        pb.collection("audit_logs").getList(1, 5, { sort: "-created", requestKey: null }).catch(() => ({ items: [] })),
+        pb.collection("audit_logs").getList(1, 5, { sort: "-created", requestKey: "dash-audit" }).catch(() => ({ items: [] })),
         pb.collection("backup_requests").getFullList({
           expand: "requester_id,assigned_responder,incident_id,sos_id",
-          requestKey: null,
+          requestKey: "dash-backups",
         }).catch(() => []),
       ]);
+
+      if (!isMounted.current) return;
+
+      const users = []; // Keep original structure
+      const pendingUsersCount = usersRes.totalItems || 0;
+      const reports = reportsRes || [];
+      const sos = sosRes || [];
+      const responders = respondersRes || [];
+      const dispatches = dispatchesRes || [];
+      const auditLogs = auditLogsRes?.items || [];
+      const backupRequests = backupRequestsRes || [];
 
       // Sound trigger on incoming SOS
       if (sos.length > prevSosCount.current && prevSosCount.current !== 0) {
@@ -123,12 +134,13 @@ export default function Dashboard() {
       prevSosCount.current = sos.length;
 
       setData({
-        users,
+        users: [],
+        pendingUsersCount,
         reports,
         sos,
         responders,
         dispatches,
-        auditLogs: auditLogs.items || [],
+        auditLogs: auditLogs,
         backupRequests,
       });
 
@@ -137,8 +149,10 @@ export default function Dashboard() {
         ...sos.slice(0, 3),
       ];
       resolveAddresses(itemsToResolve);
-    } catch (e) {
-      console.error("Telemetry fetch failed:", e);
+
+      setLoading(false);
+    } catch (error) {
+      if (!error.isAbort) console.error("Dashboard data load error:", error);
     }
   }, [triggerEmergencyAlert]);
 
@@ -146,16 +160,22 @@ export default function Dashboard() {
     let isSubscribed = true;
     let unsubUsers, unsubReports, unsubSos, unsubResponders, unsubDispatches;
 
+    let debounceTimer;
+    const debouncedLoadData = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(loadData, 400);
+    };
+
     const initDashboard = async () => {
       await loadData();
       if (!pb.authStore.isValid || !isSubscribed) return;
 
       // Real-time subscriptions
-      unsubUsers = await pb.collection("users").subscribe("*", loadData);
-      unsubReports = await pb.collection("incident_reports").subscribe("*", loadData);
-      unsubSos = await pb.collection("sos_tracking").subscribe("*", loadData);
-      unsubResponders = await pb.collection("responder_accounts").subscribe("*", loadData);
-      unsubDispatches = await pb.collection("dispatches").subscribe("*", loadData);
+      unsubUsers = await pb.collection("users").subscribe("*", debouncedLoadData);
+      unsubReports = await pb.collection("incident_reports").subscribe("*", debouncedLoadData);
+      unsubSos = await pb.collection("sos_tracking").subscribe("*", debouncedLoadData);
+      unsubResponders = await pb.collection("responder_accounts").subscribe("*", debouncedLoadData);
+      unsubDispatches = await pb.collection("dispatches").subscribe("*", debouncedLoadData);
     };
 
     initDashboard();
@@ -185,7 +205,7 @@ export default function Dashboard() {
       ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)
     ).length,
     resolved: data.reports.filter((r) => r.status === "resolved").length,
-    uPending: data.users.filter((u) => u.status === "pending").length,
+    uPending: data.pendingUsersCount || 0,
     respondersAvailable: data.responders.filter((r) => r.is_available === true).length,
   };
 
