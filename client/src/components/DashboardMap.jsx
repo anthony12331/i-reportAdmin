@@ -1,8 +1,55 @@
 import React, { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, Tooltip, LayersControl } from 'react-leaflet';
+import lagonglongGeoJSON from '../lagonglong_boundary.json';
+import balingasagGeoJSON from '../balingasag_boundary.json';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+const style = document.createElement('style');
+style.textContent = `
+  .barangay-label {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 3px #000, -1px -1px 3px #000, 1px -1px 3px #000, -1px 1px 3px #000, 0px 0px 5px rgba(0,0,0,1);
+  }
+  .barangay-label::before {
+    display: none !important;
+  }
+`;
+document.head.appendChild(style);
+
+const LAGONG_STYLE = {
+  color: '#3b82f6',
+  weight: 2,
+  fillOpacity: 0.1
+};
+
+const BALINGASAG_STYLE = {
+  color: '#f59e0b',
+  weight: 2,
+  fillOpacity: 0.1
+};
+
+const onEachBarangay = (feature, layer) => {
+  if (feature.properties && feature.properties.NAME_3) {
+    layer.bindTooltip(feature.properties.NAME_3, {
+      permanent: true,
+      direction: 'center',
+      className: 'barangay-label'
+    });
+  }
+};
+
+const MAP_BOUNDS = [
+  [8.60, 124.60], // South-West
+  [8.90, 124.95]  // North-East
+];
 
 // Fix for default marker icon issues in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -192,37 +239,164 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
       .filter(b => b.latitude && b.longitude);
   }, [backupRequests]);
 
+  const reportMarkers = useMemo(() => {
+    return validReports.map(report => {
+      const typeLabel = report.type || report.incident_type || report.category || "Unknown";
+      const color = stringToColor(typeLabel);
+      
+      return (
+        <Marker 
+          key={`report-${report.id}`} 
+          position={[report.latitude, report.longitude]}
+          icon={createCustomIcon(color, false)}
+        >
+          <Popup>
+            <div style={{ fontWeight: 'bold', color: color, textTransform: 'capitalize', fontSize: '14px', marginBottom: '4px' }}>
+              {typeLabel}
+            </div>
+            <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+              <strong>Status:</strong> {report.status}
+            </div>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
+              {new Date(report.created).toLocaleString()}
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+  }, [validReports.map(r => r.id + r.updated).join(',')]);
+
+  const sosMarkers = useMemo(() => {
+    return validSos.map(s => (
+      <Marker 
+        key={`sos-${s.id}`} 
+        position={[s.latitude, s.longitude]}
+        icon={createCustomIcon('#ef4444', true)}
+      >
+        <Popup>
+          <div style={{ fontWeight: 'bold', color: '#ef4444', fontSize: '14px', marginBottom: '4px' }}>
+            🚨 ACTIVE SOS
+          </div>
+          <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+            <strong>User:</strong> {s.expand?.user?.name || "Unknown"}
+          </div>
+          <div style={{ fontSize: '12px', color: '#64748b' }}>
+            {new Date(s.created).toLocaleString()}
+          </div>
+        </Popup>
+      </Marker>
+    ));
+  }, [validSos.map(s => s.id + s.updated).join(',')]);
+
+  const backupMarkers = useMemo(() => {
+    return validBackups.map(b => {
+      const reqName = b.expand?.requester_id?.unit_name || b.expand?.requester_id?.first_name || "Unit";
+      return (
+        <Marker 
+          key={`backup-${b.id}`} 
+          position={[b.latitude, b.longitude]}
+          icon={createCustomIcon('#f59e0b', true)}
+        >
+          <Popup>
+            <div style={{ fontWeight: 'bold', color: '#f59e0b', fontSize: '14px', marginBottom: '4px' }}>
+              ⚠️ BACKUP REQUEST
+            </div>
+            <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+              <strong>Requester:</strong> {reqName}
+            </div>
+            <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+              <strong>Reason:</strong> {b.reason || "Not specified"}
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+  }, [validBackups.map(b => b.id + b.updated).join(',')]);
+
+  const dispatchPaths = useMemo(() => {
+    return dispatches.map(dispatch => {
+      if (dispatch.status === 'resolved') return null;
+      
+      const responder = responders.find(r => r.id === dispatch.responder_id);
+      if (!responder || !responder.latitude || !responder.longitude) return null;
+      
+      let target = validReports.find(r => r.id === dispatch.incident_id);
+      let isSosTarget = false;
+      
+      if (!target) {
+        target = validSos.find(s => s.id === dispatch.sos_id);
+        if (target) isSosTarget = true;
+      }
+      
+      if (!target || !target.latitude || !target.longitude) return null; 
+      
+      const metrics = calculateDistanceAndETA(responder.latitude, responder.longitude, target.latitude, target.longitude);
+      
+      return (
+        <React.Fragment key={`dispatch-${dispatch.id}`}>
+          <Polyline 
+            positions={[[responder.latitude, responder.longitude], [target.latitude, target.longitude]]} 
+            pathOptions={{ color: '#2563eb', dashArray: '5, 10', weight: 3, opacity: 0.8 }} 
+          />
+          <Marker 
+            position={[responder.latitude, responder.longitude]}
+            icon={createResponderIcon()}
+            zIndexOffset={1000}
+          >
+            <Popup>
+              <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '14px', marginBottom: '4px' }}>
+                {responder.unit_name || `${responder.first_name} ${responder.last_name}`}
+              </div>
+              <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                <strong>Dept:</strong> <span style={{ textTransform: 'capitalize' }}>{responder.department}</span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                <strong>Target:</strong> <span style={{ textTransform: 'capitalize' }}>{isSosTarget ? 'SOS Alert' : (target.type || 'Incident')}</span>
+              </div>
+              <hr style={{ margin: '6px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+              <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                <strong>Distance:</strong> {metrics.distance} km
+              </div>
+              <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
+                <strong>ETA:</strong> {metrics.eta}
+              </div>
+            </Popup>
+          </Marker>
+        </React.Fragment>
+      );
+    });
+  }, [dispatches.map(d => d.id + d.updated).join(','), responders.map(r => r.id + r.latitude + r.longitude).join(','), validReports.map(r => r.id + r.updated).join(','), validSos.map(s => s.id + s.updated).join(',')]);
+
   return (
     <div style={{ width: '100%', height: '100%', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
       <style>{`
+        .leaflet-container {
+          background: #0f172a;
+        }
         @keyframes radar-pulse-map {
           0% { transform: scale(1); opacity: 0.8; }
           100% { transform: scale(3.5); opacity: 0; }
         }
       `}</style>
       
-      <div style={{
-        position: 'absolute', top: 16, right: 16, zIndex: 1000,
-        background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)',
-        color: '#f8fafc', padding: '12px', borderRadius: '8px',
-        fontSize: '12px', fontWeight: 'bold', display: 'flex',
-        flexDirection: 'column', gap: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
-          🚨 ACTIVE SOS
-        </div>
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', width: '100%' }}></div>
-        <div style={{ fontSize: '10px', color: '#94a3b8' }}>DYNAMIC INCIDENT TYPES:</div>
-        {Array.from(new Set(validReports.map(r => r.type || r.incident_type || r.category || 'Unknown'))).map(type => (
-          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: stringToColor(type) }}></div>
-            <span style={{ textTransform: 'capitalize' }}>{type}</span>
+      <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '10px', width: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
+            <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#f8fafc' }}>🎉 ACTIVE SOS</span>
           </div>
-        ))}
-        {validReports.length === 0 && (
-          <div style={{ color: '#64748b' }}>No active incidents.</div>
-        )}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', width: '100%' }}></div>
+          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '8px' }}>DYNAMIC INCIDENT TYPES:</div>
+        {Array.from(new Set(validReports.map(r => r.type || r.incident_type || r.category || 'Unknown'))).map(type => (
+            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc' }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: stringToColor(type) }}></div>
+              <span style={{ textTransform: 'capitalize' }}>{type}</span>
+            </div>
+          ))}
+          {validReports.length === 0 && (
+            <div style={{ color: '#64748b' }}>No active incidents.</div>
+          )}
+        </div>
       </div>
 
       <MapContainer 
@@ -230,133 +404,56 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         zoom={13} 
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
+        maxBounds={MAP_BOUNDS}
+        maxBoundsViscosity={0.8}
+        minZoom={11}
+        preferCanvas={true}
       >
         <MapFlyToListener reports={validReports} sos={validSos} />
         
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          attribution='&copy; OpenStreetMap &copy; CARTO'
-        />
+        <LayersControl position="bottomleft">
+          <LayersControl.BaseLayer name="Standard View">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution='&copy; OpenStreetMap &copy; CARTO'
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer checked name="Satellite View">
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution='&copy; Esri &copy; Earthstar Geographics'
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Dark Mode">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; OpenStreetMap &copy; CARTO'
+            />
+          </LayersControl.BaseLayer>
+
+          {/* LAGONGLONG MUNICIPAL BOUNDARY */}
+          <LayersControl.Overlay checked name="Lagonglong Area">
+            <GeoJSON 
+              data={lagonglongGeoJSON}
+              style={LAGONG_STYLE}
+              onEachFeature={onEachBarangay}
+            />
+          </LayersControl.Overlay>
+
+          {/* BALINGASAG MUNICIPAL BOUNDARY */}
+          <LayersControl.Overlay name="Balingasag Area">
+            <GeoJSON 
+              data={balingasagGeoJSON}
+              style={BALINGASAG_STYLE}
+              onEachFeature={onEachBarangay}
+            />
+          </LayersControl.Overlay>
+        </LayersControl>
         
-        {validReports.map(report => {
-          const typeLabel = report.type || report.incident_type || report.category || "Unknown";
-          const color = stringToColor(typeLabel);
-          
-          return (
-            <Marker 
-              key={`report-${report.id}`} 
-              position={[report.latitude, report.longitude]}
-              icon={createCustomIcon(color, false)}
-            >
-              <Popup>
-                <div style={{ fontWeight: 'bold', color: color, textTransform: 'capitalize', fontSize: '14px', marginBottom: '4px' }}>
-                  {typeLabel}
-                </div>
-                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                  <strong>Status:</strong> {report.status}
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>
-                  {new Date(report.created).toLocaleString()}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-
-        {validSos.map(s => (
-          <Marker 
-            key={`sos-${s.id}`} 
-            position={[s.latitude, s.longitude]}
-            icon={createCustomIcon('#ef4444', true)}
-          >
-            <Popup>
-              <div style={{ fontWeight: 'bold', color: '#ef4444', fontSize: '14px', marginBottom: '4px' }}>
-                🚨 ACTIVE SOS
-              </div>
-              <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                <strong>User:</strong> {s.expand?.user?.name || "Unknown"}
-              </div>
-              <div style={{ fontSize: '12px', color: '#64748b' }}>
-                {new Date(s.created).toLocaleString()}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-
-        {validBackups.map(b => {
-          const reqName = b.expand?.requester_id?.unit_name || b.expand?.requester_id?.first_name || "Unit";
-          return (
-            <Marker 
-              key={`backup-${b.id}`} 
-              position={[b.latitude, b.longitude]}
-              icon={createCustomIcon('#f59e0b', true)}
-            >
-              <Popup>
-                <div style={{ fontWeight: 'bold', color: '#f59e0b', fontSize: '14px', marginBottom: '4px' }}>
-                  ⚠️ BACKUP REQUEST
-                </div>
-                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                  <strong>Requester:</strong> {reqName}
-                </div>
-                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                  <strong>Reason:</strong> {b.reason || "Not specified"}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-
-        {dispatches.map(dispatch => {
-          if (dispatch.status === 'resolved') return null;
-          
-          const responder = responders.find(r => r.id === dispatch.responder_id);
-          if (!responder || !responder.latitude || !responder.longitude) return null;
-          
-          let target = validReports.find(r => r.id === dispatch.incident_id);
-          let isSosTarget = false;
-          
-          if (!target) {
-            target = validSos.find(s => s.id === dispatch.sos_id);
-            if (target) isSosTarget = true;
-          }
-          
-          if (!target || !target.latitude || !target.longitude) return null; 
-          
-          const metrics = calculateDistanceAndETA(responder.latitude, responder.longitude, target.latitude, target.longitude);
-          
-          return (
-            <React.Fragment key={`dispatch-${dispatch.id}`}>
-              <Polyline 
-                positions={[[responder.latitude, responder.longitude], [target.latitude, target.longitude]]} 
-                pathOptions={{ color: '#2563eb', dashArray: '5, 10', weight: 3, opacity: 0.8 }} 
-              />
-              <Marker 
-                position={[responder.latitude, responder.longitude]}
-                icon={createResponderIcon()}
-                zIndexOffset={1000}
-              >
-                <Popup>
-                  <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '14px', marginBottom: '4px' }}>
-                    {responder.unit_name || `${responder.first_name} ${responder.last_name}`}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                    <strong>Dept:</strong> <span style={{ textTransform: 'capitalize' }}>{responder.department}</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                    <strong>Target:</strong> <span style={{ textTransform: 'capitalize' }}>{isSosTarget ? 'SOS Alert' : (target.type || 'Incident')}</span>
-                  </div>
-                  <hr style={{ margin: '6px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
-                  <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                    <strong>Distance:</strong> {metrics.distance} km
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
-                    <strong>ETA:</strong> {metrics.eta}
-                  </div>
-                </Popup>
-              </Marker>
-            </React.Fragment>
-          );
-        })}
+        {reportMarkers}
+        {sosMarkers}
+        {backupMarkers}
+        {dispatchPaths}
       </MapContainer>
     </div>
   );

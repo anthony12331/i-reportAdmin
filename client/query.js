@@ -1,0 +1,1 @@
+const q = '[out:json];relation[\"admin_level\"=\"10\"](8.75,124.75,8.85,124.85);out tags;'; fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'User-Agent':'IReportAdmin/1.0'}, body:q}).then(r=>r.text()).then(t=>console.log(t))

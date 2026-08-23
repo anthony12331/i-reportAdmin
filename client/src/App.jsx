@@ -119,7 +119,7 @@ function App() {
   }, [authState]);
 
   const playAlarmSound = useCallback(() => {
-    if (!settings.soundEnabled) return;
+    if (!settings.soundEnabled || window.__isMutedByLiveVideo) return;
     try {
       const alertSound = alarmAudioRef.current || document.getElementById("emergency-alert-sound");
       if (alertSound) {
@@ -162,11 +162,17 @@ function App() {
   useEffect(() => {
     if (!alarmActive || !audioEnabled || !settings.soundEnabled) return;
 
+    window.addEventListener('force-pause-alarm', () => {
+      const alertSound = alarmAudioRef.current || document.getElementById('emergency-alert-sound');
+      if (alertSound) { alertSound.pause(); alertSound.currentTime = 0; }
+    });
+
     const ensureAlarmPlaying = () => {
       const alertSound =
         alarmAudioRef.current ||
         document.getElementById("emergency-alert-sound");
       if (!alertSound) return;
+      if (window.__isMutedByLiveVideo) { if (!alertSound.paused) alertSound.pause(); return; }
       if (alertSound.paused || alertSound.ended) {
         playAlarmSound();
       }
