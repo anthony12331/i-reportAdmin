@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Rectangle, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, Tooltip } from 'react-leaflet';
+import lagonglongGeoJSON from '../lagonglong_boundary.json';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -239,17 +240,19 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         />
 
         {/* LAGONGLONG MUNICIPAL BOUNDARY */}
-        <Rectangle
-          bounds={[
-            [8.7658529, 124.7477432],
-            [8.8458529, 124.8277432]
-          ]}
-          pathOptions={{ color: '#6366f1', weight: 2, fillOpacity: 0.05, dashArray: '5, 10' }}
+        <GeoJSON 
+          data={lagonglongGeoJSON}
+          style={{
+            color: '#6366f1',
+            weight: 2,
+            fillOpacity: 0.1,
+            dashArray: '5, 5'
+          }}
         >
           <Tooltip sticky direction="top" opacity={0.8}>
-            Lagonglong Municipality Area
+            Lagonglong Municipality Area (Exact Boundary)
           </Tooltip>
-        </Rectangle>
+        </GeoJSON>
         
         {validReports.map(report => {
           const typeLabel = report.type || report.incident_type || report.category || "Unknown";
