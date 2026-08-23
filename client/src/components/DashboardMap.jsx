@@ -27,15 +27,13 @@ document.head.appendChild(style);
 const LAGONG_STYLE = {
   color: '#3b82f6',
   weight: 2,
-  fillOpacity: 0.1,
-  dashArray: '4, 4'
+  fillOpacity: 0.1
 };
 
 const BALINGASAG_STYLE = {
   color: '#f59e0b',
   weight: 2,
-  fillOpacity: 0.1,
-  dashArray: '4, 4'
+  fillOpacity: 0.1
 };
 
 const onEachBarangay = (feature, layer) => {
@@ -266,7 +264,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Marker>
       );
     });
-  }, [JSON.stringify(validReports)]);
+  }, [validReports.map(r => r.id + r.updated).join(',')]);
 
   const sosMarkers = useMemo(() => {
     return validSos.map(s => (
@@ -288,7 +286,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Popup>
       </Marker>
     ));
-  }, [JSON.stringify(validSos)]);
+  }, [validSos.map(s => s.id + s.updated).join(',')]);
 
   const backupMarkers = useMemo(() => {
     return validBackups.map(b => {
@@ -313,7 +311,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Marker>
       );
     });
-  }, [JSON.stringify(validBackups)]);
+  }, [validBackups.map(b => b.id + b.updated).join(',')]);
 
   const dispatchPaths = useMemo(() => {
     return dispatches.map(dispatch => {
@@ -367,7 +365,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </React.Fragment>
       );
     });
-  }, [JSON.stringify(dispatches), JSON.stringify(responders), JSON.stringify(validReports), JSON.stringify(validSos)]);
+  }, [dispatches.map(d => d.id + d.updated).join(','), responders.map(r => r.id + r.latitude + r.longitude).join(','), validReports.map(r => r.id + r.updated).join(','), validSos.map(s => s.id + s.updated).join(',')]);
 
   return (
     <div style={{ width: '100%', height: '100%', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #334155', position: 'relative' }}>
