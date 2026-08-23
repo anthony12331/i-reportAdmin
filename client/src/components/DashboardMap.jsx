@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, Tooltip, LayersControl } from 'react-leaflet';
 import lagonglongGeoJSON from '../lagonglong_boundary.json';
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
@@ -11,11 +11,11 @@ style.textContent = `
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: #bae6fd;
+    color: #ffffff;
     font-weight: bold;
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 0.5px;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9), 1px -1px 3px rgba(0,0,0,0.9), -1px 1px 3px rgba(0,0,0,0.9), 0px 0px 4px rgba(0,0,0,1);
+    text-shadow: 1px 1px 3px #000, -1px -1px 3px #000, 1px -1px 3px #000, -1px 1px 3px #000, 0px 0px 5px rgba(0,0,0,1);
   }
   .barangay-label::before {
     display: none !important;
@@ -252,16 +252,32 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
       >
         <MapFlyToListener reports={validReports} sos={validSos} />
         
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; OpenStreetMap &copy; CARTO'
-        />
+        <LayersControl position="bottomleft">
+          <LayersControl.BaseLayer name="Standard View">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution='&copy; OpenStreetMap &copy; CARTO'
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer checked name="Satellite View">
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution='&copy; Esri &copy; Earthstar Geographics'
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Dark Mode">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; OpenStreetMap &copy; CARTO'
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
 
         {/* LAGONGLONG MUNICIPAL BOUNDARY */}
         <GeoJSON 
           data={lagonglongGeoJSON}
           style={{
-            color: '#38bdf8',
+            color: '#3b82f6',
             weight: 2,
             fillOpacity: 0.1,
             dashArray: '4, 4'
