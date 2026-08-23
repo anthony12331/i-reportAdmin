@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
 
-const APP_ID = "16ebfc7d6aae44e489327638ba3e0d16"; // Your specific App ID
-const TEMP_TOKEN = "007eJxTYEhwTY5cd6l9wy57uYAPnz+8y99x09vtMePlf+KzrC56Pj2nwGBolpqUlmyeYpaYmGpikmpiYWlsZG5mbJGUaJxqkGJo1lLRldUQyMhwvPEQEyMDBIL4PAzJiQXFJfl5qfHF+cUMDABipSY0";
+const APP_ID = "4bf767c547a04dfeb581065f5fa11e63"; // Your specific App ID
+const TEMP_TOKEN = "007eJxTYJhc0Pp0vXC+lXN7SJbsGrOtCnXTv8486BLANPf2JMGLqQoKDCZJaeZm5smmJuaJBiYpaalJphaGBmamaaZpiYaGqWbGmtVdWZp1YbU+M9sZGBkYGVgYGBlAgAlMMoNJFjDJw5CcWFBckp+XGl+cX8zAAAD5eCFP";
 const HARDCODED_CHANNEL = "capstone_sos";
 
 // Initialize the client outside the component so it doesn't recreate on re-renders.
