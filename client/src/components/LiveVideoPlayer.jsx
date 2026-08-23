@@ -53,7 +53,7 @@ export default function LiveVideoPlayer({ channelName }) {
       isMounted = false;
       client.leave();
     };
-  }, [channelName, token]);
+  }, [channelName]);
 
   return (
     <div style={{ width: "100%", height: "100%", backgroundColor: "#1e1e1e", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
