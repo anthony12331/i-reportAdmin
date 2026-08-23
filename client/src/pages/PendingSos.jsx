@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import LiveVideoPlayer from "../components/LiveVideoPlayer";
 import { getReadableAddress } from "../utils/utils";
 import SosRoutingTracker from "../components/SosRoutingTracker";
 import { sosStyles } from "../themes/sosStyles";
@@ -29,6 +30,7 @@ export default function PendingSos() {
   const [availableResponders, setAvailableResponders] = useState([]);
   const [respondersLoading, setRespondersLoading] = useState(false);
   const [selectedResponderIds, setSelectedResponderIds] = useState({});
+  const [activeVideoId, setActiveVideoId] = useState(null);
 
   const fetchedAddressIds = useRef(new Set());
 
@@ -316,6 +318,35 @@ export default function PendingSos() {
                     />
                     {addresses[sos.id] || "Locating coordinates..."}
                   </p>
+
+                  {/* Live Camera Button */}
+                  <button
+                    onClick={() => setActiveVideoId(activeVideoId === sos.id ? null : sos.id)}
+                    style={{
+                      backgroundColor: activeVideoId === sos.id ? "#3f3f46" : "#ef4444",
+                      color: "white",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      border: "none",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      width: "100%",
+                      marginBottom: "10px",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: "8px"
+                    }}
+                  >
+                    {activeVideoId === sos.id ? "Close Live Camera" : "🔴 View Live Camera"}
+                  </button>
+
+                  {/* The Live Video Player */}
+                  {activeVideoId === sos.id && (
+                    <div style={{ width: "100%", height: "250px", marginBottom: "15px" }}>
+                      <LiveVideoPlayer channelName={sos.id} />
+                    </div>
+                  )}
 
                   {/* Responder Assignment Section */}
                   <div style={sosStyles.assignmentBox}>
