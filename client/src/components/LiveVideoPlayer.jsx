@@ -3,7 +3,8 @@ import AgoraRTC from "agora-rtc-sdk-ng";
 import { Mic, MicOff, Camera, Video, Square, Lock } from "lucide-react";
 
 const APP_ID = "4bf767c547a04dfeb581065f5fa11e63"; // Your specific App ID
-const TEMP_TOKEN = "007eJxTYIji9jpVFn7x/L5r00Vvnvi0XkpJemtSbO7i1z37D2+e/mGHAoNJUpq5mXmyqYl5ooFJSlpqkqmFoYGZaZppWqKhYaqZ8eU33VnBCrk5276zMTEyMDKwMDAygAATmGQGkywMMAAA8tQg+A==";
+const TEMP_TOKEN_MAIN = "007eJxTYPhexH73Do+x1scr5xI7c6YYCup/VLr5bCeP6JXgWhcNdw4FBpOkNHMz82RTE/NEA5OUtNQkUwtDAzPTNNO0REPDVDNj4/fdWZuVcnN+F3gxMzIwMrAwMDKAABOYZAaTLGCShyE5saC4JD8vNb44v5iBAQA98yI6";
+const TEMP_TOKEN_PRIVATE = "007eJxTYAjrnsby5QvnvY0vl63UT/vvdrn53wx5OUG59cZVn966HhNUYDBJSjM3M082NTFPNDBJSUtNMrUwNDAzTTNNSzQ0TDUzNn7fnbVZKTdn0x01ZkYGRgYWBkYGEGACk8xgkgVMijAkJxYUl+TnpcYX5xfHFxRlliWWpDIwAABYjCfM";
 const HARDCODED_CHANNEL = "capstone_sos";
 
 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -65,13 +66,13 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
         });
 
         // 2. Join the specific SOS channel using the Temp Token
-        await client.join(APP_ID, HARDCODED_CHANNEL, TEMP_TOKEN, null);
+        await client.join(APP_ID, HARDCODED_CHANNEL, TEMP_TOKEN_MAIN, null);
         await client.publish(track);
 
         // 2.5 Join Private Channel if responder is assigned
         if (responderId) {
           // Join the private room for this responder
-          await privateClient.join(APP_ID, `capstone_sos_private_${responderId}`, TEMP_TOKEN, null);
+          await privateClient.join(APP_ID, "capstone_sos_private", TEMP_TOKEN_PRIVATE, null);
           await privateClient.publish(track); // Publish same muted track
         }
 
