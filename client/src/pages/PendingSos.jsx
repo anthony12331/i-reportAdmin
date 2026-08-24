@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Maximize2,
   AlertOctagon,
+  Loader,
 } from "lucide-react";
 import { getResponderOptionLabel } from "../utils/responderOptions";
 
@@ -273,6 +274,13 @@ export default function PendingSos() {
           </div>
         )}
 
+        {loading && sosSignals.length === 0 && (
+          <div style={sosStyles.loadingState}>
+            <Loader className="animate-spin" size={42} color="#1d7a4d" />
+            <span>Loading live SOS alerts...</span>
+          </div>
+        )}
+
         {/* SOS Cards Grid */}
         <div style={sosStyles.grid}>
           {sosSignals.map((sos) => {
@@ -396,7 +404,10 @@ export default function PendingSos() {
 
                     <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid #dfeae3", borderRadius: "8px", padding: "4px", marginBottom: "10px", backgroundColor: "#ffffff" }} onClick={(e) => e.stopPropagation()}>
                       {respondersLoading ? (
-                        <div style={{ padding: "8px", fontSize: "12px", color: "#5f7b69" }}>Loading responders...</div>
+                        <div style={{ padding: "12px 8px", display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#1d7a4d", fontWeight: "700" }}>
+                          <Loader className="animate-spin" size={18} />
+                          Loading available responders...
+                        </div>
                       ) : responderOptions.length === 0 ? (
                         <div style={{ padding: "8px", fontSize: "12px", color: "#5f7b69" }}>No Standby Responders</div>
                       ) : (
@@ -495,6 +506,7 @@ export default function PendingSos() {
 
               <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                 <button
+                  className="animatedCloseButton"
                   onClick={() => setSelectedMap(null)}
                   style={sosStyles.modalCloseBtn}
                 >

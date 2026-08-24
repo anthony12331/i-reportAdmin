@@ -110,9 +110,16 @@ export const rbacStyles = {
     letterSpacing: "0.5px",
   },
   loaderWrapper: {
+    minHeight: "180px",
     display: "flex",
     justifyContent: "center",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "12px",
     padding: "80px 0",
+    color: "#1d7a4d",
+    fontSize: "14px",
+    fontWeight: "700",
   },
   emptyListText: {
     textAlign: "center",
@@ -136,6 +143,7 @@ export const rbacStyles = {
     transition: "all 0.3s ease",
     outline: "none",
     boxShadow: isSelected ? "0 8px 18px rgba(29, 122, 77, 0.1)" : "none",
+    transform: isSelected ? "translateY(-1px)" : "translateY(0)",
   }),
   adminCardName: (isSelected) => ({
     fontWeight: "900",
@@ -249,6 +257,14 @@ export const rbacStyles = {
     alignItems: "center",
     gap: "12px",
   },
+  unsavedNotice: {
+    display: "block",
+    marginTop: "10px",
+    color: "#b45309",
+    fontSize: "12px",
+    fontWeight: "800",
+    textAlign: "right",
+  },
   moduleListContainer: {
     display: "flex",
     flexDirection: "column",
@@ -264,6 +280,7 @@ export const rbacStyles = {
     border: `1px solid ${hasAccess ? "#8bd8ad" : "#dfeae3"}`,
     borderRadius: "14px",
     cursor: "pointer",
+    userSelect: "none",
     transition: "all 0.3s ease",
     boxShadow: hasAccess ? "0 8px 18px rgba(29, 122, 77, 0.08)" : "none",
   }),

@@ -155,5 +155,16 @@ export const manageAdminsStyle = {
   },
   loadingTitle: {
     color: "#111827",
+  },
+  loadingScreen: {
+    minHeight: "calc(100vh - 56px)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "14px",
+    color: "#1d7a4d",
+    fontSize: "16px",
+    fontWeight: "800",
   }
 };

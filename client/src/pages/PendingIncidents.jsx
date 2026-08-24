@@ -36,6 +36,7 @@ import {
   AlertOctagon,
   Volume2,
   VolumeX,
+  Loader,
 } from "lucide-react";
 
 function RadialActionButton({ children, disabled, onClick, style }) {
@@ -81,7 +82,7 @@ function RadialActionButton({ children, disabled, onClick, style }) {
 
 export default function PendingIncidents() {
   const [incidents, setIncidents] = useState([]);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState({});
 
   const [selectedImage, setSelectedImage] = useState(null);
@@ -378,7 +379,12 @@ export default function PendingIncidents() {
 
         {/* INCIDENT CARDS GRID */}
         <div style={tStyle.cardGrid}>
-          {filteredIncidents.length === 0 ? (
+          {loading && incidents.length === 0 ? (
+            <div style={{ gridColumn: "1 / -1", width: "100%", minHeight: "calc(100vh - 260px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#1d7a4d", fontSize: "16px", fontWeight: "800" }}>
+              <Loader className="animate-spin" size={42} />
+              <span>Loading pending incidents...</span>
+            </div>
+          ) : filteredIncidents.length === 0 ? (
             <div style={tStyle.emptyReportsState}>
               <CheckCircle2 size={28} />
               <strong>No pending reports</strong>
@@ -788,7 +794,7 @@ export default function PendingIncidents() {
           <div style={tStyle.modalWindow} onClick={(e) => e.stopPropagation()}>
             <div style={tStyle.modalHead}>
               <h3><MapIcon size={18} color="#18864b" /> {selectedMap.address}</h3>
-              <button className="pending-report-action" onClick={() => setSelectedMap(null)} style={tStyle.closeBtn}><X size={18} /></button>
+              <button className="pending-report-action animatedCloseButton" onClick={() => setSelectedMap(null)} style={tStyle.closeBtn}><X size={18} /></button>
             </div>
             <iframe
               title="Full Map"
@@ -810,7 +816,7 @@ export default function PendingIncidents() {
             ) : (
               <img src={selectedImage} alt="Media Preview" style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "8px" }} />
             )}
-            <button className="pending-report-action" onClick={() => setSelectedImage(null)} style={tStyle.closeFloatBtn}><X size={20} /></button>
+            <button className="pending-report-action animatedCloseButton" onClick={() => setSelectedImage(null)} style={tStyle.closeFloatBtn}><X size={20} /></button>
           </div>
         </div>
       )}

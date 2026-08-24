@@ -146,10 +146,11 @@ export default function Sidebar({
   };
 
   const handleLogout = async () => {
-    const shouldLogout = await confirm("Are you sure you want to logout?", {
-      title: "Confirm Logout",
-      primaryLabel: "Yes",
-      secondaryLabel: "No",
+    const shouldLogout = await confirm("Are you sure you want to log out of the admin dashboard?", {
+      title: "Log Out",
+      primaryLabel: "Logout",
+      secondaryLabel: "Cancel",
+      tone: "app",
     });
 
     if (!shouldLogout) return;
@@ -300,7 +301,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/verified-users") ? styles.navItemActive : styles.navItem}
+              style={location.pathname.startsWith("/verified-users") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/verified-users")}
             >
               <div style={styles.navLinkGroup}>

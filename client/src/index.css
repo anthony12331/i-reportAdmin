@@ -43,13 +43,198 @@ textarea {
 
 .sidebarLogoutBtn:hover {
   background-color: #f6faf7 !important;
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 14px rgba(24, 95, 53, 0.1);
+}
+
+.sidebarLogoutBtn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+@keyframes messageBoxOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes messageBoxDialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.messageBoxPrimaryBtn,
+.messageBoxSecondaryBtn,
+.messageBoxCloseBtn {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.animatedCloseButton {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.animatedCloseButton:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+}
+
+.animatedCloseButton:active {
+  transform: scale(0.97);
+}
+
+.verifiedUsersButton {
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.verifiedUsersButton:not(:disabled):hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.03);
+  box-shadow: 0 6px 14px rgba(24, 95, 53, 0.14);
+}
+
+.verifiedUsersButton:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.98);
+}
+
+.verifiedUsersButton:focus-visible {
+  outline: 2px solid #1d7a4d;
+  outline-offset: 3px;
+}
+
+.verifiedUsersActionLink {
+  transition: color 180ms ease, text-decoration-color 180ms ease;
+}
+
+.verifiedUsersActionLink:hover {
+  color: #0f6c3d !important;
+  background-color: #e7f5eb !important;
+  border-color: #8bcaa0 !important;
+}
+
+.verifiedUsersActionLink:active {
+  color: #18864b !important;
+}
+
+.verifiedUsersSearchBox {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.verifiedUsersSearchBox:hover,
+.verifiedUsersSearchBox:focus-within {
+  transform: translateY(-1px);
+  border-color: #8bcaa0 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 5px 14px rgba(24, 95, 53, 0.12);
+}
+
+.verifiedUsersSearchBox:focus-within svg {
+  color: #18864b;
+  transform: scale(1.08);
+}
+
+.verifiedUsersSearchBox svg {
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.animatedSearchClearButton {
+  transition: transform 180ms ease, color 180ms ease;
+}
+
+.animatedSearchClearButton:hover {
+  transform: translateY(-50%) scale(1.12) !important;
+  color: #18864b !important;
+}
+
+.animatedSearchClearButton:active {
+  transform: translateY(-50%) scale(0.92) !important;
+}
+
+.messageBoxPrimaryBtn:hover,
+.messageBoxSecondaryBtn:hover,
+.messageBoxCloseBtn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+}
+
+.messageBoxPrimaryBtn:active,
+.messageBoxSecondaryBtn:active,
+.messageBoxCloseBtn:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .messageBoxOverlay,
+  .messageBoxDialog,
+  .messageBoxPrimaryBtn,
+  .messageBoxSecondaryBtn,
+  .messageBoxCloseBtn {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .animatedCloseButton {
+    transition: none !important;
+  }
+
+  .verifiedUsersButton {
+    transition: none !important;
+  }
+
+  .messageBoxPrimaryBtn:hover,
+  .messageBoxSecondaryBtn:hover,
+  .messageBoxCloseBtn:hover,
+  .messageBoxPrimaryBtn:active,
+  .messageBoxSecondaryBtn:active,
+  .messageBoxCloseBtn:active {
+    transform: none;
+  }
+
+  .animatedCloseButton:hover,
+  .animatedCloseButton:active {
+    transform: none;
+  }
+
+  .verifiedUsersButton:not(:disabled):hover,
+  .verifiedUsersButton:not(:disabled):active {
+    transform: none;
+    filter: none;
+  }
+
+  .animatedSearchClearButton:hover,
+  .animatedSearchClearButton:active {
+    transform: translateY(-50%) !important;
+  }
+
+  .animate-spin {
+    animation: none !important;
+  }
 }
 
 .adminActionButton {
   transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
   will-change: transform;
+}
+
+.rbacModuleCard {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.rbacModuleCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(29, 122, 77, 0.12);
+}
+
+.rbacModuleCard:active {
+  transform: translateY(0) scale(0.99);
 }
 
 .adminActionButton:not(:disabled):hover {
@@ -132,6 +317,7 @@ textarea {
 
   .sidebarNavNoScroll > div:hover,
   .sidebarLogoutBtn:hover,
+  .sidebarLogoutBtn:active,
   .adminActionButton:not(:disabled):hover,
   .sosDispatchButton:not(:disabled):hover,
   .ongoingDispatchButton:not(:disabled):hover {
@@ -197,6 +383,10 @@ textarea {
   to {
     transform: rotate(360deg);
   }
+}
+
+.animate-spin {
+  animation: spin 1.6s linear infinite;
 }
 
 /* Fix CLS layout shifting for dynamic cards & maps */

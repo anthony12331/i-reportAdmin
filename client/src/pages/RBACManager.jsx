@@ -18,6 +18,7 @@ export default function RBACManager() {
   const [selectedAdmin, setSelectedAdmin] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const fetchAdmins = useCallback(async () => {
     setFetching(true);
@@ -51,17 +52,20 @@ export default function RBACManager() {
       : [...currentPermissions, moduleId];
 
     setSelectedAdmin({ ...selectedAdmin, permissions: newPermissions });
+    setHasChanges(true);
   };
 
   const handleSelectAll = () => {
     if (!selectedAdmin) return;
     const allIds = AVAILABLE_MODULES.map((m) => m.id);
     setSelectedAdmin({ ...selectedAdmin, permissions: allIds });
+    setHasChanges(true);
   };
 
   const handleClearAll = () => {
     if (!selectedAdmin) return;
     setSelectedAdmin({ ...selectedAdmin, permissions: [] });
+    setHasChanges(true);
   };
 
   const savePermissions = async () => {
@@ -83,6 +87,7 @@ export default function RBACManager() {
         selectedAdmin.email;
 
       alert(`✅ Permissions updated for ${adminName}`);
+      setHasChanges(false);
       fetchAdmins();
     } catch (error) {
       console.error("Error updating permissions:", error);
@@ -126,6 +131,7 @@ export default function RBACManager() {
             {fetching ? (
               <div style={rbacStyles.loaderWrapper}>
                 <Loader className="animate-spin" size={24} color="#1d7a4d" />
+                <span>Loading admin accounts...</span>
               </div>
             ) : admins.length === 0 ? (
               <div style={rbacStyles.emptyListText}>
@@ -140,7 +146,10 @@ export default function RBACManager() {
                   return (
                     <button
                       key={admin.id}
-                      onClick={() => setSelectedAdmin(admin)}
+                      onClick={() => {
+                        setSelectedAdmin(admin);
+                        setHasChanges(false);
+                      }}
                       style={rbacStyles.adminCardButton(isSelected)}
                     >
                       <div style={rbacStyles.adminCardName(isSelected)}>
@@ -195,7 +204,7 @@ export default function RBACManager() {
                     <button onClick={handleSelectAll} style={rbacStyles.selectAllBtn}>
                       <CheckCircle2 size={14} /> Select All
                     </button>
-                    <button onClick={handleClearAll} style={rbacStyles.clearAllBtn}>
+                    <button className="animatedCloseButton" onClick={handleClearAll} style={rbacStyles.clearAllBtn}>
                       <XCircle size={14} /> Clear All
                     </button>
                   </div>
@@ -213,6 +222,7 @@ export default function RBACManager() {
                     return (
                       <div
                         key={module.id}
+                        className="rbacModuleCard"
                         onClick={() => handleTogglePermission(module.id)}
                         style={rbacStyles.moduleCard(hasAccess)}
                       >
@@ -220,7 +230,8 @@ export default function RBACManager() {
                           <input
                             type="checkbox"
                             checked={hasAccess}
-                            onChange={() => {}}
+                            onChange={() => handleTogglePermission(module.id)}
+                            onClick={(event) => event.stopPropagation()}
                             style={rbacStyles.checkboxInput}
                           />
                           <div>
@@ -254,6 +265,9 @@ export default function RBACManager() {
                   )}
                   {loading ? "SAVING ACCESS RULES..." : "SAVE ACCESS RULES"}
                 </button>
+                {hasChanges && !loading && (
+                  <span style={rbacStyles.unsavedNotice}>Unsaved permission changes</span>
+                )}
               </div>
             ) : (
               <div style={rbacStyles.unselectedPlaceholder}>

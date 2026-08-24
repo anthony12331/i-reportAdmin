@@ -117,7 +117,7 @@ export const resolvedStyles = {
   th: {
     textAlign: "left",
     padding: "24px 32px",
-    fontSize: "9px",
+    fontSize: "12px",
     fontWeight: "700",
     color: "#477257",
     letterSpacing: "2px",
@@ -131,10 +131,10 @@ export const resolvedStyles = {
     borderBottom: "1px solid #edf3ee",
     color: "#111111",
     fontWeight: "500",
-    fontSize: "13px",
+    fontSize: "14px",
   },
   mutedText: {
-    fontSize: "13px",
+    fontSize: "12px",
     fontWeight: "700",
     color: "#94a3b8",
     marginTop: "6px",

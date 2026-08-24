@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import { loginStyles } from "../themes/loginStyles"; 
-import { AlertTriangle, Eye, EyeOff } from "lucide-react"; 
+import { AlertTriangle, Eye, EyeOff, Loader } from "lucide-react"; 
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
@@ -267,7 +267,7 @@ export default function Login() {
             </div>
 
             <RadialButton disabled={loading}>
-              {loading ? "AUTHENTICATING..." : "LOGIN"}
+              {loading ? <Loader className="animate-spin" size={18} /> : "LOGIN"}
             </RadialButton>
           </form>
         )}

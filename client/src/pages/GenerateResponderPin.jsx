@@ -3,7 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { generateResponderPinStyles as styles } from "../themes/generateResponderPinStyles";
 import { useMessageBox } from "../components/MessageBox";
-import { KeyRound, RefreshCw, ShieldAlert } from "lucide-react";
+import { KeyRound, RefreshCw, ShieldAlert, Loader } from "lucide-react";
 
 export default function GenerateResponderPin() {
   const [accessRecords, setAccessRecords] = useState([]);
@@ -129,7 +129,8 @@ export default function GenerateResponderPin() {
 
           {loading ? (
             <div style={styles.loadingText}>
-              Loading registration PINs...
+              <Loader className="animate-spin" size={42} color="#1d7a4d" />
+              <span>Loading responder registration PINs...</span>
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>

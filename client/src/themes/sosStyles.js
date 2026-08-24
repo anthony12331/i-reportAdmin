@@ -81,6 +81,17 @@ export const sosStyles = {
     border: "1px dashed #dfeae3",
     color: "#5f7b69",
   },
+  loadingState: {
+    minHeight: "calc(100vh - 180px)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "12px",
+    color: "#1d7a4d",
+    fontSize: "16px",
+    fontWeight: "800",
+  },
   emptyStateIcon: {
     marginBottom: "20px",
     opacity: 0.9,

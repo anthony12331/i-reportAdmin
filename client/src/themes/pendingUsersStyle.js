@@ -96,6 +96,17 @@ export const pendingUsersStyle = {
     fontWeight: "700",
     fontSize: "15px",
   },
+  loadingState: {
+    minHeight: "260px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "14px",
+    color: "#1d7a4d",
+    fontSize: "16px",
+    fontWeight: "800",
+  },
   cardsGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",

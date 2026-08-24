@@ -14,6 +14,7 @@ import PendingUserRegistration from "./pages/PendingUsers";
 import PendingSos from "./pages/PendingSos";
 import PendingIncidents from "./pages/PendingIncidents";
 import VerifiedUsers from "./pages/VerifiedUsers";
+import VerifiedUserDetails from "./pages/VerifiedUserDetails";
 import RBACManager from "./pages/RBACManager";
 import Report from "./pages/Report";
 import AuditLogs from "./pages/Audit";
@@ -671,6 +672,14 @@ function App() {
               element={
                 <ProtectedRoute requiredModule="users">
                   <VerifiedUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/verified-users/:userId"
+              element={
+                <ProtectedRoute requiredModule="users">
+                  <VerifiedUserDetails />
                 </ProtectedRoute>
               }
             />

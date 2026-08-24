@@ -50,6 +50,8 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
         <img src={src} style={styles.previewImage} alt="Preview" />
         <button
           type="button"
+          className="verifiedUsersButton"
+          className="animatedCloseButton"
           onClick={onClose}
           style={styles.previewCloseButton}
         >
@@ -81,7 +83,7 @@ export const VerifiedUserReviewModal = memo(function VerifiedUserReviewModal({
               Inspect the selfie, ID photo, and profile details in one place.
             </p>
           </div>
-          <button type="button" onClick={onClose} style={styles.closeButton}>
+          <button type="button" className="verifiedUsersButton animatedCloseButton" onClick={onClose} style={styles.closeButton}>
             <X size={18} />
           </button>
         </div>
@@ -117,7 +119,7 @@ export const VerifiedUserDetailsModal = memo(function VerifiedUserDetailsModal({
   return (
     <div style={styles.staticOverlay}>
       <div style={styles.detailsModal}>
-        <button type="button" onClick={onClose} style={styles.modalCloseButton}>
+        <button type="button" className="verifiedUsersButton animatedCloseButton" onClick={onClose} style={styles.modalCloseButton}>
           <X size={18} />
         </button>
 
@@ -134,6 +136,7 @@ export const VerifiedUserDetailsModal = memo(function VerifiedUserDetailsModal({
             {user.status === "suspended" ? (
               <button
                 type="button"
+                className="verifiedUsersButton"
                 onClick={() => onRequestUnsuspend(user)}
                 disabled={isProcessing}
                 style={styles.unsuspendBtn}
@@ -144,6 +147,7 @@ export const VerifiedUserDetailsModal = memo(function VerifiedUserDetailsModal({
             ) : (
               <button
                 type="button"
+                className="verifiedUsersButton"
                 onClick={() => onRequestSuspend(user)}
                 disabled={isProcessing}
                 style={styles.suspendBtn}
@@ -174,6 +178,7 @@ export const VerifiedUserDetailsModal = memo(function VerifiedUserDetailsModal({
 
               <button
                 type="button"
+                className="verifiedUsersButton"
                 style={{
                   ...styles.profilePhotoBtn,
                   cursor: profileImageUrl ? "zoom-in" : "default",
@@ -197,6 +202,7 @@ export const VerifiedUserDetailsModal = memo(function VerifiedUserDetailsModal({
               {idPhotoUrl && (
                 <button
                   type="button"
+                  className="verifiedUsersButton"
                   style={styles.idPhotoBtn}
                   onClick={() => onOpenPreview(idPhotoUrl)}
                   aria-label="View large ID photo"
@@ -246,7 +252,7 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
               Manage users who have lost verification access.
             </p>
           </div>
-          <button type="button" onClick={onClose} style={styles.closeButton}>
+          <button type="button" className="verifiedUsersButton animatedCloseButton" onClick={onClose} style={styles.closeButton}>
             <X size={18} />
           </button>
         </div>
@@ -268,6 +274,7 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                   </div>
                   <button
                     type="button"
+                    className="verifiedUsersButton"
                     style={styles.viewBtn}
                     onClick={() => onViewUser(user)}
                   >
@@ -311,11 +318,12 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
           style={styles.promptTextarea}
         />
         <div style={styles.promptActions}>
-          <button type="button" style={styles.cancelBtn} onClick={onCancel}>
+          <button type="button" className="verifiedUsersButton" style={styles.cancelBtn} onClick={onCancel}>
             Cancel
           </button>
           <button
             type="button"
+            className="verifiedUsersButton"
             style={styles.confirmBtn}
             onClick={() => onConfirm(user, message)}
             disabled={isProcessing}

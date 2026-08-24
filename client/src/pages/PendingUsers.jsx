@@ -12,6 +12,7 @@ import {
   CheckSquare,
   Square,
   MessageSquare,
+  Loader,
 } from "lucide-react";
 
 export default function PendingUserRegistration() {
@@ -437,7 +438,12 @@ export default function PendingUserRegistration() {
         </header>
 
         {/* Empty State */}
-        {users.length === 0 && !loading && (
+        {loading && users.length === 0 ? (
+          <div style={styles.loadingState}>
+            <Loader className="animate-spin" size={42} color="#1d7a4d" />
+            <span>Loading pending verifications...</span>
+          </div>
+        ) : users.length === 0 && !loading && (
           <div style={styles.emptyState}>
             <CheckCircle
               size={56}
@@ -645,6 +651,7 @@ export default function PendingUserRegistration() {
                 </p>
               </div>
               <button
+                className="animatedCloseButton"
                 style={styles.btnCloseIcon}
                 onClick={() => setPreviewUser(null)}
               >

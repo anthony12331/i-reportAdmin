@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { pb } from "../config/pocketbase";
 import { manageAdminsStyle as styles } from "../themes/manageAdminsStyle";
 import Sidebar from "../components/Sidebar";
+import { Loader } from "lucide-react";
+import { useMessageBox } from "../components/MessageBox";
 
 export default function ManageAdmins() {
   const [admins, setAdmins] = useState([]);
@@ -13,6 +15,7 @@ export default function ManageAdmins() {
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const { confirm } = useMessageBox();
 
   useEffect(() => {
     fetchUsers();
@@ -73,7 +76,12 @@ export default function ManageAdmins() {
     const action = isSuspending ? "suspend" : "unsuspend";
     
     const adminName = (`${admin.first_name || ''} ${admin.last_name || ''}`.trim()) || admin.email || "this admin";
-    if (!window.confirm(`Are you sure you want to ${action} ${adminName}?`)) return;
+    const shouldContinue = await confirm(`Are you sure you want to ${action} ${adminName}?`, {
+      title: `${action} Admin`,
+      primaryLabel: action,
+      secondaryLabel: "Cancel",
+    });
+    if (!shouldContinue) return;
 
     try {
       await pb.collection(collectionName).update(admin.id, {
@@ -88,7 +96,12 @@ export default function ManageAdmins() {
 
   const handlePromote = async (admin) => {
     const adminName = (`${admin.first_name || ''} ${admin.last_name || ''}`.trim()) || admin.email || "this admin";
-    if (!window.confirm(`Are you sure you want to promote ${adminName} to Super Admin?`)) return;
+    const shouldContinue = await confirm(`Are you sure you want to promote ${adminName} to Super Admin?`, {
+      title: "Promote Admin",
+      primaryLabel: "Promote",
+      secondaryLabel: "Cancel",
+    });
+    if (!shouldContinue) return;
 
     try {
       // 1. Create in super_admins
@@ -122,7 +135,10 @@ export default function ManageAdmins() {
       <>
         <Sidebar />
         <div style={styles.container}>
-          <h2 style={styles.loadingTitle}>Loading Admin Management...</h2>
+          <div style={styles.loadingScreen}>
+            <Loader className="animate-spin" size={42} color="#1d7a4d" />
+            <span>Loading admin management...</span>
+          </div>
         </div>
       </>
     );

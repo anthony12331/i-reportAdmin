@@ -16,6 +16,7 @@ import {
   X,
   ImageIcon,
   Activity,
+  Loader,
 } from "lucide-react";
 
 export default function ResolvedIncidents() {
@@ -131,7 +132,7 @@ export default function ResolvedIncidents() {
                 style={ui.searchInput}
               />
               {searchTerm && (
-                <X size={16} onClick={() => setSearchTerm("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1" }} />
+                <X className="animatedSearchClearButton" size={16} onClick={() => setSearchTerm("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1" }} />
               )}
             </div>
           </div>
@@ -168,7 +169,10 @@ export default function ResolvedIncidents() {
               {loading && incidents.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ padding: "80px", textAlign: "center", color: "#18864b", fontWeight: "800" }}>
-                    ⚡ LOADING HISTORY...
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                      <Loader className="animate-spin" size={18} />
+                      LOADING HISTORY...
+                    </span>
                   </td>
                 </tr>
               ) : incidents.length === 0 ? (
@@ -286,7 +290,7 @@ export default function ResolvedIncidents() {
         <div style={detailStyles.detailBackdrop} onClick={() => setSelectedIncident(null)}>
           <div style={detailStyles.detailWindow} onClick={(event) => event.stopPropagation()}>
             <header style={detailStyles.detailHeader}>
-              <button type="button" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
+              <button type="button" className="animatedCloseButton" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
                 <X size={16} /> Back to History
               </button>
               <div style={detailStyles.detailHeaderTitle}>
@@ -478,7 +482,7 @@ export default function ResolvedIncidents() {
               <h3 style={{ margin: 0, color: "#111827", fontSize: "16px" }}>
                 {selectedMap.address || "Resolved Incident Location"}
               </h3>
-              <button type="button" onClick={() => setSelectedMap(null)} style={detailStyles.closeBtn}>
+              <button type="button" className="animatedCloseButton" onClick={() => setSelectedMap(null)} style={detailStyles.closeBtn}>
                 <X size={18} />
               </button>
             </div>
@@ -501,7 +505,7 @@ export default function ResolvedIncidents() {
             ) : (
               <img src={selectedImage} alt="Incident media preview" style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "10px" }} />
             )}
-            <button type="button" onClick={() => setSelectedImage(null)} style={detailStyles.closeFloatBtn}>
+            <button type="button" className="animatedCloseButton" onClick={() => setSelectedImage(null)} style={detailStyles.closeFloatBtn}>
               <X size={20} />
             </button>
           </div>

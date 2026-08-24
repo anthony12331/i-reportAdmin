@@ -12,7 +12,8 @@ import {
   Siren,
   MapPin,
   Map as MapIcon,
-  X
+  X,
+  Loader
 } from "lucide-react";
 
 export default function RequestBackup() {
@@ -137,6 +138,12 @@ export default function RequestBackup() {
         </header>
 
         <div style={styles.cardGrid}>
+          {loading && backups.length === 0 && (
+            <div style={{ gridColumn: "1 / -1", minHeight: "260px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#1d7a4d", fontSize: "16px", fontWeight: "800" }}>
+              <Loader className="animate-spin" size={42} />
+              <span>Loading backup requests...</span>
+            </div>
+          )}
           {!loading && backups.length === 0 && (
             <div style={styles.emptyState}>
               <CheckCircle size={48} style={styles.emptyIcon} />
@@ -297,7 +304,7 @@ export default function RequestBackup() {
           <div style={styles.modalWindow} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHead}>
               <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', fontSize: '16px' }}><MapIcon size={18} color="#38bdf8" /> {selectedMap.address}</h3>
-              <button onClick={() => setSelectedMap(null)} style={styles.closeBtn}><X size={18} /></button>
+              <button className="animatedCloseButton" onClick={() => setSelectedMap(null)} style={styles.closeBtn}><X size={18} /></button>
             </div>
             <iframe
               title="Full Map"

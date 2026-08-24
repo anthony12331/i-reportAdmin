@@ -16,6 +16,7 @@ import {
   Map as MapIcon,
   CheckCircle,
   Filter,
+  Loader,
 } from "lucide-react";
 
 export default function OngoingIncidents() {
@@ -224,7 +225,12 @@ export default function OngoingIncidents() {
         </div>
 
         {/* Empty State */}
-        {filteredIncidents.length === 0 && !loading && (
+        {loading && incidents.length === 0 ? (
+          <div style={{ minHeight: "260px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#1d7a4d", fontSize: "16px", fontWeight: "800" }}>
+            <Loader className="animate-spin" size={42} />
+            <span>Loading ongoing incidents...</span>
+          </div>
+        ) : filteredIncidents.length === 0 && !loading && (
           <div style={ongoingStyles.emptyState}>
             <CheckCircle
               size={56}
@@ -513,7 +519,7 @@ export default function OngoingIncidents() {
         <div style={detailStyles.detailBackdrop} onClick={() => setSelectedIncident(null)}>
           <div style={detailStyles.detailWindow} onClick={(e) => e.stopPropagation()}>
             <header style={detailStyles.detailHeader}>
-              <button type="button" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
+              <button type="button" className="animatedCloseButton" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
                 <X size={16} /> Back to List
               </button>
               <div style={detailStyles.detailHeaderTitle}>
@@ -642,6 +648,7 @@ export default function OngoingIncidents() {
                 </p>
               </div>
               <button
+                className="animatedCloseButton"
                 onClick={() => setSelectedMap(null)}
                 style={ongoingStyles.modalCloseBtn}
               >
@@ -703,6 +710,7 @@ export default function OngoingIncidents() {
               />
             )}
             <button
+              className="animatedCloseButton"
               onClick={() => setSelectedImage(null)}
               style={ongoingStyles.closeCircleBtn}
             >
