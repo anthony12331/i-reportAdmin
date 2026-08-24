@@ -5,6 +5,7 @@ import {
   User,
   Target,
   Activity,
+  ChevronDown,
   Loader,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
@@ -15,6 +16,7 @@ export default function Audit() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [expandedLogId, setExpandedLogId] = useState(null);
 
   // 1. Fetch historical logs securely from PocketBase
   const fetchLogs = useCallback(async () => {
@@ -151,7 +153,7 @@ export default function Audit() {
                       <Target size={14} color="#1d7a4d" /> TARGET REF ID
                     </div>
                   </th>
-                  <th style={auditStyles.th}>DETAILS</th>
+                  <th style={auditStyles.th}>EVENT DETAILS</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,7 +161,8 @@ export default function Audit() {
                   const actionStyle = getActionStyle(log.action);
 
                   return (
-                    <tr key={log.id} style={auditStyles.tr}>
+                    <React.Fragment key={log.id}>
+                    <tr style={auditStyles.tr}>
                       {/* Timestamp */}
                       <td style={auditStyles.tdTimestamp}>
                         <span style={auditStyles.dateText}>
@@ -199,9 +202,34 @@ export default function Audit() {
 
                       {/* Details */}
                       <td style={auditStyles.tdDetails}>
-                        {log.details || "No additional context recorded."}
+                        <div>{log.details || "No additional context recorded."}</div>
+                        <button
+                          type="button"
+                          className="verifiedUsersButton"
+                          onClick={() => setExpandedLogId((current) => current === log.id ? null : log.id)}
+                          style={auditStyles.detailsToggle}
+                        >
+                          <ChevronDown size={14} style={{ transform: expandedLogId === log.id ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }} />
+                          {expandedLogId === log.id ? "Hide full event" : "View full event"}
+                        </button>
                       </td>
                     </tr>
+                    {expandedLogId === log.id && (
+                      <tr style={auditStyles.expandedRow}>
+                        <td colSpan="5" style={auditStyles.expandedCell}>
+                          <div style={auditStyles.expandedGrid}>
+                            <div><span style={auditStyles.expandedLabel}>Log Record ID</span><strong style={auditStyles.expandedValue}>{log.id || "N/A"}</strong></div>
+                            <div><span style={auditStyles.expandedLabel}>Admin Name</span><strong style={auditStyles.expandedValue}>{log.admin_name || "N/A"}</strong></div>
+                            <div><span style={auditStyles.expandedLabel}>Actor</span><strong style={auditStyles.expandedValue}>{log.actor || "N/A"}</strong></div>
+                            <div><span style={auditStyles.expandedLabel}>Created</span><strong style={auditStyles.expandedValue}>{log.created ? new Date(log.created).toLocaleString() : "N/A"}</strong></div>
+                            <div><span style={auditStyles.expandedLabel}>Updated</span><strong style={auditStyles.expandedValue}>{log.updated ? new Date(log.updated).toLocaleString() : "N/A"}</strong></div>
+                            <div><span style={auditStyles.expandedLabel}>Target</span><strong style={auditStyles.expandedValue}>{log.target || "N/A"}</strong></div>
+                            <div style={{ gridColumn: "1 / -1" }}><span style={auditStyles.expandedLabel}>Complete Details</span><strong style={{ ...auditStyles.expandedValue, whiteSpace: "pre-wrap" }}>{log.details || "No additional context recorded."}</strong></div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

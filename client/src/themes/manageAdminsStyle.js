@@ -57,10 +57,13 @@ export const manageAdminsStyle = {
     background: "linear-gradient(135deg, #1a874f 0%, #0f6c3d 100%)",
     color: "#fff",
     border: "none",
-    padding: "10px 16px",
+    minHeight: "56px",
+    padding: "0 20px",
     borderRadius: "6px",
     cursor: "pointer",
     fontWeight: "600",
+    fontSize: "14px",
+    whiteSpace: "nowrap",
     transition: "all 0.2s ease",
   },
   buttonPromote: {
@@ -141,6 +144,55 @@ export const manageAdminsStyle = {
     fontSize: "12px",
     fontWeight: "600",
     marginLeft: "8px",
+  },
+  adminForm: {
+    display: "flex",
+    gap: "15px",
+    alignItems: "flex-end",
+  },
+  textField: {
+    "& .MuiFilledInput-root": {
+      backgroundColor: "#f6faf7",
+      borderRadius: "8px 8px 0 0",
+      transition: "transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
+      "&:before": {
+        borderBottom: "1px solid #b8d7c1",
+      },
+      "&:after": {
+        borderBottomColor: "#18864b",
+      },
+      "&:hover": {
+        backgroundColor: "#edf7f0",
+        transform: "translateY(-1px)",
+        "&:before": {
+          borderBottomColor: "#72b889",
+        },
+      },
+      "&:active": {
+        transform: "translateY(0) scale(0.99)",
+      },
+      "&.Mui-focused": {
+        backgroundColor: "#f6faf7",
+        boxShadow: "0 0 0 2px rgba(24, 134, 75, 0.12)",
+        transform: "translateY(-1px)",
+      },
+    },
+    "& .MuiFilledInput-input": {
+      color: "#18251d",
+      fontSize: "14px",
+      fontWeight: 600,
+    },
+    "& .MuiInputLabel-root": {
+      color: "#71897a",
+    },
+    "&:hover .MuiInputLabel-root": {
+      transform: "translate(12px, 7px) scale(0.75)",
+      transformOrigin: "top left",
+      color: "#177a4a",
+    },
+    "& .MuiInputLabel-root.Mui-focused": {
+      color: "#177a4a",
+    },
   },
   sectionTitle: {
     marginTop: 0,

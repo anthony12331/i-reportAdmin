@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { getReadableAddress } from "../utils/utils";
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 
 export default function ResolvedIncidents() {
+  const navigate = useNavigate();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState({});
@@ -118,38 +120,41 @@ export default function ResolvedIncidents() {
                 <ClipboardList size={18} /> Official Audit Record for Lagonglong
               </p>
             </div>
-
-            <div style={ui.searchWrapper}>
-              <Search size={18} color="#477257" style={{ position: "absolute", left: "15px", top: "50%", transform: "translateY(-50%)" }} />
-              <input
-                type="text"
-                placeholder="Search Citizen ID, Name, or Barangay..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                style={ui.searchInput}
-              />
-              {searchTerm && (
-                <X className="animatedSearchClearButton" size={16} onClick={() => setSearchTerm("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1" }} />
-              )}
-            </div>
           </div>
 
-          <div style={ui.filterGroup}>
-            {["", "fire", "accident", "landslide"].map((val) => (
-              <button
-                key={val}
-                onClick={() => {
-                  setTypeFilter(val);
-                  setCurrentPage(1);
-                }}
-                style={ui.pillButton(typeFilter === val)}
-              >
-                {val === "" ? "ALL CASES" : val.toUpperCase()}
-              </button>
-            ))}
+          <div style={ui.filterBar}>
+            <div style={ui.filterBarSearch}>
+              <div style={ui.searchWrapper}>
+                <Search size={18} color="#477257" style={{ position: "absolute", left: "15px", top: "50%", transform: "translateY(-50%)" }} />
+                <input
+                  type="text"
+                  placeholder="Search Citizen ID, Name, or Barangay..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={ui.searchInput}
+                />
+                {searchTerm && (
+                  <X className="animatedSearchClearButton" size={16} onClick={() => setSearchTerm("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1" }} />
+                )}
+              </div>
+            </div>
+            <div style={ui.filterGroup}>
+              {["", "fire", "accident", "landslide"].map((val) => (
+                <button
+                  key={val}
+                  onClick={() => {
+                    setTypeFilter(val);
+                    setCurrentPage(1);
+                  }}
+                  style={ui.pillButton(typeFilter === val)}
+                >
+                  {val === "" ? "ALL CASES" : val.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </header>
 
@@ -243,7 +248,7 @@ export default function ResolvedIncidents() {
                         <button
                           type="button"
                           style={ui.detailsButton}
-                          onClick={() => setSelectedIncident(incident)}
+                          onClick={() => navigate(`/resolved-incidents/${incident.id}`)}
                         >
                           View Details
                         </button>

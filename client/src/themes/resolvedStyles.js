@@ -73,7 +73,7 @@ export const resolvedStyles = {
   },
   searchWrapper: {
     position: "relative",
-    width: "440px",
+    width: "100%",
   },
   searchInput: {
     width: "100%",
@@ -91,7 +91,23 @@ export const resolvedStyles = {
   filterGroup: {
     display: "flex",
     gap: "14px",
-    marginTop: "24px",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  filterBar: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "8px",
+    padding: "14px 16px",
+    marginBottom: "14px",
+    backgroundColor: "#ffffff",
+    border: "1px solid #d7e5da",
+    borderRadius: "8px",
+    boxShadow: "0 4px 14px rgba(24, 95, 53, 0.04)",
+  },
+  filterBarSearch: {
+    flex: "1 0 100%",
   },
   pillButton: (isActive) => ({
     background: isActive ? "#18864b" : "#ffffff",

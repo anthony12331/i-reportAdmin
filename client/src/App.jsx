@@ -10,6 +10,7 @@ import ManageAdmins from "./pages/ManageAdmins";
 import Dashboard from "./pages/Dashboard";
 import OngoingIncidents from "./pages/OngoingIncidents";
 import ResolvedIncidents from "./pages/ResolvedIncidents";
+import ResolvedIncidentDetails from "./pages/ResolvedIncidentDetails";
 import PendingUserRegistration from "./pages/PendingUsers";
 import PendingSos from "./pages/PendingSos";
 import PendingIncidents from "./pages/PendingIncidents";
@@ -704,6 +705,14 @@ function App() {
               element={
                 <ProtectedRoute requiredModule="incidents">
                   <ResolvedIncidents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resolved-incidents/:incidentId"
+              element={
+                <ProtectedRoute requiredModule="incidents">
+                  <ResolvedIncidentDetails />
                 </ProtectedRoute>
               }
             />

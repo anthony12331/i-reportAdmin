@@ -3,11 +3,12 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { generateResponderPinStyles as styles } from "../themes/generateResponderPinStyles";
 import { useMessageBox } from "../components/MessageBox";
-import { KeyRound, RefreshCw, ShieldAlert, Loader } from "lucide-react";
+import { Copy, KeyRound, RefreshCw, ShieldAlert, Loader } from "lucide-react";
 
 export default function GenerateResponderPin() {
   const [accessRecords, setAccessRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [copiedRecordId, setCopiedRecordId] = useState(null);
   const { alert, confirm } = useMessageBox();
 
   useEffect(() => {
@@ -110,6 +111,17 @@ export default function GenerateResponderPin() {
     }
   };
 
+  const copyPin = async (record) => {
+    try {
+      await navigator.clipboard.writeText(record.pin);
+      setCopiedRecordId(record.id);
+      window.setTimeout(() => setCopiedRecordId((current) => current === record.id ? null : current), 1800);
+    } catch (error) {
+      console.error("Failed to copy PIN:", error);
+      await alert("Unable to copy the PIN. Please copy it manually.", { title: "Copy Failed" });
+    }
+  };
+
   return (
     <>
       <Sidebar />
@@ -157,7 +169,19 @@ export default function GenerateResponderPin() {
                           {record.department.toUpperCase()}
                         </td>
                         <td style={styles.td}>
-                          <span style={styles.pinText}>{record.pin}</span>
+                          <div style={styles.pinCell}>
+                            <span style={styles.pinText}>{record.pin}</span>
+                            <button
+                              type="button"
+                              className="verifiedUsersButton"
+                              style={styles.copyButton}
+                              onClick={() => copyPin(record)}
+                              title={`Copy ${record.department} PIN`}
+                            >
+                              <Copy size={14} />
+                              {copiedRecordId === record.id ? "Copied" : "Copy"}
+                            </button>
+                          </div>
                         </td>
                         <td style={styles.td}>
                           <span
@@ -168,6 +192,7 @@ export default function GenerateResponderPin() {
                         </td>
                         <td style={{ ...styles.td, ...styles.actionCell }}>
                           <button
+                            className="verifiedUsersButton"
                             style={styles.buttonPrimary}
                             onClick={() => generateNewPin(record)}
                             title="Generate a new secure PIN"
@@ -176,6 +201,7 @@ export default function GenerateResponderPin() {
                             Generate New PIN
                           </button>
                           <button
+                            className="verifiedUsersButton"
                             style={
                               record.is_active
                                 ? { ...styles.buttonPrimary, background: "#ef4444" }

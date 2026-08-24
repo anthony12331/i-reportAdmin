@@ -4,6 +4,7 @@ import { manageAdminsStyle as styles } from "../themes/manageAdminsStyle";
 import Sidebar from "../components/Sidebar";
 import { Loader } from "lucide-react";
 import { useMessageBox } from "../components/MessageBox";
+import TextField from "@mui/material/TextField";
 
 export default function ManageAdmins() {
   const [admins, setAdmins] = useState([]);
@@ -154,37 +155,32 @@ export default function ManageAdmins() {
 
       <div style={styles.card}>
         <h3 style={styles.sectionTitle}>Create New Admin</h3>
-        <form onSubmit={handleCreateAdmin} style={{ display: "flex", gap: "15px", alignItems: "flex-end" }}>
-          <div style={{ flex: 1 }}>
-            <label style={styles.label}>First Name</label>
-            <input
-              type="text"
-              style={styles.input}
-              placeholder="e.g. John"
-              value={newFirstName}
-              onChange={(e) => setNewFirstName(e.target.value)}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={styles.label}>Last Name</label>
-            <input
-              type="text"
-              style={styles.input}
-              placeholder="e.g. Doe"
-              value={newLastName}
-              onChange={(e) => setNewLastName(e.target.value)}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={styles.label}>Email Address</label>
-            <input 
-              type="email" 
-              value={newEmail} 
-              onChange={(e) => setNewEmail(e.target.value)} 
-              style={styles.input} 
-              placeholder="e.g. admin@lgu.gov.ph"
-            />
-          </div>
+        <form onSubmit={handleCreateAdmin} style={styles.adminForm}>
+          <TextField
+            fullWidth
+            label="First Name"
+            variant="filled"
+            value={newFirstName}
+            onChange={(e) => setNewFirstName(e.target.value)}
+            sx={{ flex: 1, ...styles.textField }}
+          />
+          <TextField
+            fullWidth
+            label="Last Name"
+            variant="filled"
+            value={newLastName}
+            onChange={(e) => setNewLastName(e.target.value)}
+            sx={{ flex: 1, ...styles.textField }}
+          />
+          <TextField
+            fullWidth
+            type="email"
+            label="Email Address"
+            variant="filled"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            sx={{ flex: 1, ...styles.textField }}
+          />
           <button className="adminActionButton" type="submit" style={styles.buttonPrimary} disabled={isCreating}>
             {isCreating ? "Creating..." : "Create Admin (Pwd: 12345678)"}
           </button>

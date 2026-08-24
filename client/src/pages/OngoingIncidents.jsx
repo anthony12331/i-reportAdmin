@@ -635,15 +635,15 @@ export default function OngoingIncidents() {
                     margin: 0,
                     fontSize: "18px",
                     fontWeight: "900",
-                    color: "#f8fafc",
+                    color: "#18251d",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
                   }}
                 >
-                  <MapIcon size={20} color="#60a5fa" /> LIVE MAP DISPATCH LOCATION
+                  <MapIcon size={20} color="#18864b" /> LIVE MAP DISPATCH LOCATION
                 </h3>
-                <p style={{ margin: "4px 0 0 0", color: "#cbd5e1", fontSize: "13px" }}>
+                <p style={{ margin: "4px 0 0 0", color: "#71897a", fontSize: "13px" }}>
                   {selectedMap.address}
                 </p>
               </div>
