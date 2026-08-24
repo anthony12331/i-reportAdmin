@@ -73,7 +73,7 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
         if (responderId) {
           // Join the private room for this responder
           await privateClient.join(APP_ID, "capstone_sos_private", TEMP_TOKEN_PRIVATE, null);
-          await privateClient.publish(track); // Publish same muted track
+          // DO NOT publish track here to avoid multi-client publish error
         }
 
         if (isMounted) setJoined(true);
@@ -116,17 +116,23 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
 
   const handlePrivateTalkStart = async () => {
     if (localAudioTrack && !isTalking) {
-      await client.unpublish(localAudioTrack);
-      await localAudioTrack.setMuted(false);
-      setIsPrivateTalking(true);
+      try {
+        await client.unpublish(localAudioTrack);
+        await privateClient.publish(localAudioTrack);
+        await localAudioTrack.setMuted(false);
+        setIsPrivateTalking(true);
+      } catch (err) { console.error("PTT Start Error:", err); }
     }
   };
 
   const handlePrivateTalkEnd = async () => {
     if (localAudioTrack && isPrivateTalking) {
-      await localAudioTrack.setMuted(true);
-      await client.publish(localAudioTrack).catch(() => {});
-      setIsPrivateTalking(false);
+      try {
+        await localAudioTrack.setMuted(true);
+        await privateClient.unpublish(localAudioTrack);
+        await client.publish(localAudioTrack).catch(() => {});
+        setIsPrivateTalking(false);
+      } catch (err) { console.error("PTT End Error:", err); }
     }
   };
 
