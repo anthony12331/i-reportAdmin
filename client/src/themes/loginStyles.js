@@ -91,6 +91,7 @@ export const loginStyles = {
         caretColor: "#18864b",
         WebkitTapHighlightColor: "transparent",
       },
+      boxShadow: "0 2px 8px rgba(24, 95, 53, 0.08)",
       transition: "border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease",
       "& fieldset": {
         borderColor: "#c8ddce",
@@ -104,6 +105,7 @@ export const loginStyles = {
       },
       "&.Mui-focused": {
         backgroundColor: "#ffffff",
+        boxShadow: "0 4px 12px rgba(24, 134, 75, 0.14)",
       },
     },
     "&:hover .MuiOutlinedInput-root": {
@@ -165,7 +167,7 @@ export const loginStyles = {
     marginTop: "8px",
     position: "relative",
     overflow: "hidden",
-    transition: "background-color 0.2s ease",
+    transition: "background-color 0.2s ease, transform 180ms ease",
   },
   buttonText: {
     position: "relative",

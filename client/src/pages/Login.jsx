@@ -9,6 +9,7 @@ import TextField from "@mui/material/TextField";
 
 function RadialButton({ children, disabled = false, type = "submit" }) {
   const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
   const [origin, setOrigin] = useState("50% 50%");
 
   const updateOrigin = (event) => {
@@ -21,7 +22,10 @@ function RadialButton({ children, disabled = false, type = "submit" }) {
   return (
     <button
       type={type}
-      style={loginStyles.button}
+      style={{
+        ...loginStyles.button,
+        transform: pressed ? "scale(0.95)" : hover ? "scale(1.05)" : "scale(1)",
+      }}
       disabled={disabled}
       onPointerEnter={(event) => {
         updateOrigin(event);
@@ -31,6 +35,9 @@ function RadialButton({ children, disabled = false, type = "submit" }) {
         updateOrigin(event);
         setHover(false);
       }}
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerCancel={() => setPressed(false)}
     >
       <span style={loginStyles.buttonText}>{children}</span>
       <span
@@ -50,6 +57,8 @@ function RadialButton({ children, disabled = false, type = "submit" }) {
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   
   // Forgot Password State
@@ -58,8 +67,6 @@ export default function Login() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loginButtonHover, setLoginButtonHover] = useState(false);
-  const [loginButtonOrigin, setLoginButtonOrigin] = useState("50% 50%");
   const [loginAlertMessage, setLoginAlertMessage] = useState("");
   const [loginAlertVisible, setLoginAlertVisible] = useState(false);
   const [loginAlertClosing, setLoginAlertClosing] = useState(false);
@@ -90,7 +97,12 @@ export default function Login() {
     unlockAlarmAudio();
 
     // 1. Client-Side Validation
-    if (!email.trim() || !password.trim()) {
+    const nextEmailError = email.trim() ? "" : "Please enter email.";
+    const nextPasswordError = password.trim() ? "" : "Please enter password.";
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+
+    if (nextEmailError || nextPasswordError) {
       showLoginAlert("Security Alert: Fields cannot be empty.");
       return;
     }
@@ -210,7 +222,12 @@ export default function Login() {
                 type="email"
                 label="Enter Email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (e.target.value.trim()) setEmailError("");
+                }}
+                error={Boolean(emailError)}
+                helperText={emailError}
                 variant="outlined"
                 fullWidth
                 sx={loginStyles.textField}
@@ -222,7 +239,12 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 label="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (e.target.value.trim()) setPasswordError("");
+                }}
+                error={Boolean(passwordError)}
+                helperText={passwordError}
                 variant="outlined"
                 fullWidth
                 sx={loginStyles.textField}
@@ -244,39 +266,9 @@ export default function Login() {
               />
             </div>
 
-            <button
-              type="submit"
-              style={loginStyles.button}
-              disabled={loading}
-              onPointerEnter={(event) => {
-                const bounds = event.currentTarget.getBoundingClientRect();
-                const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-                const y = ((event.clientY - bounds.top) / bounds.height) * 100;
-                setLoginButtonOrigin(`${x}% ${y}%`);
-                setLoginButtonHover(true);
-              }}
-              onPointerLeave={(event) => {
-                const bounds = event.currentTarget.getBoundingClientRect();
-                const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-                const y = ((event.clientY - bounds.top) / bounds.height) * 100;
-                setLoginButtonOrigin(`${x}% ${y}%`);
-                setLoginButtonHover(false);
-              }}
-            >
-              <span style={loginStyles.buttonText}>
-                {loading ? "AUTHENTICATING..." : "LOGIN"}
-              </span>
-              <span
-                aria-hidden="true"
-                style={{
-                  ...loginStyles.buttonReveal,
-                  clipPath: `circle(${loginButtonHover ? "150%" : "0%"} at ${loginButtonOrigin})`,
-                  WebkitClipPath: `circle(${loginButtonHover ? "150%" : "0%"} at ${loginButtonOrigin})`,
-                }}
-              >
-                {loading ? "AUTHENTICATING..." : "LOGIN"}
-              </span>
-            </button>
+            <RadialButton disabled={loading}>
+              {loading ? "AUTHENTICATING..." : "LOGIN"}
+            </RadialButton>
           </form>
         )}
 
