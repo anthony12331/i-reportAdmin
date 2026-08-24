@@ -226,7 +226,7 @@ export default function Login() {
                 variant="outlined"
                 fullWidth
                 sx={loginStyles.textField}
-                InputProps={{
+                slotProps={{ input: {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
@@ -240,7 +240,7 @@ export default function Login() {
                       </IconButton>
                     </InputAdornment>
                   ),
-                }}
+                } }}
               />
             </div>
 
@@ -321,7 +321,7 @@ export default function Login() {
                   variant="outlined"
                   fullWidth
                   sx={loginStyles.textField}
-                  InputProps={{
+                  slotProps={{ input: {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
@@ -335,7 +335,7 @@ export default function Login() {
                         </IconButton>
                       </InputAdornment>
                     ),
-                  }}
+                  } }}
                 />
             </div>
             <RadialButton disabled={loading}>
