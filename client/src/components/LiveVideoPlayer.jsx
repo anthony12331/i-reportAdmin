@@ -3,7 +3,7 @@ import AgoraRTC from "agora-rtc-sdk-ng";
 import { Mic, MicOff, Camera, Video, Square, Lock } from "lucide-react";
 
 const APP_ID = "4bf767c547a04dfeb581065f5fa11e63"; // Your specific App ID
-const TEMP_TOKEN = "007eJxTYJhc0Pp0vXC+lXN7SJbsGrOtCnXTv8486BLANPf2JMGLqQoKDCZJaeZm5smmJuaJBiYpaalJphaGBmamaaZpiYaGqWbGmtVdWZp1YbU+M9sZGBkYGVgYGBlAgAlMMoNJFjDJw5CcWFBckp+XGl+cX8zAAAD5eCFP";
+const TEMP_TOKEN = "007eJxTYOCbcXw3+63kh058Z7Ytj5KaWMhwcY/ygT+8kbFCCW9dJ15SYDBJSjM3M082NTFPNDBJSUtNMrUwNDAzTTNNSzQ0TDUz5nzendUplZvjNuUXCyMDIwMLAyMDCDCBSWYwycIAAwDk7x3A";
 const HARDCODED_CHANNEL = "capstone_sos";
 
 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
