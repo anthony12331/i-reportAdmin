@@ -36,7 +36,9 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
         await track.setMuted(true);
         if (isMounted) setLocalAudioTrack(track);
 
-        // 1. Listen for when the User (Broadcaster) publishes their camera or mic
+        client.removeAllListeners();
+          privateClient.removeAllListeners();
+          // 1. Listen for when the User (Broadcaster) publishes their camera or mic
         client.on("user-published", async (user, mediaType) => {
           // Subscribe to the incoming stream
           await client.subscribe(user, mediaType);
@@ -95,8 +97,14 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
-      client.leave();
-      privateClient.leave();
+      if (client) {
+        client.removeAllListeners();
+        client.leave();
+      }
+      if (privateClient) {
+        privateClient.removeAllListeners();
+        privateClient.leave();
+      }
     };
   }, [channelName, responderId]);
 
