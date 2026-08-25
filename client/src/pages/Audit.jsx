@@ -6,23 +6,56 @@ import {
   Target,
   Activity,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Loader,
+  X,
+  ShieldAlert,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
-import { auditStyles, getActionStyle } from "../themes/auditStyles";
+
+const LOGS_PER_PAGE = 12;
+
+const getInitials = (name) => {
+  if (!name) return "SY";
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
+const getAvatarStyle = (name) => {
+  const palettes = [
+    { bg: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", color: "#ffffff" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < (name || "").length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % palettes.length;
+  return palettes[index];
+};
 
 export default function Audit() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedLogId, setExpandedLogId] = useState(null);
+  const [page, setPage] = useState(1);
 
   // 1. Fetch historical logs securely from PocketBase
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const recordList = await pb.collection("audit_logs").getList(1, 100, {
+      const recordList = await pb.collection("audit_logs").getList(1, 200, {
         sort: "-created",
         requestKey: null,
       });
@@ -68,177 +101,288 @@ export default function Audit() {
     const searchLower = searchTerm.toLowerCase();
     return (
       (log.admin_name || log.actor || "").toLowerCase().includes(searchLower) ||
-      log.target?.toLowerCase().includes(searchLower) ||
-      log.action?.toLowerCase().includes(searchLower) ||
-      log.details?.toLowerCase().includes(searchLower)
+      (log.target || "").toLowerCase().includes(searchLower) ||
+      (log.action || "").toLowerCase().includes(searchLower) ||
+      (log.details || "").toLowerCase().includes(searchLower)
     );
   });
 
+  const totalPages = Math.ceil(filteredLogs.length / LOGS_PER_PAGE) || 1;
+  const paginatedLogs = filteredLogs.slice((page - 1) * LOGS_PER_PAGE, page * LOGS_PER_PAGE);
+
   return (
-    <div style={auditStyles.shell}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
-      <main style={auditStyles.main}>
+      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* Header Section */}
-        <header style={auditStyles.header}>
-          <div>
-            <div style={auditStyles.titleWrapper}>
-              <div style={auditStyles.titleDot} />
-              <h1 style={auditStyles.titleText}>CENTRAL AUDIT TRAIL</h1>
-            </div>
-            <p style={auditStyles.subtitle}>
-              Live administrative action stream & security event telemetry
-            </p>
+        <header style={{ marginBottom: "28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+              Central Audit Trail
+            </h1>
           </div>
+          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+            Review recorded administrative actions, system events, and security access logs.
+          </p>
         </header>
 
-        {/* Search Bar */}
-        <div style={auditStyles.searchBar}>
-          <Search size={18} color="#1d7a4d" style={{ marginLeft: "8px" }} />
-          <input
-            type="text"
-            placeholder="Search audit trail by admin name, target ID, action type, or details..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={auditStyles.searchInput}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              style={auditStyles.clearBtn}
-            >
-              CLEAR
-            </button>
-          )}
-        </div>
+        {/* Premium Table Card */}
+        <div className="premium-table-card">
+          {/* Top Toolbar */}
+          <div className="table-toolbar">
+            <div className="search-box-premium">
+              <Search size={18} color="#94a3b8" />
+              <input
+                type="text"
+                placeholder="Search by administrator name, target ID, or action..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setPage(1);
+                  }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
 
-        {/* Audit Table Card */}
-        <div style={auditStyles.tableCard}>
-          {loading && logs.length === 0 ? (
-            <div style={auditStyles.centerBox}>
-              <Loader className="animate-spin" size={28} color="#1d7a4d" />
-              <span style={auditStyles.centerText}>
-                Accessing secure audit logs from central database...
+            <div className="table-toolbar-actions">
+              <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>
+                Total Records: <strong>{filteredLogs.length}</strong>
               </span>
             </div>
-          ) : logs.length === 0 ? (
-            <div style={auditStyles.emptyStateText}>
-              No security audit logs captured in the database yet.
+          </div>
+
+          {/* Table Content */}
+          {loading && logs.length === 0 ? (
+            <div style={{ padding: "50px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: "#15803d" }}>
+              <Loader className="animate-spin" size={26} />
+              <span>Loading audit logs from database...</span>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div style={auditStyles.emptyStateText}>
-              No database log entries match your search criteria.
+            <div style={{ padding: "60px 20px", textAlign: "center", color: "#64748b" }}>
+              <ShieldAlert size={42} color="#94a3b8" style={{ marginBottom: "12px" }} />
+              <h3 style={{ margin: "0 0 6px 0", color: "#1e293b", fontSize: "16px" }}>No Audit Logs Found</h3>
+              <p style={{ margin: 0, fontSize: "13.5px" }}>
+                {searchTerm ? "No log entries match your search query." : "No administrative audit events recorded yet."}
+              </p>
             </div>
           ) : (
-            <table style={auditStyles.table}>
-              <thead>
-                <tr style={auditStyles.theadRow}>
-                  <th style={auditStyles.th}>
-                    <div style={auditStyles.thFlex}>
-                      <Clock size={14} color="#1d7a4d" /> TIMESTAMP
-                    </div>
-                  </th>
-                  <th style={auditStyles.th}>
-                    <div style={auditStyles.thFlex}>
-                      <User size={14} color="#1d7a4d" /> ADMIN ACTOR
-                    </div>
-                  </th>
-                  <th style={auditStyles.th}>
-                    <div style={auditStyles.thFlex}>
-                      <Activity size={14} color="#1d7a4d" /> ACTION
-                    </div>
-                  </th>
-                  <th style={auditStyles.th}>
-                    <div style={auditStyles.thFlex}>
-                      <Target size={14} color="#1d7a4d" /> TARGET REF ID
-                    </div>
-                  </th>
-                  <th style={auditStyles.th}>EVENT DETAILS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLogs.map((log) => {
-                  const actionStyle = getActionStyle(log.action);
-
-                  return (
-                    <React.Fragment key={log.id}>
-                    <tr style={auditStyles.tr}>
-                      {/* Timestamp */}
-                      <td style={auditStyles.tdTimestamp}>
-                        <span style={auditStyles.dateText}>
-                          {new Date(log.created).toLocaleDateString([], {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                        <div style={auditStyles.timeText}>
-                          {new Date(log.created).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
-                          })}
-                        </div>
-                      </td>
-
-                      {/* Admin Actor */}
-                      <td style={auditStyles.tdAdmin}>
-                        {log.admin_name || log.actor || "System Administrator"}
-                      </td>
-
-                      {/* Action Badge */}
-                      <td style={auditStyles.tdAction}>
-                        <span style={auditStyles.actionBadge(actionStyle)}>
-                          {log.action || "LOG_EVENT"}
-                        </span>
-                      </td>
-
-                      {/* Target Ref ID */}
-                      <td style={auditStyles.tdTarget}>
-                        <span style={auditStyles.targetBadge}>
-                          {log.target || "N/A"}
-                        </span>
-                      </td>
-
-                      {/* Details */}
-                      <td style={auditStyles.tdDetails}>
-                        <div>{log.details || "No additional context recorded."}</div>
-                        <button
-                          type="button"
-                          className="verifiedUsersButton"
-                          onClick={() => setExpandedLogId((current) => current === log.id ? null : log.id)}
-                          style={auditStyles.detailsToggle}
-                        >
-                          <ChevronDown size={14} style={{ transform: expandedLogId === log.id ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }} />
-                          {expandedLogId === log.id ? "Hide full event" : "View full event"}
-                        </button>
-                      </td>
+            <>
+              <div className="premium-table-wrapper" style={{ overflowX: "auto" }}>
+                <table className="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Admin Actor</th>
+                      <th>Action</th>
+                      <th>Target Ref</th>
+                      <th>Event Details</th>
                     </tr>
-                    {expandedLogId === log.id && (
-                      <tr style={auditStyles.expandedRow}>
-                        <td colSpan="5" style={auditStyles.expandedCell}>
-                          <div style={auditStyles.expandedGrid}>
-                            <div><span style={auditStyles.expandedLabel}>Log Record ID</span><strong style={auditStyles.expandedValue}>{log.id || "N/A"}</strong></div>
-                            <div><span style={auditStyles.expandedLabel}>Admin Name</span><strong style={auditStyles.expandedValue}>{log.admin_name || "N/A"}</strong></div>
-                            <div><span style={auditStyles.expandedLabel}>Actor</span><strong style={auditStyles.expandedValue}>{log.actor || "N/A"}</strong></div>
-                            <div><span style={auditStyles.expandedLabel}>Created</span><strong style={auditStyles.expandedValue}>{log.created ? new Date(log.created).toLocaleString() : "N/A"}</strong></div>
-                            <div><span style={auditStyles.expandedLabel}>Updated</span><strong style={auditStyles.expandedValue}>{log.updated ? new Date(log.updated).toLocaleString() : "N/A"}</strong></div>
-                            <div><span style={auditStyles.expandedLabel}>Target</span><strong style={auditStyles.expandedValue}>{log.target || "N/A"}</strong></div>
-                            <div style={{ gridColumn: "1 / -1" }}><span style={auditStyles.expandedLabel}>Complete Details</span><strong style={{ ...auditStyles.expandedValue, whiteSpace: "pre-wrap" }}>{log.details || "No additional context recorded."}</strong></div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {paginatedLogs.map((log) => {
+                      const actorName = log.admin_name || log.actor || "System Administrator";
+                      const initials = getInitials(actorName);
+                      const avatarStyle = getAvatarStyle(actorName);
+                      const isExpanded = expandedLogId === log.id;
+
+                      return (
+                        <React.Fragment key={log.id}>
+                          <tr>
+                            <td>
+                              <div>
+                                <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "13px", display: "block" }}>
+                                  {new Date(log.created).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "2-digit",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                                <span style={{ fontSize: "12px", color: "#64748b" }}>
+                                  {new Date(log.created).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td>
+                              <div className="premium-user-cell">
+                                <div className="premium-avatar" style={{ background: avatarStyle.bg, color: avatarStyle.color }}>
+                                  {initials}
+                                </div>
+                                <div className="premium-user-info">
+                                  <span className="premium-user-name">{actorName}</span>
+                                  <span className="premium-user-sub">Authorized Actor</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  padding: "4px 10px",
+                                  borderRadius: "12px",
+                                  fontSize: "12px",
+                                  fontWeight: "700",
+                                  backgroundColor: "#f0fdf4",
+                                  color: "#15803d",
+                                  border: "1px solid #bbf7d0",
+                                }}
+                              >
+                                {log.action || "LOG_EVENT"}
+                              </span>
+                            </td>
+
+                            <td>
+                              <span
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: "12px",
+                                  color: "#475569",
+                                  backgroundColor: "#f1f5f9",
+                                  padding: "3px 8px",
+                                  borderRadius: "6px",
+                                }}
+                              >
+                                {log.target || "N/A"}
+                              </span>
+                            </td>
+
+                            <td>
+                              <div style={{ maxWidth: "340px", fontSize: "13px", color: "#334155" }}>
+                                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: isExpanded ? "normal" : "nowrap" }}>
+                                  {log.details || "No additional context recorded."}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    padding: "4px 0 0 0",
+                                    color: "#15803d",
+                                    fontSize: "12px",
+                                    fontWeight: "700",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  <ChevronDown size={13} style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.18s" }} />
+                                  {isExpanded ? "Hide Details" : "View Details"}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {isExpanded && (
+                            <tr style={{ backgroundColor: "#f8fafc" }}>
+                              <td colSpan="5" style={{ padding: "16px 20px" }}>
+                                <div
+                                  style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                                    gap: "12px",
+                                    backgroundColor: "#ffffff",
+                                    border: "1px solid #e2e8f0",
+                                    borderRadius: "10px",
+                                    padding: "14px",
+                                  }}
+                                >
+                                  <div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Log ID</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{log.id}</div>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Admin</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{log.admin_name || log.actor || "System"}</div>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Timestamp</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{new Date(log.created).toLocaleString()}</div>
+                                  </div>
+                                  <div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Target Reference</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{log.target || "N/A"}</div>
+                                  </div>
+                                  <div style={{ gridColumn: "1 / -1" }}>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Full Event Description</span>
+                                    <div style={{ fontSize: "13px", color: "#1e293b", marginTop: "4px", whiteSpace: "pre-wrap" }}>{log.details || "No additional context."}</div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Footer / Pagination */}
+              <div className="premium-table-footer">
+                <div className="premium-pagination-info">
+                  Showing <strong>{Math.min((page - 1) * LOGS_PER_PAGE + 1, filteredLogs.length)}</strong>–
+                  <strong>{Math.min(page * LOGS_PER_PAGE, filteredLogs.length)}</strong> of <strong>{filteredLogs.length}</strong> Logs
+                </div>
+
+                <div className="premium-pagination-controls">
+                  <button
+                    type="button"
+                    className="premium-page-nav-btn"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).slice(
+                    Math.max(0, page - 3),
+                    Math.min(totalPages, page + 2)
+                  ).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      className={`premium-page-num-btn ${page === pageNum ? "active" : ""}`}
+                      onClick={() => setPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="premium-page-nav-btn"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </main>
     </div>
   );
 }
-
-

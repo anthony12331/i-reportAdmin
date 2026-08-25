@@ -5,17 +5,13 @@ import { getReadableAddress } from "../utils/utils";
 import { useMessageBox } from "../components/MessageBox";
 import {
   getPriorityLabel,
-  getResponderDepartmentForIncident,
   sortIncidentReportsByPriority,
 } from "../utils/incidentPriority";
 import { addAuditLog } from "../utils/auditLog";
 import { formatWaitTime } from "../utils/timeUtils";
 import { isIncidentReviewed, markIncidentReviewed } from "../utils/incidentReview";
-import {
-  getResponderOptionLabel,
-  getRespondersForDepartment,
-} from "../utils/responderOptions";
-import { pendingIncidentsStyles as tStyle } from "../themes/pendingIncidentsStyles";
+import { getResponderOptionLabel } from "../utils/responderOptions";
+import CustomDropdown from "../components/CustomDropdown";
 import {
   MapPin,
   User,
@@ -23,8 +19,6 @@ import {
   Activity,
   X,
   Phone,
-  Map as MapIcon,
-  PlayCircle,
   Clock,
   CheckCircle2,
   Send,
@@ -37,48 +31,49 @@ import {
   Volume2,
   VolumeX,
   Loader,
+  Search,
+  RotateCcw,
+  Shield,
+  Maximize2,
+  ExternalLink,
+  ShieldAlert,
+  Radio,
+  FileText,
+  AlertTriangle,
+  Users,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 
-function RadialActionButton({ children, disabled, onClick, style }) {
-  const [hover, setHover] = useState(false);
-  const [origin, setOrigin] = useState("50% 50%");
-
-  const updateOrigin = (event) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-    const y = ((event.clientY - bounds.top) / bounds.height) * 100;
-    setOrigin(`${x}% ${y}%`);
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="pending-report-action"
-      style={{ ...style, position: "relative", overflow: "hidden" }}
-      onPointerEnter={(event) => {
-        updateOrigin(event);
-        setHover(true);
-      }}
-      onPointerLeave={(event) => {
-        updateOrigin(event);
-        setHover(false);
-      }}
-    >
-      <span style={tStyle.actionButtonContent}>{children}</span>
-      <span
-        aria-hidden="true"
-        style={{
-          ...tStyle.actionButtonReveal,
-          clipPath: `circle(${hover ? "150%" : "0%"} at ${origin})`,
-          WebkitClipPath: `circle(${hover ? "150%" : "0%"} at ${origin})`,
-        }}
-      >
-        {children}
+const renderDepartmentBadge = (dept) => {
+  const d = (dept || "").toLowerCase();
+  if (d.includes("fire")) {
+    return (
+      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+        <Flame size={10} /> BFP
       </span>
-    </button>
+    );
+  }
+  if (d.includes("police")) {
+    return (
+      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#6d28d9", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+        <Shield size={10} /> PNP
+      </span>
+    );
+  }
+  if (d.includes("ambulance") || d.includes("ems") || d.includes("medical")) {
+    return (
+      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#0369a1", backgroundColor: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+        <Ambulance size={10} /> EMS
+      </span>
+    );
+  }
+  return (
+    <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <Activity size={10} /> MDRRMO
+    </span>
   );
-}
+};
 
 export default function PendingIncidents() {
   const [incidents, setIncidents] = useState([]);
@@ -90,7 +85,6 @@ export default function PendingIncidents() {
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [processingId, setProcessingId] = useState(null);
   const [availableResponders, setAvailableResponders] = useState([]);
-  const [, setRespondersLoading] = useState(false);
   const [selectedResponderIds, setSelectedResponderIds] = useState({});
   const [departmentFilters, setDepartmentFilters] = useState({});
   const [soundMuted, setSoundMuted] = useState(false);
@@ -99,10 +93,9 @@ export default function PendingIncidents() {
     type: "",
     barangay: "",
     priority: "",
-    time: "",
   });
   const [, setClockTick] = useState(0);
-  const { confirm } = useMessageBox();
+  const { confirm, alert: showAlert } = useMessageBox();
 
   const fetchedAddressIds = useRef(new Set());
 
@@ -111,22 +104,13 @@ export default function PendingIncidents() {
     if (soundMuted) return;
     try {
       const audio = new Audio("/notification_sound.mp3");
-      audio.play().catch(() => {}).catch((e) => console.warn("Autoplay interaction block or missing file:", e));
+      audio.play().catch(() => {}).catch((e) => console.warn("Autoplay block or missing file:", e));
     } catch (e) {
-      console.warn("Audio alert failed to initialize:", e);
+      console.warn("Audio alert failed:", e);
     }
   }, [soundMuted]);
 
   const isOpenIncident = useCallback((record) => ["new", "pending"].includes(record?.status), []);
-
-  const generateDuplicateMap = useCallback((records) => {
-    const result = {};
-    records.forEach((record) => {
-      const count = record.reporters_count || 0;
-      if (count >= 1) result[record.id] = { count, isVerified: true };
-    });
-    return result;
-  }, []);
 
   const resolveAddresses = useCallback(async (records) => {
     const pendingAddresses = records.filter(
@@ -150,40 +134,37 @@ export default function PendingIncidents() {
     setAddresses((prev) => ({ ...prev, ...Object.fromEntries(resolved) }));
   }, []);
 
+  const fetchAvailableResponders = useCallback(async () => {
+    try {
+      const records = await pb.collection("responder_accounts").getFullList({
+        filter: "is_available = true",
+        requestKey: null,
+      });
+      setAvailableResponders(records);
+    } catch (error) {
+      if (!error.isAbort) console.error("Error fetching available responders:", error);
+    }
+  }, []);
+
   const fetchIncidents = useCallback(async () => {
     setLoading(true);
     try {
-      const pendingRecords = await pb.collection("incident_reports").getFullList({
-        filter: 'status = "pending" || status = "new"',
+      const records = await pb.collection("incident_reports").getFullList({
+        filter: 'status = "new" || status = "pending"',
         sort: "-created",
         expand: "users",
         requestKey: null,
       });
 
-      const prioritizedRecords = sortIncidentReportsByPriority(pendingRecords);
-      setIncidents(prioritizedRecords);
-
-      await resolveAddresses(prioritizedRecords);
+      const sorted = sortIncidentReportsByPriority(records);
+      setIncidents(sorted);
+      resolveAddresses(sorted);
     } catch (error) {
-      if (!error.isAbort) console.error("Fetch error:", error);
+      if (!error.isAbort) console.error("Failed to fetch pending incidents:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [resolveAddresses]);
-
-  const fetchAvailableResponders = useCallback(async () => {
-    setRespondersLoading(true);
-    try {
-      const responders = await pb.collection("responder_accounts").getFullList({
-        filter: "is_available = true",
-        sort: "department, first_name, last_name",
-        requestKey: null,
-      });
-      setAvailableResponders(responders);
-    } catch (error) {
-      if (!error.isAbort) console.error("Responder fetch error:", error);
-    }
-    setRespondersLoading(false);
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -191,13 +172,13 @@ export default function PendingIncidents() {
 
     const loadAndSubscribe = async () => {
       await fetchIncidents();
+      if (!isMounted) return;
 
       unsubscribe = await pb.collection("incident_reports").subscribe(
         "*",
         (e) => {
           if (!isMounted) return;
 
-          // Play sound on real-time creation of an incident
           if (e.action === "create" && isOpenIncident(e.record)) {
             triggerEmergencyAlert();
           }
@@ -223,13 +204,12 @@ export default function PendingIncidents() {
     return () => {
       isMounted = false;
       clearInterval(timer);
-      if (typeof unsubscribe === 'function') unsubscribe().catch(() => {});
+      if (typeof unsubscribe === "function") unsubscribe().catch(() => {});
     };
   }, [fetchIncidents, isOpenIncident, resolveAddresses, triggerEmergencyAlert]);
 
   useEffect(() => {
-    const load = async () => { await fetchAvailableResponders(); };
-    load();
+    fetchAvailableResponders();
     let unsubscribe;
     const startResponderSubscription = async () => {
       unsubscribe = await pb.collection("responder_accounts").subscribe("*", () => {
@@ -238,22 +218,17 @@ export default function PendingIncidents() {
     };
     startResponderSubscription();
     return () => {
-      if (typeof unsubscribe === 'function') unsubscribe().catch(() => {});
+      if (typeof unsubscribe === "function") unsubscribe().catch(() => {});
     };
   }, [fetchAvailableResponders]);
 
   const filteredIncidents = incidents.filter((incident) => {
     const reporter = incident.expand?.users;
-    const barangay = reporter?.baranggay || "";
-    
-    const ageMinutes = Math.floor((new Date().getTime() - new Date(incident.created).getTime()) / 60000);
+    const barangay = reporter?.baranggay || reporter?.barangay || "";
 
     if (filters.type && incident.type?.toLowerCase() !== filters.type) return false;
     if (filters.barangay && !barangay.toLowerCase().includes(filters.barangay.toLowerCase())) return false;
     if (filters.priority && getPriorityLabel(incident) !== filters.priority) return false;
-    if (filters.time === "under15" && ageMinutes >= 15) return false;
-    if (filters.time === "15to60" && (ageMinutes < 15 || ageMinutes > 60)) return false;
-    if (filters.time === "over60" && ageMinutes <= 60) return false;
 
     return true;
   });
@@ -277,22 +252,22 @@ export default function PendingIncidents() {
 
       if (newStatus === "ongoing") {
         if (!responderIds || responderIds.length === 0) {
-          alert(`Assign at least one responder unit before dispatching.`);
+          showAlert("Please assign at least one standby responder unit before dispatching.", { title: "Responder Required" });
           setProcessingId(null);
           return;
         }
 
-        const selectedResponders = responderIds.map(id => availableResponders.find(r => r.id === id)).filter(Boolean);
+        const selectedResponders = responderIds.map((id) => availableResponders.find((r) => r.id === id)).filter(Boolean);
 
         for (const r of selectedResponders) {
           await pb.collection("responder_accounts").update(r.id, { is_available: false });
           reservedResponders.push(r);
-          
+
           const dispatch = await pb.collection("dispatches").create({
             incident_id: incident.id,
             responder_id: r.id,
             department: r.department,
-            status: 'pending' // Responder will accept this
+            status: "pending",
           });
           dispatchesCreated.push(dispatch);
         }
@@ -301,15 +276,18 @@ export default function PendingIncidents() {
       await pb.collection("incident_reports").update(incident.id, updateData);
       reviewIncident(incident.id);
       window.dispatchEvent(new Event("incident-handled"));
+
       addAuditLog({
         action: "Incident Dispatched",
         target: incident.id,
         details: `${incident.type} assigned to ${responderIds.length} responder(s)`,
         actor: pb.authStore.model?.username || "Admin",
       });
+
       setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
-      setSelectedIncident((current) => current?.id === incident.id ? null : current);
+      setSelectedIncident((current) => (current?.id === incident.id ? null : current));
       await fetchAvailableResponders();
+      await showAlert(`Successfully dispatched ${responderIds.length} responder unit(s) to ${incident.type || "incident"}.`, { title: "Units Dispatched" });
     } catch (error) {
       console.error("Failed to update status:", error);
       for (const r of reservedResponders) {
@@ -318,510 +296,1034 @@ export default function PendingIncidents() {
       for (const d of dispatchesCreated) {
         await pb.collection("dispatches").delete(d.id).catch(() => {});
       }
-      alert("Failed to update status.");
+      await showAlert("Failed to update status: " + (error.message || "Unknown error"), { title: "Dispatch Error" });
     }
     setProcessingId(null);
   };
 
-  const getCategoryIcon = (type = "") => {
+  const getCategoryMeta = (type = "") => {
     const t = type.toLowerCase();
-    if (t.includes("fire")) return <Flame size={18} color="#ef4444" />;
-    if (t.includes("medical")) return <Ambulance size={18} color="#f97316" />;
-    if (t.includes("traffic")) return <Car size={18} color="#18864b" />;
-    return <AlertOctagon size={18} color="#a855f7" />;
+    if (t.includes("fire")) return { icon: <Flame size={17} color="#ef4444" />, bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" };
+    if (t.includes("medical") || t.includes("health")) return { icon: <Ambulance size={17} color="#f97316" />, bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
+    if (t.includes("traffic") || t.includes("accident") || t.includes("car")) return { icon: <Car size={17} color="#15803d" />, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
+    if (t.includes("flood") || t.includes("landslide") || t.includes("rescue")) return { icon: <ShieldAlert size={17} color="#0284c7" />, bg: "#f0f9ff", color: "#0369a1", border: "#bae6fd" };
+    return { icon: <AlertOctagon size={17} color="#8b5cf6" />, bg: "#f5f3ff", color: "#6d28d9", border: "#ddd6fe" };
   };
 
-  const duplicateMap = generateDuplicateMap(incidents);
+  const getPriorityBadge = (incident) => {
+    const p = getPriorityLabel(incident);
+    if (p === "Critical") return { bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" };
+    if (p === "High") return { bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
+    if (p === "Elevated") return { bg: "#fefce8", color: "#854d0e", border: "#fef08a" };
+    return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
+  };
+
+  const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Reporters count calculation: starts with database reporters_count field + spatial clustering
+  const duplicateMap = {};
+  incidents.forEach((incident) => {
+    const baseReporters = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
+    let nearbyReports = 0;
+
+    if (incident.latitude != null && incident.longitude != null) {
+      incidents.forEach((other) => {
+        if (other.id === incident.id) return;
+        if (other.latitude != null && other.longitude != null) {
+          const distKm = getDistanceKm(incident.latitude, incident.longitude, other.latitude, other.longitude);
+          if (distKm <= 0.35) {
+            const otherCount = Number(other.reporters_count) > 0 ? Number(other.reporters_count) : 1;
+            nearbyReports += otherCount;
+          }
+        }
+      });
+    }
+
+    duplicateMap[incident.id] = baseReporters + nearbyReports;
+  });
 
   return (
-    <div style={tStyle.shell}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
-      <main style={tStyle.main}>
+
+      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* HEADER */}
-        <header style={tStyle.header}>
+        <header style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <h1 style={tStyle.pageTitle}>Pending Emergency Feed</h1>
-              <span style={tStyle.badgeTag}>ACTIVE FEED: {filteredIncidents.length}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ef4444", display: "inline-block" }} />
+              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+                Pending Incident Reports
+              </h1>
             </div>
-            <p style={tStyle.subtitle}>Tactical incident queue & real-time dispatch control</p>
+            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+              Tactical incident queue, multi-resident report counters, evidence inspection, and rapid responder dispatch.
+            </p>
           </div>
 
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => setSoundMuted(!soundMuted)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 14px",
+                borderRadius: "10px",
+                border: soundMuted ? "1px solid #cbd5e1" : "1px solid #fed7aa",
+                backgroundColor: soundMuted ? "#ffffff" : "#fff7ed",
+                color: soundMuted ? "#64748b" : "#c2410c",
+                fontSize: "12.5px",
+                fontWeight: "700",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              title={soundMuted ? "Unmute emergency audio siren" : "Mute emergency audio siren"}
+            >
+              {soundMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+              <span>{soundMuted ? "Audio Muted" : "Audio Active"}</span>
+            </button>
 
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 14px",
+                borderRadius: "20px",
+                backgroundColor: filteredIncidents.length > 0 ? "#fef2f2" : "#f0fdf4",
+                border: filteredIncidents.length > 0 ? "1px solid #fecaca" : "1px solid #bbf7d0",
+                color: filteredIncidents.length > 0 ? "#b91c1c" : "#15803d",
+                fontSize: "13px",
+                fontWeight: "800",
+              }}
+            >
+              <Radio size={14} />
+              <span>{filteredIncidents.length} Pending Feed</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={fetchIncidents}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 14px",
+                borderRadius: "10px",
+                border: "1px solid #e2e8f0",
+                backgroundColor: "#ffffff",
+                color: "#475569",
+                fontSize: "12.5px",
+                fontWeight: "700",
+                cursor: "pointer",
+              }}
+            >
+              <RotateCcw size={13} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </header>
 
         {/* TACTICAL FILTER BAR */}
-        <div style={tStyle.filterBar}>
-          <div style={tStyle.filterLabel}>
-            <SlidersHorizontal size={14} color="#18864b" />
-            <span>FILTER QUEUE</span>
+        <div
+          className="premium-table-card"
+          style={{
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#15803d", fontWeight: "800", fontSize: "13px" }}>
+            <SlidersHorizontal size={16} />
+            <span>Filter Queue:</span>
           </div>
-          <select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} style={tStyle.filterSelect}>
-            <option value="">All Types</option>
-            {[...new Set(incidents.map((i) => i.type?.toLowerCase()).filter(Boolean))].map((type) => (
-              <option key={type} value={type}>{type.toUpperCase()}</option>
-            ))}
-          </select>
-          <input
-            value={filters.barangay}
-            onChange={(e) => setFilters({ ...filters, barangay: e.target.value })}
-            placeholder="Search Barangay..."
-            style={tStyle.filterInput}
+
+          <CustomDropdown
+            minWidth="165px"
+            value={filters.type}
+            onChange={(type) => setFilters({ ...filters, type })}
+            placeholder="All Incident Types"
+            options={[
+              { value: "", label: "All Incident Types" },
+              ...[...new Set(incidents.map((i) => i.type?.toLowerCase()).filter(Boolean))].map((type) => ({
+                value: type,
+                label: type.toUpperCase(),
+              })),
+            ]}
           />
-          <select value={filters.priority} onChange={(e) => setFilters({ ...filters, priority: e.target.value })} style={tStyle.filterSelect}>
-            <option value="">All Priorities</option>
-            <option value="Critical">Critical</option>
-            <option value="High">High</option>
-            <option value="Elevated">Elevated</option>
-            <option value="Normal">Normal</option>
-          </select>
+
+          <CustomDropdown
+            minWidth="150px"
+            value={filters.priority}
+            onChange={(priority) => setFilters({ ...filters, priority })}
+            placeholder="All Priorities"
+            options={[
+              { value: "", label: "All Priorities" },
+              { value: "Critical", label: "Critical Priority" },
+              { value: "High", label: "High Priority" },
+              { value: "Elevated", label: "Elevated Priority" },
+              { value: "Normal", label: "Normal Priority" },
+            ]}
+          />
+
+          <div className="search-box-premium" style={{ flex: 1, minWidth: "220px", margin: 0 }}>
+            <Search size={15} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Search by Barangay..."
+              value={filters.barangay}
+              onChange={(e) => setFilters({ ...filters, barangay: e.target.value })}
+              style={{ fontSize: "13px" }}
+            />
+            {filters.barangay && (
+              <button
+                type="button"
+                onClick={() => setFilters({ ...filters, barangay: "" })}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#94a3b8", display: "flex" }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {(filters.type || filters.priority || filters.barangay) && (
+            <button
+              type="button"
+              onClick={() => setFilters({ type: "", priority: "", barangay: "" })}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "8px",
+                border: "1px solid #e2e8f0",
+                backgroundColor: "#f8fafc",
+                color: "#64748b",
+                fontSize: "12.5px",
+                fontWeight: "700",
+                cursor: "pointer",
+              }}
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
 
         {/* INCIDENT CARDS GRID */}
-        <div style={tStyle.cardGrid}>
-          {loading && incidents.length === 0 ? (
-            <div style={{ gridColumn: "1 / -1", width: "100%", minHeight: "calc(100vh - 260px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#1d7a4d", fontSize: "16px", fontWeight: "800" }}>
-              <Loader className="animate-spin" size={42} />
-              <span>Loading pending incidents...</span>
+        {loading && incidents.length === 0 ? (
+          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#15803d" }}>
+            <Loader className="animate-spin" size={32} />
+            <span style={{ fontWeight: "700", fontSize: "15px" }}>Loading pending emergency incidents...</span>
+          </div>
+        ) : filteredIncidents.length === 0 ? (
+          <div
+            className="premium-table-card"
+            style={{
+              padding: "70px 24px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+            }}
+          >
+            <div
+              style={{
+                width: "72px",
+                height: "72px",
+                borderRadius: "24px",
+                backgroundColor: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#15803d",
+                marginBottom: "18px",
+                boxShadow: "0 10px 25px -5px rgba(21, 128, 61, 0.15)",
+              }}
+            >
+              <CheckCircle2 size={36} />
             </div>
-          ) : filteredIncidents.length === 0 ? (
-            <div style={tStyle.emptyReportsState}>
-              <CheckCircle2 size={28} />
-              <strong>No pending reports</strong>
-              <span>New emergency reports will appear here.</span>
-            </div>
-          ) : filteredIncidents.map((incident) => {
-            const reporter = incident.expand?.users;
-            const imgUrl = incident.incident_image ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}` : null;
-            const videoUrl = incident.incident_video ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_video}` : null;
-            const duplicateInfo = duplicateMap[incident.id];
-            const isNew = !isIncidentReviewed(incident.id);
-            const isFire = incident.type?.toLowerCase().includes("fire");
+            <h3 style={{ color: "#0f172a", fontSize: "20px", fontWeight: "800", margin: "0 0 8px 0" }}>
+              Emergency Queue All Clear!
+            </h3>
+            <p style={{ margin: 0, fontSize: "14.5px", color: "#64748b", maxWidth: "440px", lineHeight: "1.5" }}>
+              There are no pending emergency reports awaiting dispatch. New citizen submissions will stream here live with audio alerts.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: "22px" }}>
+            {filteredIncidents.map((incident) => {
+              const reporter = incident.expand?.users;
+              const imgUrl = incident.incident_image ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}` : null;
+              const videoUrl = incident.incident_video ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_video}` : null;
+              const isNew = !isIncidentReviewed(incident.id);
+              const cat = getCategoryMeta(incident.type);
+              const priority = getPriorityBadge(incident);
+              const selectedResponders = selectedResponderIds[incident.id] || [];
+              const sameLocationCount = duplicateMap[incident.id] || (Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1);
 
-            return (
-              <div
-                key={incident.id}
-                onClick={() => openIncidentDetails(incident)}
-                style={{
-                  ...tStyle.card,
-                  borderColor: isFire ? "#ef4444" : "#f97316",
-                  boxShadow: isFire ? "0 0 15px rgba(239, 68, 68, 0.2)" : "0 0 15px rgba(249, 115, 22, 0.15)",
-                }}
-              >
-                {/* CARD TOP BANNER */}
-                <div style={tStyle.cardTopBar}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    {getCategoryIcon(incident.type)}
-                    <span style={tStyle.incidentTitle}>{incident.type?.toUpperCase()}</span>
-                  </div>
-                  <div style={tStyle.timeText}>
-                    <Clock size={12} /> {formatWaitTime(incident.created)}
-                  </div>
-                </div>
-
-                <div style={tStyle.cardContent}>
-                  {/* META TAGS */}
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    {isNew && <span style={tStyle.newBadge}>NEW</span>}
-                    <span style={tStyle.priorityTag}>{getPriorityLabel(incident)} Priority</span>
-                    {duplicateInfo && <span style={tStyle.verifiedTag}>{duplicateInfo.count}+ REPORTERS</span>}
-                  </div>
-
-                  {/* REPORTER MINI CARD */}
-                  <div style={tStyle.reporterStrip}>
-                    <User size={16} color="#18864b" />
-                    <div>
-                      <span style={tStyle.reporterName}>{reporter?.first_name} {reporter?.last_name || "Citizen"}</span>
-                      <span style={tStyle.reporterSub}><Phone size={10} /> {reporter?.contact_number || "N/A"}</span>
-                    </div>
-                  </div>
-
-                  {/* MEDIA PREVIEWS */}
-                  <div style={tStyle.mediaRow}>
-                    <div style={tStyle.mediaTile} onClick={(e) => { e.stopPropagation(); if (imgUrl) setSelectedImage(imgUrl); }}>
-                      {imgUrl ? <img src={imgUrl} alt="Evidence" style={tStyle.tileImg} /> : <div style={tStyle.noMediaText}><ImageIcon size={16} /> NO PHOTO</div>}
-                    </div>
-                    <div style={tStyle.mediaTile} onClick={(e) => { e.stopPropagation(); if (videoUrl) setSelectedImage(videoUrl); }}>
-                      {videoUrl ? (
-                        <div style={{ position: "relative", width: "100%", height: "100%" }}>
-                          <video 
-                            src={videoUrl} 
-                            style={tStyle.tileImg} 
-                            muted 
-                            loop 
-                            onMouseEnter={(e) => {
-                              const video = e.currentTarget;
-                              video.play().catch(() => {}).catch(() => {});
-                            }} 
-                            onMouseLeave={(e) => {
-                              const video = e.currentTarget;
-                              video.pause();
-                              video.currentTime = 0;
-                            }} 
-                          />
-                          <PlayCircle size={24} color="white" style={tStyle.playOverlay} />
+              return (
+                <div
+                  key={incident.id}
+                  className="premium-table-card"
+                  style={{
+                    padding: "22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                    borderTop: `4px solid ${cat.color}`,
+                    position: "relative",
+                  }}
+                >
+                  {/* Card Header Bar */}
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "10px",
+                          backgroundColor: cat.bg,
+                          border: `1px solid ${cat.border}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {cat.icon}
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                            {incident.type || "EMERGENCY INCIDENT"}
+                          </h3>
+                          {isNew && (
+                            <span style={{ fontSize: "10px", fontWeight: "800", backgroundColor: "#fee2e2", color: "#dc2626", padding: "1px 6px", borderRadius: "6px" }}>
+                              NEW
+                            </span>
+                          )}
                         </div>
+                        <span style={{ fontSize: "12px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                          <Clock size={12} /> Waiting: {formatWaitTime(incident.created)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      {/* Reporters Count Badge */}
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          padding: "3px 8px",
+                          borderRadius: "10px",
+                          backgroundColor: sameLocationCount > 1 ? "#f0fdf4" : "#f1f5f9",
+                          color: sameLocationCount > 1 ? "#15803d" : "#475569",
+                          border: sameLocationCount > 1 ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        {sameLocationCount > 1 ? <ShieldCheck size={12} color="#15803d" /> : <Users size={12} />}
+                        {sameLocationCount > 1
+                          ? `+${sameLocationCount - 1} More Resident • Likely Reliable`
+                          : "1 Resident Reported"}
+                      </span>
+
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          padding: "3px 8px",
+                          borderRadius: "10px",
+                          backgroundColor: priority.bg,
+                          color: priority.color,
+                          border: `1px solid ${priority.border}`,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {getPriorityLabel(incident)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* High Reliability Multi-Resident Report Banner */}
+                  {sameLocationCount > 1 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        backgroundColor: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        color: "#15803d",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                      }}
+                    >
+                      <ShieldCheck size={16} color="#15803d" style={{ flexShrink: 0 }} />
+                      <span>
+                        <strong>Most Likely Reliable:</strong> {sameLocationCount - 1 === 1 ? "1 more resident has" : `${sameLocationCount - 1} more residents have`} reported this same incident ({sameLocationCount} total reports).
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Incident Location & Address Strip */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      fontSize: "12.5px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                      <MapPin size={15} color="#15803d" style={{ flexShrink: 0 }} />
+                      <span style={{ color: "#334155", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {addresses[incident.id] || "Acquiring GPS Telemetry..."}
+                      </span>
+                    </div>
+
+                    {incident.latitude && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMap({
+                            lat: incident.latitude,
+                            lng: incident.longitude,
+                            address: addresses[incident.id] || `Incident Coordinates (${incident.latitude.toFixed(5)}, ${incident.longitude.toFixed(5)})`,
+                          });
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#15803d",
+                          fontWeight: "700",
+                          fontSize: "11.5px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <ExternalLink size={12} /> Map
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Embedded Interactive Mini Map Preview (Satellite Mode) */}
+                  {incident.latitude != null && incident.longitude != null && (
+                    <div
+                      onClick={() =>
+                        setSelectedMap({
+                          lat: incident.latitude,
+                          lng: incident.longitude,
+                          address: addresses[incident.id] || `Incident Location (${incident.latitude.toFixed(5)}, ${incident.longitude.toFixed(5)})`,
+                        })
+                      }
+                      style={{
+                        height: "140px",
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                        position: "relative",
+                        border: "1px solid #e2e8f0",
+                        cursor: "pointer",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                        backgroundColor: "#f1f5f9",
+                      }}
+                    >
+                      <iframe
+                        title={`Map Preview for Incident ${incident.id}`}
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        scrolling="no"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=16&t=k&output=embed`}
+                        style={{ border: 0, pointerEvents: "none", width: "100%", height: "100%" }}
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "8px",
+                          right: "8px",
+                          backgroundColor: "rgba(15, 23, 42, 0.75)",
+                          color: "#ffffff",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          backdropFilter: "blur(4px)",
+                        }}
+                      >
+                        <Maximize2 size={12} /> Enlarge Map
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Citizen Reporter Card */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "12px 14px",
+                      borderRadius: "12px",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "10px",
+                        backgroundColor: "#f0fdf4",
+                        color: "#15803d",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: "800",
+                        fontSize: "13px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <User size={18} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <strong style={{ display: "block", fontSize: "13.5px", color: "#0f172a" }}>
+                        {reporter?.first_name || "Citizen"} {reporter?.last_name || "Reporter"}
+                      </strong>
+                      <span style={{ fontSize: "11.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Phone size={11} /> {reporter?.contact_number || "No contact"} • Brgy. {reporter?.baranggay || reporter?.barangay || "Lagonglong"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openIncidentDetails(incident)}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        border: "1px solid #e2e8f0",
+                        backgroundColor: "#f8fafc",
+                        color: "#475569",
+                        fontSize: "11.5px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Inspect
+                    </button>
+                  </div>
+
+                  {/* Media Evidence Previews */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div
+                      onClick={() => imgUrl && setSelectedImage(imgUrl)}
+                      style={{
+                        height: "120px",
+                        borderRadius: "10px",
+                        backgroundColor: "#0f172a",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: imgUrl ? "zoom-in" : "default",
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
+                    >
+                      {imgUrl ? (
+                        <>
+                          <img src={imgUrl} alt="Evidence" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <div style={{ position: "absolute", bottom: "6px", right: "6px", backgroundColor: "rgba(0,0,0,0.65)", padding: "2px 6px", borderRadius: "4px", color: "#fff", fontSize: "10px", display: "flex", alignItems: "center", gap: "3px" }}>
+                            <Maximize2 size={10} /> Photo
+                          </div>
+                        </>
                       ) : (
-                        <div style={tStyle.noMediaText}><Activity size={16} /> NO VIDEO</div>
+                        <span style={{ color: "#64748b", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <ImageIcon size={14} /> No photo
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      onClick={() => videoUrl && setSelectedImage(videoUrl)}
+                      style={{
+                        height: "120px",
+                        borderRadius: "10px",
+                        backgroundColor: "#0f172a",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: videoUrl ? "zoom-in" : "default",
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
+                    >
+                      {videoUrl ? (
+                        <>
+                          <video src={videoUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <div style={{ position: "absolute", bottom: "6px", right: "6px", backgroundColor: "rgba(0,0,0,0.65)", padding: "2px 6px", borderRadius: "4px", color: "#fff", fontSize: "10px", display: "flex", alignItems: "center", gap: "3px" }}>
+                            <Activity size={10} /> Video
+                          </div>
+                        </>
+                      ) : (
+                        <span style={{ color: "#64748b", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <Activity size={14} /> No video
+                        </span>
                       )}
                     </div>
                   </div>
 
-                  {/* LOCATION & MINI MAP */}
-                  <div style={tStyle.locationBox}>
-                    <p style={tStyle.addressText}>
-                      <MapPin size={14} color="#18864b" /> {addresses[incident.id] || "GPS Telemetry Locating..."}
-                    </p>
-                    {incident.latitude && (
-                      <div
-                        style={tStyle.miniMapContainer}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMap({ lat: incident.latitude, lng: incident.longitude, address: addresses[incident.id] });
-                        }}
-                      >
-                        <iframe
-                          title="Map Preview"
-                          width="100%"
-                          height="100%"
-                          frameBorder="0"
-                          loading="lazy" referrerpolicy="no-referrer-when-downgrade" src={`https://maps.google.com/maps?q=${incident.latitude},${incident.longitude}&z=15&output=embed`}
-                          style={{ pointerEvents: "none" }}
-                        />
-                        <span style={tStyle.mapHoverTag}>ENLARGE MAP</span>
-                      </div>
-                    )}
-                  </div>
+                  {/* Responder Assignment Section */}
+                  <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                      <label style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                        Assign Standby Units ({selectedResponders.length})
+                      </label>
 
-                  {/* RESPONDER DISPATCH MULTI-SELECTOR */}
-                  <div style={{ ...tStyle.dispatchBox, flexDirection: "column", alignItems: "stretch", gap: "8px" }}>
-                    <div style={tStyle.dispatchLabel}>
-                      <span>ASSIGN RESPONDER(S)</span>
+                      <CustomDropdown
+                        size="sm"
+                        minWidth="135px"
+                        value={departmentFilters[incident.id] || ""}
+                        onChange={(val) => setDepartmentFilters((prev) => ({ ...prev, [incident.id]: val }))}
+                        options={[
+                          { value: "", label: "All Departments" },
+                          { value: "police", label: "Police" },
+                          { value: "ambulance", label: "Ambulance" },
+                          { value: "MDRRMO", label: "MDRRMO" },
+                          { value: "Fire", label: "BFP (Fire)" },
+                        ]}
+                      />
                     </div>
 
-                    {/* DEPARTMENT FILTER DROPDOWN */}
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <select 
-                        value={departmentFilters[incident.id] || ""} 
-                        onChange={(e) => setDepartmentFilters(prev => ({ ...prev, [incident.id]: e.target.value }))}
-                        style={tStyle.dispatchSelect}
-                      >
-                        <option value="">All Departments</option>
-                        <option value="police">Police</option>
-                        <option value="ambulance">Ambulance</option>
-                        <option value="MDRRMO">MDRRMO</option>
-                        <option value="Fire">BFP (Fire)</option>
-                      </select>
-                    </div>
-
-                    <div style={tStyle.responderList} onClick={(e) => e.stopPropagation()}>
+                    {/* Responder List Checkboxes */}
+                    <div style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: "#f8fafc", padding: "6px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
                       {availableResponders.length === 0 ? (
-                        <div style={tStyle.responderEmpty}>No Standby Responders</div>
+                        <span style={{ fontSize: "11.5px", color: "#94a3b8", textAlign: "center", padding: "8px" }}>
+                          No Standby Responders Online
+                        </span>
                       ) : (() => {
-                        const filtered = availableResponders.filter(r => !departmentFilters[incident.id] || r.department === departmentFilters[incident.id]);
+                        const filtered = availableResponders.filter(
+                          (r) => !departmentFilters[incident.id] || r.department === departmentFilters[incident.id]
+                        );
                         if (filtered.length === 0) {
-                          return <div style={tStyle.responderEmpty}>No Standby Responders for this department</div>;
+                          return <span style={{ fontSize: "11.5px", color: "#94a3b8", textAlign: "center", padding: "8px" }}>No responders in this department</span>;
                         }
                         return filtered.map((r) => {
-                          const isSelected = (selectedResponderIds[incident.id] || []).includes(r.id);
+                          const isSelected = selectedResponders.includes(r.id);
                           return (
-                            <label key={r.id} style={{ ...tStyle.responderOption, ...(isSelected ? tStyle.responderOptionSelected : {}) }}>
-                              <input 
-                                type="checkbox" 
-                                checked={isSelected}
-                                onChange={() => {
-                                  setSelectedResponderIds((prev) => {
-                                    const current = prev[incident.id] || [];
-                                    if (current.includes(r.id)) {
-                                      return { ...prev, [incident.id]: current.filter(id => id !== r.id) };
-                                    } else {
-                                      return { ...prev, [incident.id]: [...current, r.id] };
-                                    }
-                                  });
-                                }}
-                                style={{ cursor: "pointer" }}
-                              />
-                              <span style={{ ...tStyle.responderName, ...(isSelected ? tStyle.responderNameSelected : {}) }}>
-                                {getResponderOptionLabel(r)} ({r.department})
-                              </span>
-                            </label>
+                            <div
+                              key={r.id}
+                              onClick={() => {
+                                setSelectedResponderIds((prev) => {
+                                  const current = prev[incident.id] || [];
+                                  return {
+                                    ...prev,
+                                    [incident.id]: current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id],
+                                  };
+                                });
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "8px",
+                                padding: "6px 9px",
+                                borderRadius: "8px",
+                                backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
+                                border: isSelected ? "1.5px solid #15803d" : "1px solid #e2e8f0",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                                boxShadow: isSelected ? "0 2px 6px rgba(21, 128, 61, 0.12)" : "0 1px 2px rgba(0,0,0,0.02)",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                                {/* Custom Checkbox */}
+                                <div
+                                  style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    borderRadius: "4px",
+                                    backgroundColor: isSelected ? "#15803d" : "#ffffff",
+                                    border: isSelected ? "none" : "1.5px solid #cbd5e1",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                    transition: "all 0.15s ease",
+                                  }}
+                                >
+                                  {isSelected && <Check size={11} strokeWidth={3.5} color="#ffffff" />}
+                                </div>
+
+                                {/* Online status dot */}
+                                <span
+                                  style={{
+                                    width: "6px",
+                                    height: "6px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "#22c55e",
+                                    flexShrink: 0,
+                                  }}
+                                />
+
+                                {/* Responder Name */}
+                                <span
+                                  style={{
+                                    fontSize: "12px",
+                                    fontWeight: isSelected ? "800" : "700",
+                                    color: isSelected ? "#14532d" : "#0f172a",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {getResponderOptionLabel(r)}
+                                </span>
+                              </div>
+
+                              {/* Department Badge */}
+                              {renderDepartmentBadge(r.department)}
+                            </div>
                           );
                         });
                       })()}
                     </div>
                   </div>
 
-                  {/* DISPATCH / REJECT ACTION BUTTONS */}
-                  <div style={tStyle.actionRow}>
-                    <RadialActionButton
-                      onClick={(e) => { e.stopPropagation(); updateStatus(incident, "ongoing", selectedResponderIds[incident.id] || []); }}
-                      disabled={processingId === incident.id || (selectedResponderIds[incident.id] || []).length === 0}
-                      style={tStyle.deployBtn}
-                    >
-                      <Send size={14} /> {processingId === incident.id ? "DEPLOYING..." : "DISPATCH UNITS"}
-                    </RadialActionButton>
+                  {/* Dispatch Action Buttons */}
+                  <div style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
                     <button
-                      className="pending-report-action"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (await confirm("Permanently reject this emergency report?", { title: "Reject Report" })) {
+                      type="button"
+                      onClick={() => updateStatus(incident, "ongoing", selectedResponders)}
+                      disabled={processingId === incident.id || selectedResponders.length === 0}
+                      style={{
+                        flex: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        padding: "10px 16px",
+                        borderRadius: "10px",
+                        border: "none",
+                        background: selectedResponders.length > 0 ? "linear-gradient(135deg, #15803d 0%, #166534 100%)" : "#cbd5e1",
+                        color: "#ffffff",
+                        fontSize: "13px",
+                        fontWeight: "800",
+                        cursor: selectedResponders.length > 0 ? "pointer" : "not-allowed",
+                        boxShadow: selectedResponders.length > 0 ? "0 4px 12px rgba(21, 128, 61, 0.25)" : "none",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {processingId === incident.id ? <Loader className="animate-spin" size={15} /> : <Send size={15} />}
+                      <span>{processingId === incident.id ? "Deploying..." : `Dispatch (${selectedResponders.length})`}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const shouldReject = await confirm("Permanently reject this emergency report or mark as false alarm?", {
+                          title: "Reject Emergency Report",
+                          primaryLabel: "Reject Report",
+                          secondaryLabel: "Cancel",
+                        });
+                        if (shouldReject) {
                           setProcessingId(incident.id);
                           try {
                             await pb.collection("incident_reports").delete(incident.id);
                             setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
-                          } catch { alert("Delete failed."); }
+                            await showAlert("Incident report rejected and removed.", { title: "Report Rejected" });
+                          } catch (err) {
+                            await showAlert("Delete failed: " + (err.message || "Unknown error"), { title: "Error" });
+                          }
                           setProcessingId(null);
                         }
                       }}
-                      style={tStyle.rejectBtn}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid #fecaca",
+                        backgroundColor: "#fef2f2",
+                        color: "#b91c1c",
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                      }}
                     >
-                      <Trash2 size={14} /> REJECT
+                      <Trash2 size={15} />
+                      <span>Reject</span>
                     </button>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </main>
 
-      {selectedIncident && (
-        <div style={tStyle.detailBackdrop} onClick={() => setSelectedIncident(null)}>
-          <div style={tStyle.detailWindow} onClick={(e) => e.stopPropagation()}>
-            <header style={tStyle.detailHeader}>
+      {/* FULLSCREEN MAP LIGHTBOX */}
+      {selectedMap && (
+        <div
+          className="lightboxModalBackdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(10px)",
+            zIndex: 99999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "24px",
+          }}
+          onClick={() => setSelectedMap(null)}
+        >
+          <div
+            className="lightboxModalCard"
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "760px",
+              overflow: "hidden",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                <MapPin size={17} color="#15803d" /> {selectedMap.address}
+              </h3>
               <button
                 type="button"
-                style={tStyle.backButton}
-                onClick={() => setSelectedIncident(null)}
+                className="animatedCloseButton"
+                onClick={() => setSelectedMap(null)}
+                style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
-                <X size={16} /> Back to List
+                <X size={16} />
               </button>
-              <div style={tStyle.detailHeaderTitle}>
-                <span>Review Incident</span>
-                <strong>#{selectedIncident.id}</strong>
-              </div>
-              <span style={tStyle.detailStatus}>Pending Review</span>
-            </header>
-
-            <div style={tStyle.detailBody}>
-              <div style={tStyle.detailMainColumn}>
-                <section style={tStyle.detailPanel}>
-                  <h3 style={tStyle.detailSectionTitle}>Reporter Information</h3>
-                  <div style={tStyle.reporterDetail}>
-                    <div style={tStyle.reporterAvatar}>
-                      {selectedIncident.expand?.users?.selfie ? (
-                        <img
-                          src={pb.files.getURL(selectedIncident.expand.users, selectedIncident.expand.users.selfie)}
-                          alt="Reporter"
-                          style={tStyle.reporterAvatarImage}
-                        />
-                      ) : (
-                        <User size={20} />
-                      )}
-                    </div>
-                    <div style={tStyle.reporterSummary}>
-                      <strong style={tStyle.reporterName}>{selectedIncident.expand?.users?.first_name || "Unknown"} {selectedIncident.expand?.users?.last_name || "Resident"}</strong>
-                      <span style={tStyle.reporterSub}>Registered Resident</span>
-                      <span style={tStyle.reporterSub}>ID: {selectedIncident.expand?.users?.user_id || "Not available"}</span>
-                    </div>
-                  </div>
-                  <div style={tStyle.detailContactRow}>
-                    <div style={tStyle.contactItem}>
-                      <span style={tStyle.detailContactLabel}>Phone</span>
-                      <strong style={tStyle.contactValue}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong>
-                    </div>
-                    <div style={tStyle.contactItem}>
-                      <span style={tStyle.detailContactLabel}>Email</span>
-                      <strong style={tStyle.contactValue}>{selectedIncident.expand?.users?.email || "N/A"}</strong>
-                    </div>
-                  </div>
-                  <div style={{ ...tStyle.metadataGrid, marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #edf3ee" }}>
-                    {[
-                      ["Age", selectedIncident.expand?.users?.age],
-                      ["Barangay", selectedIncident.expand?.users?.baranggay || selectedIncident.expand?.users?.barangay],
-                      ["Municipality", selectedIncident.expand?.users?.municipality],
-                      ["Province", selectedIncident.expand?.users?.province],
-                      ["Street Address", selectedIncident.expand?.users?.street_address],
-                      ["Birthdate", selectedIncident.expand?.users?.birthdate],
-                    ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
-                      <React.Fragment key={label}>
-                        <span style={tStyle.metadataLabel}>{label}</span>
-                        <strong style={tStyle.metadataValue}>{String(value)}</strong>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </section>
-
-                <section style={tStyle.detailPanel}>
-                  <h3 style={tStyle.detailSectionTitle}>Incident Data</h3>
-                  <div style={tStyle.metadataGrid}>
-                    <span style={tStyle.metadataLabel}>Type</span><strong style={tStyle.metadataValue}>{selectedIncident.type || "Unknown"}</strong>
-                    <span style={tStyle.metadataLabel}>Reported</span><strong style={tStyle.metadataValue}>{new Date(selectedIncident.created).toLocaleString()}</strong>
-                    <span style={tStyle.metadataLabel}>Location</span><strong style={tStyle.metadataValue}>{addresses[selectedIncident.id] || "GPS Telemetry Locating..."}</strong>
-                  </div>
-                </section>
-
-                <section style={tStyle.detailPanel}>
-                  <h3 style={tStyle.detailSectionTitle}>Proof of Incident</h3>
-                  <div style={tStyle.detailMediaGrid}>
-                    {selectedIncident.incident_image ? (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`)}
-                        style={tStyle.detailMediaButton}
-                        aria-label="Open incident image"
-                      >
-                        <span style={tStyle.mediaZoomLabel}>Click to enlarge</span>
-                        <img src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`} alt="Incident evidence" style={tStyle.detailMedia} />
-                      </button>
-                    ) : <div style={tStyle.detailMediaEmpty}><ImageIcon size={24} /> No photo available</div>}
-                    {selectedIncident.incident_video ? (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`)}
-                        style={tStyle.detailMediaButton}
-                        aria-label="Open incident video"
-                      >
-                        <span style={tStyle.mediaZoomLabel}>Click to enlarge</span>
-                        <video src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`} controls style={tStyle.detailMedia} />
-                      </button>
-                    ) : <div style={tStyle.detailMediaEmpty}><Activity size={24} /> No video available</div>}
-                  </div>
-                </section>
-
-                {selectedIncident.latitude && (
-                  <section style={tStyle.detailPanel}>
-                    <div style={tStyle.detailSectionHeader}>
-                      <h3 style={tStyle.detailSectionTitle}>Geographic Location</h3>
-                      <button
-                        type="button"
-                        style={tStyle.detailMapButton}
-                        onClick={() => {
-                          const mapUrl = `https://www.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}`;
-                          window.open(mapUrl, "_blank", "noopener,noreferrer");
-                        }}
-                      >
-                        Open in Maps
-                      </button>
-                    </div>
-                    <div
-                      style={{ ...tStyle.detailMapPreview, cursor: "pointer" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] });
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] });
-                        }
-                      }}
-                    >
-                      <span style={tStyle.mediaZoomLabel}>Click to enlarge</span>
-                      <iframe
-                        title="Incident location"
-                        src={`https://maps.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}&z=15&output=embed`}
-                        style={{ ...tStyle.detailMapFrame, pointerEvents: "none" }}
-                      />
-                    </div>
-                  </section>
-                )}
-              </div>
-
-              <aside style={tStyle.detailSideColumn}>
-                <section style={tStyle.detailActionPanel}>
-                  <h3 style={tStyle.detailActionTitle}>Process Incident</h3>
-                  <p style={tStyle.detailActionSubtitle}>Assign a responder to this report</p>
-                  <h4 style={tStyle.detailFieldLabel}>Available Responders</h4>
-                  <div style={tStyle.detailResponderList}>
-                    {availableResponders.length === 0 ? (
-                      <p style={tStyle.responderEmpty}>No standby responders</p>
-                    ) : availableResponders.map((responder) => {
-                      const isSelected = (selectedResponderIds[selectedIncident.id] || []).includes(responder.id);
-                      return (
-                        <label key={responder.id} style={{ ...tStyle.detailResponderOption, ...(isSelected ? tStyle.responderOptionSelected : {}) }}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => setSelectedResponderIds((prev) => {
-                              const current = prev[selectedIncident.id] || [];
-                              return { ...prev, [selectedIncident.id]: isSelected ? current.filter((id) => id !== responder.id) : [...current, responder.id] };
-                            })}
-                          />
-                          <span>{getResponderOptionLabel(responder)}<small>{responder.department}</small></span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <RadialActionButton
-                    disabled={processingId === selectedIncident.id || (selectedResponderIds[selectedIncident.id] || []).length === 0}
-                    onClick={() => updateStatus(selectedIncident, "ongoing", selectedResponderIds[selectedIncident.id] || [])}
-                    style={
-                      (selectedResponderIds[selectedIncident.id] || []).length === 0
-                        ? { ...tStyle.deployBtn, ...tStyle.deployBtnDisabled }
-                        : tStyle.deployBtn
-                    }
-                  >
-                    <Send size={14} /> {processingId === selectedIncident.id ? "DISPATCHING..." : "DISPATCH UNITS"}
-                  </RadialActionButton>
-                  <button
-                    type="button"
-                    className="pending-report-action"
-                    style={tStyle.rejectBtn}
-                    onClick={async () => {
-                      if (await confirm("Permanently reject this emergency report?", { title: "Reject Report" })) {
-                        await pb.collection("incident_reports").delete(selectedIncident.id);
-                        setIncidents((prev) => prev.filter((item) => item.id !== selectedIncident.id));
-                        setSelectedIncident(null);
-                      }
-                    }}
-                  >
-                    <Trash2 size={14} /> REJECT
-                  </button>
-                </section>
-              </aside>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: MAP FULLSCREEN */}
-      {selectedMap && (
-        <div style={tStyle.modalBackdrop} onClick={() => setSelectedMap(null)}>
-          <div style={tStyle.modalWindow} onClick={(e) => e.stopPropagation()}>
-            <div style={tStyle.modalHead}>
-              <h3><MapIcon size={18} color="#18864b" /> {selectedMap.address}</h3>
-              <button className="pending-report-action animatedCloseButton" onClick={() => setSelectedMap(null)} style={tStyle.closeBtn}><X size={18} /></button>
             </div>
             <iframe
               title="Full Map"
               width="100%"
-              height="500px"
+              height="480px"
               frameBorder="0"
-              loading="lazy" referrerpolicy="no-referrer-when-downgrade" src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&t=k&output=embed`}
+              style={{ border: 0 }}
             />
           </div>
         </div>
       )}
 
-      {/* MODAL: MEDIA ENLARGE */}
-      {selectedImage && (
-        <div style={tStyle.modalBackdrop} onClick={() => setSelectedImage(null)}>
-          <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }}>
-            {selectedImage.match(/\.(mp4|mov|avi)/i) ? (
-              <video src={selectedImage} controls autoPlay style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "8px" }} />
-            ) : (
-              <img src={selectedImage} alt="Media Preview" style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "8px" }} />
+      {/* INSPECTION DETAIL MODAL */}
+      {selectedIncident && (
+        <div
+          className="lightboxModalBackdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(10px)",
+            zIndex: 9999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "24px",
+          }}
+          onClick={() => setSelectedIncident(null)}
+        >
+          <div
+            className="lightboxModalCard"
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "680px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              padding: "26px",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "16px", borderBottom: "1px solid #f1f5f9", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: "#f0fdf4", color: "#15803d", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>
+                    Incident #{selectedIncident.id}
+                  </h2>
+                  <span style={{ fontSize: "12px", color: "#64748b" }}>
+                    Reported on {new Date(selectedIncident.created).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="animatedCloseButton"
+                onClick={() => setSelectedIncident(null)}
+                style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            {/* Multi-Resident Confirmation if applicable */}
+            {(duplicateMap[selectedIncident.id] || Number(selectedIncident.reporters_count) || 1) > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  backgroundColor: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  color: "#15803d",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  marginBottom: "16px",
+                }}
+              >
+                <ShieldCheck size={18} color="#15803d" />
+                <span>
+                  <strong>High Reliability:</strong> +{(duplicateMap[selectedIncident.id] || Number(selectedIncident.reporters_count) || 1) - 1} more resident has reported this incident, which indicates this is a verified and highly reliable emergency report.
+                </span>
+              </div>
             )}
-            <button className="pending-report-action animatedCloseButton" onClick={() => setSelectedImage(null)} style={tStyle.closeFloatBtn}><X size={20} /></button>
+
+            {/* Reporter Full Data */}
+            <div style={{ backgroundColor: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0", marginBottom: "18px" }}>
+              <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                Reporter Profile
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
+                <div><span style={{ color: "#64748b" }}>Name:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.first_name} {selectedIncident.expand?.users?.last_name}</strong></div>
+                <div><span style={{ color: "#64748b" }}>Phone:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong></div>
+                <div><span style={{ color: "#64748b" }}>Reporters Count:</span> <strong style={{ color: "#b45309" }}>{duplicateMap[selectedIncident.id] || selectedIncident.reporters_count || 1} resident(s)</strong></div>
+                <div><span style={{ color: "#64748b" }}>Barangay:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.baranggay || "Lagonglong"}</strong></div>
+              </div>
+            </div>
+
+            {/* Incident Description / Notes */}
+            <div style={{ marginBottom: "20px" }}>
+              <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                Incident Details & Notes
+              </h4>
+              <div style={{ padding: "14px", borderRadius: "12px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#14532d", fontSize: "13.5px", lineHeight: "1.5" }}>
+                {selectedIncident.description || selectedIncident.remarks || "No additional text description provided by citizen."}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => setSelectedIncident(null)}
+                style={{ padding: "10px 18px", borderRadius: "10px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
+              >
+                Close Inspector
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FULLSCREEN EVIDENCE LIGHTBOX */}
+      {selectedImage && (
+        <div
+          className="lightboxModalBackdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.85)",
+            backdropFilter: "blur(14px)",
+            zIndex: 99999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "24px",
+          }}
+          onClick={() => setSelectedImage(null)}
+        >
+          <div
+            className="lightboxModalCard"
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: "760px",
+              backgroundColor: "#ffffff",
+              borderRadius: "22px",
+              overflow: "hidden",
+              boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.7)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Shield size={16} /> Incident Evidence Inspector
+              </span>
+              <button
+                type="button"
+                className="animatedCloseButton"
+                onClick={() => setSelectedImage(null)}
+                style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <div style={{ height: "540px", maxHeight: "78vh", backgroundColor: "#070b14", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+              {selectedImage.endsWith(".mp4") || selectedImage.includes("video") ? (
+                <video src={selectedImage} controls autoPlay style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: "10px" }} />
+              ) : (
+                <img src={selectedImage} alt="Evidence inspection" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: "10px" }} />
+              )}
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
-
-

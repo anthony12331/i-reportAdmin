@@ -1,5 +1,21 @@
-import { memo } from "react";
-import { Ban, ShieldCheck, User, X } from "lucide-react";
+import { memo, useState } from "react";
+import {
+  Ban,
+  ShieldCheck,
+  ShieldAlert,
+  User,
+  UserX,
+  X,
+  Search,
+  RotateCcw,
+  ExternalLink,
+  AlertTriangle,
+  FileText,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+} from "lucide-react";
 import { getVerifiedUserDetails } from "./verifiedUsersUtils";
 
 function DetailsGrid({ user }) {
@@ -42,21 +58,116 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
   if (!src) return null;
 
   return (
-    <div style={styles.darkOverlay} onClick={onClose}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(15, 23, 42, 0.8)",
+        backdropFilter: "blur(12px)",
+        zIndex: 99999,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "24px",
+        animation: "messageBoxOverlayIn 0.2s ease forwards",
+      }}
+      onClick={onClose}
+    >
       <div
-        style={styles.previewShell}
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "680px",
+          backgroundColor: "#ffffff",
+          borderRadius: "20px",
+          overflow: "hidden",
+          boxShadow: "0 30px 80px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15)",
+          display: "flex",
+          flexDirection: "column",
+          animation: "messageBoxDialogIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        }}
         onClick={(event) => event.stopPropagation()}
       >
-        <img src={src} style={styles.previewImage} alt="Preview" />
-        <button
-          type="button"
-          className="verifiedUsersButton"
-          className="animatedCloseButton"
-          onClick={onClose}
-          style={styles.previewCloseButton}
+        {/* Modal Top Bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 22px",
+            borderBottom: "1px solid #e2e8f0",
+            backgroundColor: "#f8fafc",
+          }}
         >
-          <X size={32} strokeWidth={3} />
-        </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "4px 12px",
+                borderRadius: "14px",
+                backgroundColor: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                color: "#15803d",
+                fontSize: "12.5px",
+                fontWeight: "700",
+              }}
+            >
+              Citizen Profile Photo
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="animatedCloseButton"
+            onClick={onClose}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              backgroundColor: "#ffffff",
+              color: "#475569",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.18s ease",
+            }}
+            aria-label="Close photo preview"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Large Image Canvas */}
+        <div
+          style={{
+            width: "100%",
+            height: "540px",
+            maxHeight: "78vh",
+            backgroundColor: "#090d16",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+            padding: "16px",
+          }}
+        >
+          <img
+            src={src}
+            alt="Citizen Profile"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              borderRadius: "10px",
+              aspectRatio: "auto",
+              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.5)",
+            }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -236,53 +347,287 @@ export const VerifiedUserDetailsModal = memo(function VerifiedUserDetailsModal({
 
 export const SuspendedUsersModal = memo(function SuspendedUsersModal({
   isOpen,
-  users,
+  users = [],
   onClose,
   onViewUser,
+  onUnsuspend,
 }) {
+  const [searchTerm, setSearchTerm] = useState("");
+
   if (!isOpen) return null;
 
+  const filteredUsers = users.filter((u) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const name = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
+    const email = (u.email || "").toLowerCase();
+    const citizenId = String(u.user_id || "").toLowerCase();
+    const barangay = (u.baranggay || u.barangay || "").toLowerCase();
+    return (
+      name.includes(term) ||
+      email.includes(term) ||
+      citizenId.includes(term) ||
+      barangay.includes(term)
+    );
+  });
+
   return (
-    <div style={styles.staticOverlay}>
-      <div style={styles.suspendedPopupBox}>
-        <div style={styles.popupHeader}>
-          <div>
-            <h2 style={styles.popupTitle}>Suspended Users</h2>
-            <p style={styles.popupSubtitle}>
-              Manage users who have lost verification access.
-            </p>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(15, 23, 42, 0.75)",
+        backdropFilter: "blur(10px)",
+        zIndex: 9999,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "24px",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          borderRadius: "22px",
+          width: "100%",
+          maxWidth: "760px",
+          maxHeight: "88vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.6)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "20px 26px",
+            borderBottom: "1px solid #f1f5f9",
+            backgroundColor: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div
+              style={{
+                width: "44px",
+                height: "44px",
+                borderRadius: "14px",
+                backgroundColor: "#fef2f2",
+                border: "1px solid #fecaca",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#b91c1c",
+              }}
+            >
+              <UserX size={22} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "900", color: "#0f172a" }}>
+                  Suspended Citizens Archive
+                </h2>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "800",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    backgroundColor: "#fef2f2",
+                    color: "#b91c1c",
+                    border: "1px solid #fecaca",
+                  }}
+                >
+                  {users.length} Suspended
+                </span>
+              </div>
+              <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>
+                Audit, inspect, or restore verification privileges for suspended citizen accounts.
+              </p>
+            </div>
           </div>
-          <button type="button" className="verifiedUsersButton animatedCloseButton" onClick={onClose} style={styles.closeButton}>
-            <X size={18} />
+
+          <button
+            type="button"
+            className="animatedCloseButton"
+            onClick={onClose}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              backgroundColor: "#ffffff",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <X size={17} />
           </button>
         </div>
 
-        <div style={styles.popupBody}>
-          {users.length === 0 ? (
-            <div style={styles.emptyState}>No suspended users found.</div>
-          ) : (
-            <div style={styles.suspendedList}>
-              {users.map((user) => (
-                <div key={user.id} style={styles.suspendedItem}>
-                  <div>
-                    <strong>
-                      {user.first_name} {user.last_name}
-                    </strong>
-                    <p style={styles.suspendedMeta}>
-                      ID #{user.user_id || "N/A"} · {user.email || "No email"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="verifiedUsersButton"
-                    style={styles.viewBtn}
-                    onClick={() => onViewUser(user)}
-                  >
-                    View
-                  </button>
-                </div>
-              ))}
+        {/* Search Toolbar */}
+        <div style={{ padding: "14px 26px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
+          <div className="search-box-premium" style={{ width: "100%", boxSizing: "border-box" }}>
+            <Search size={16} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Search by citizen name, email, ID number, or barangay..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ fontSize: "13px" }}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Body List */}
+        <div style={{ padding: "20px 26px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "12px" }}>
+          {filteredUsers.length === 0 ? (
+            <div style={{ padding: "48px 20px", textAlign: "center", color: "#64748b" }}>
+              <ShieldCheck size={40} color="#15803d" style={{ marginBottom: "10px" }} />
+              <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>
+                {searchTerm ? "No Matching Suspended Citizens" : "No Suspended Citizens"}
+              </h3>
+              <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+                {searchTerm ? "Try searching with a different name or ID." : "All registered resident accounts are currently active in good standing."}
+              </p>
             </div>
+          ) : (
+            filteredUsers.map((user) => {
+              const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Citizen Account";
+              return (
+                <div
+                  key={user.id}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    padding: "16px 18px",
+                    borderRadius: "14px",
+                    border: "1px solid #fecaca",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div
+                        style={{
+                          width: "42px",
+                          height: "42px",
+                          borderRadius: "12px",
+                          backgroundColor: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          color: "#b91c1c",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: "800",
+                          fontSize: "15px",
+                        }}
+                      >
+                        {fullName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <strong style={{ fontSize: "14.5px", color: "#0f172a" }}>{fullName}</strong>
+                          <span style={{ fontSize: "11px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", padding: "1px 6px", borderRadius: "6px" }}>
+                            SUSPENDED
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#64748b", fontSize: "12px", marginTop: "2px" }}>
+                          <span>Citizen ID: #{user.user_id || "N/A"}</span>
+                          <span>•</span>
+                          <span>{user.email || user.contact_number || "No direct contact"}</span>
+                          <span>•</span>
+                          <span>Brgy. {user.baranggay || user.barangay || "Lagonglong"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      {onUnsuspend && (
+                        <button
+                          type="button"
+                          onClick={() => onUnsuspend(user)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: "1px solid #bbf7d0",
+                            backgroundColor: "#f0fdf4",
+                            color: "#15803d",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <RotateCcw size={13} /> Restore
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => onViewUser(user)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          padding: "6px 14px",
+                          borderRadius: "8px",
+                          border: "1px solid #e2e8f0",
+                          backgroundColor: "#f8fafc",
+                          color: "#334155",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <ExternalLink size={13} /> Review Details
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Suspension Reason Banner */}
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      backgroundColor: "#fef2f2",
+                      border: "1px solid #fee2e2",
+                      fontSize: "12px",
+                      color: "#991b1b",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "6px",
+                    }}
+                  >
+                    <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: "2px" }} />
+                    <span>
+                      <strong>Reason for Suspension:</strong> {user.suspension_reason || user.description || "Administrative suspension by system operator."}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
@@ -301,40 +646,180 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
 }) {
   if (!isOpen || !user) return null;
 
+  const quickReasons = [
+    "False / Prank Emergency Report",
+    "Repeated False Alarms",
+    "Misuse of Emergency SOS System",
+    "Identity & Photo Mismatch",
+    "Fake / Tampered ID Document",
+    "Invalid / Expired ID Document",
+    "Duplicate Citizen Registration",
+    "Harassment / Abusive Submissions",
+    "Non-Resident / Out of Jurisdiction",
+    "Citizen Self-Requested Suspension",
+  ];
+
   return (
-    <div style={styles.promptOverlay}>
-      <div style={styles.promptBox}>
-        <div style={styles.promptHeader}>
-          <h3>Suspend Verification</h3>
-          <p>
-            Enter a reason to log and confirm the suspension for{" "}
-            {user.first_name} {user.last_name}.
-          </p>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(15, 23, 42, 0.75)",
+        backdropFilter: "blur(10px)",
+        zIndex: 9999,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "24px",
+      }}
+      onClick={onCancel}
+    >
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          borderRadius: "22px",
+          width: "100%",
+          maxWidth: "540px",
+          padding: "26px",
+          boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "18px",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+          <div
+            style={{
+              width: "44px",
+              height: "44px",
+              borderRadius: "12px",
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#b91c1c",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <ShieldAlert size={22} />
+          </div>
+          <div>
+            <h2 style={{ margin: "0 0 4px", fontSize: "17px", fontWeight: "900", color: "#0f172a" }}>
+              Suspend Citizen Verification
+            </h2>
+            <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+              Suspending <strong>{user.first_name} {user.last_name}</strong> (Citizen ID #{user.user_id || "N/A"}).
+            </p>
+          </div>
         </div>
-        <textarea
-          value={message}
-          onChange={(event) => onMessageChange(event.target.value)}
-          placeholder="Suspension reason"
-          style={styles.promptTextarea}
-        />
-        <div style={styles.promptActions}>
-          <button type="button" className="verifiedUsersButton" style={styles.cancelBtn} onClick={onCancel}>
+
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: "10px",
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fee2e2",
+            color: "#991b1b",
+            fontSize: "12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+          <span>This citizen will lose verified privileges and cannot submit verified reports until restored.</span>
+        </div>
+
+        {/* Quick Reason Chips */}
+        <div>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px", letterSpacing: "0.04em" }}>
+            Quick Reason Tags (Click to Apply):
+          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {quickReasons.map((reason) => (
+              <button
+                key={reason}
+                type="button"
+                onClick={() => onMessageChange(reason)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "8px",
+                  border: message === reason ? "1px solid #dc2626" : "1px solid #e2e8f0",
+                  backgroundColor: message === reason ? "#fef2f2" : "#f8fafc",
+                  color: message === reason ? "#b91c1c" : "#475569",
+                  fontSize: "11.5px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                }}
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Reason Textarea */}
+        <div>
+          <label style={{ fontSize: "12px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "6px" }}>
+            Official Justification Notes:
+          </label>
+          <textarea
+            value={message}
+            onChange={(e) => onMessageChange(e.target.value)}
+            placeholder="Explain the specific reason for suspension..."
+            style={{
+              width: "100%",
+              minHeight: "85px",
+              padding: "10px 12px",
+              borderRadius: "10px",
+              border: "1px solid #cbd5e1",
+              fontSize: "13px",
+              fontFamily: "inherit",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "10px",
+              border: "1px solid #e2e8f0",
+              backgroundColor: "#ffffff",
+              color: "#475569",
+              fontSize: "13px",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
             Cancel
           </button>
           <button
             type="button"
-            className="verifiedUsersButton"
-            style={styles.confirmBtn}
             onClick={() => onConfirm(user, message)}
-            disabled={isProcessing}
+            disabled={isProcessing || !message.trim()}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "10px",
+              border: "none",
+              backgroundColor: message.trim() ? "#dc2626" : "#cbd5e1",
+              color: "#ffffff",
+              fontSize: "13px",
+              fontWeight: "800",
+              cursor: message.trim() ? "pointer" : "not-allowed",
+              boxShadow: message.trim() ? "0 4px 12px rgba(220, 38, 38, 0.25)" : "none",
+            }}
           >
-            {isProcessing ? "Processing..." : "Confirm Suspend"}
+            {isProcessing ? "Processing..." : "Confirm Suspension"}
           </button>
         </div>
-        <p style={styles.dangerText}>
-          Suspended users cannot access the system until their verification is
-          restored.
-        </p>
       </div>
     </div>
   );

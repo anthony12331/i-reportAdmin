@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
-import { reportStyles as styles } from "../themes/reportStyles";
+import CustomDropdown from "../components/CustomDropdown";
 import {
   Download,
   Loader,
@@ -12,6 +12,25 @@ import {
   Calendar,
   CheckCircle2,
   TrendingUp,
+  Activity,
+  RotateCcw,
+  Clock,
+  Shield,
+  FileText,
+  Flame,
+  Ambulance,
+  Car,
+  AlertOctagon,
+  Search,
+  PieChart,
+  Radio,
+  Layers,
+  Sparkles,
+  Filter,
+  Check,
+  Building,
+  HeartPulse,
+  ChevronDown,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -28,7 +47,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar, Pie } from "react-chartjs-2";
+import { Bar, Doughnut } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -40,14 +59,29 @@ ChartJS.register(
   Legend
 );
 
+const INCIDENT_CATEGORIES = [
+  { value: "ALL", label: "All Classifications" },
+  { value: "fire", label: "Fire Outbreak", icon: Flame, color: "#dc2626" },
+  { value: "accident", label: "Vehicular Collision", icon: Car, color: "#ea580c" },
+  { value: "medical", label: "Medical Emergency", icon: HeartPulse, color: "#0284c7" },
+  { value: "landslide", label: "Landslide / Flood", icon: Layers, color: "#ca8a04" },
+  { value: "police", label: "Police & Security", icon: Shield, color: "#7c3aed" },
+];
+
 export default function Report() {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [reportSource, setReportSource] = useState("incident"); // "incident" | "sos"
   const [selectedIncidentType, setSelectedIncidentType] = useState("ALL");
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStep, setLoadingStep] = useState("");
+  const [tableSearch, setTableSearch] = useState("");
 
   // Data States
   const [reports, setReports] = useState([]);
@@ -59,10 +93,35 @@ export default function Report() {
     topReporters: [],
   });
 
-  // Chart Refs
+  // Chart Refs for PDF export snapshot
   const typeChartRef = useRef(null);
+  const statusChartRef = useRef(null);
   const areaChartRef = useRef(null);
-  const responderChartRef = useRef(null);
+
+  // Quick Preset Handlers
+  const applyDatePreset = (preset) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    setEndDate(todayStr);
+
+    if (preset === "today") {
+      setStartDate(todayStr);
+    } else if (preset === "7days") {
+      const past = new Date();
+      past.setDate(past.getDate() - 7);
+      setStartDate(past.toISOString().split("T")[0]);
+    } else if (preset === "30days") {
+      const past = new Date();
+      past.setDate(past.getDate() - 30);
+      setStartDate(past.toISOString().split("T")[0]);
+    } else if (preset === "thisMonth") {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      setStartDate(firstDay.toISOString().split("T")[0]);
+    } else if (preset === "ytd") {
+      const janFirst = new Date(today.getFullYear(), 0, 1);
+      setStartDate(janFirst.toISOString().split("T")[0]);
+    }
+  };
 
   const fetchAnalyticsData = async () => {
     if (!startDate || !endDate) {
@@ -72,7 +131,8 @@ export default function Report() {
 
     setIsLoading(true);
     setIsDataLoaded(false);
-    setLoadingProgress(5);
+    setLoadingProgress(10);
+    setLoadingStep("Querying municipal telemetry database...");
 
     try {
       const start = new Date(startDate).toISOString().replace("T", " ");
@@ -99,276 +159,264 @@ export default function Report() {
         });
       }
 
-      if (rawData.length === 0) {
-        alert(`No ${reportSource === "incident" ? "incident reports" : "SOS alerts"} found for this time period.`);
-        setIsLoading(false);
-        setLoadingProgress(0);
-        return;
-      }
-      
+      setLoadingProgress(35);
+      setLoadingStep("Aggregating multi-agency dispatch response logs...");
+
+      // Fetch all Dispatches
       const allDispatches = await pb.collection("dispatches").getFullList({
         expand: "responder_id",
-        requestKey: null
+        requestKey: null,
       });
 
-      setLoadingProgress(15);
+      setLoadingProgress(50);
+      setLoadingStep("Resolving geographic coordinates & incident locations...");
 
-      const addressCache = {};
-      let completedGeocodes = 0;
-      const totalToGeocode = rawData.length;
+      // Group dispatches by incident/sos
+      const dispatchesByIncident = {};
+      allDispatches.forEach((d) => {
+        const targetId = reportSource === "incident" ? d.incident_id : d.sos_id;
+        if (targetId) {
+          if (!dispatchesByIncident[targetId]) dispatchesByIncident[targetId] = [];
+          dispatchesByIncident[targetId].push(d);
+        }
+      });
+
+      // Parse and resolve locations
+      const typeCounter = {};
+      const statusCounter = { pending: 0, ongoing: 0, resolved: 0 };
+      const areaCounter = {};
+      const responderCounter = {};
+      const reporterCounter = {};
+
+      const totalItems = rawData.length;
+      let completedItems = 0;
 
       const processedData = await Promise.all(
         rawData.map(async (item) => {
-          let locationStr = "";
-
+          let resolvedLocation = "GPS Telemetry Acquired";
           if (item.latitude && item.longitude) {
-            const coordKey = `${item.latitude},${item.longitude}`;
-
-            if (!addressCache[coordKey]) {
-              try {
-                const address = await getReadableAddress(
-                  item.latitude,
-                  item.longitude,
-                  "barangay"
-                );
-                addressCache[coordKey] = address || null;
-              } catch {
-                addressCache[coordKey] = null;
-              }
+            try {
+              resolvedLocation = await getReadableAddress(item.latitude, item.longitude);
+            } catch {
+              resolvedLocation = `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}`;
             }
-            locationStr = addressCache[coordKey] || "";
           }
 
-          const userObj = reportSource === "incident" ? item.expand?.users : item.expand?.user;
+          completedItems++;
+          setLoadingProgress(50 + Math.floor((completedItems / (totalItems || 1)) * 45));
 
-          if (
-            !locationStr ||
-            locationStr === "Coordinates Error" ||
-            locationStr === "Unknown Location"
+          const rawType = reportSource === "incident" ? item.type || "OTHER" : item.assigned_department || "EMERGENCY SOS";
+          const type = rawType.toUpperCase();
+          typeCounter[type] = (typeCounter[type] || 0) + 1;
+
+          let normalizedStatus = (item.status || "").toLowerCase();
+          if (reportSource === "sos") {
+            normalizedStatus = (item.dispatch_status || item.status || "pending").toLowerCase();
+          }
+
+          if (normalizedStatus === "resolved") {
+            statusCounter.resolved++;
+          } else if (
+            normalizedStatus === "ongoing" ||
+            normalizedStatus === "assigned" ||
+            normalizedStatus === "accepted" ||
+            normalizedStatus === "en_route" ||
+            normalizedStatus === "at_scene"
           ) {
-            if (userObj) {
-              const userBgry = userObj.baranggay;
-              const userMuni = userObj.municipality;
-
-              if (userBgry && userMuni) {
-                locationStr = `Brgy. ${userBgry}, ${userMuni}`;
-              } else if (userBgry) {
-                locationStr = `Brgy. ${userBgry}`;
-              } else {
-                locationStr = "Lagonglong Area (Unspecified)";
-              }
-            } else {
-              locationStr = "Lagonglong Area (Unspecified)";
-            }
+            statusCounter.ongoing++;
+          } else {
+            statusCounter.pending++;
           }
 
-          completedGeocodes++;
-          const currentPercentage =
-            15 + Math.round((completedGeocodes / totalToGeocode) * 80);
-          setLoadingProgress(currentPercentage);
-          
-          const itemDispatches = allDispatches.filter(d => 
-             reportSource === "incident" ? d.incident_id === item.id : d.sos_id === item.id
-          );
-
-          let computedStatus = item.status;
-          if (!computedStatus || computedStatus.trim() === "") {
-            computedStatus = reportSource === "incident" ? "pending" : "active";
+          if (resolvedLocation) {
+            const locKey = resolvedLocation.split(",")[0].trim() || "Lagonglong Center";
+            areaCounter[locKey] = (areaCounter[locKey] || 0) + 1;
           }
 
-          return { ...item, status: computedStatus, resolvedLocation: locationStr, dispatches: itemDispatches, reporterUser: userObj };
+          const reporterUser = item.expand?.users || item.expand?.user;
+          if (reporterUser) {
+            const repName = `${reporterUser.first_name || ""} ${reporterUser.last_name || ""}`.trim() || reporterUser.contact_number || "Citizen";
+            reporterCounter[repName] = (reporterCounter[repName] || 0) + 1;
+          }
+
+          const matchedDispatches = dispatchesByIncident[item.id] || [];
+          matchedDispatches.forEach((d) => {
+            const responder = d.expand?.responder_id;
+            const respName = responder
+              ? `${responder.first_name || ""} ${responder.last_name || ""} (${(responder.department || "UNIT").toUpperCase()})`.trim()
+              : d.department
+              ? `${d.department.toUpperCase()} Dept`
+              : "Assigned Unit";
+            responderCounter[respName] = (responderCounter[respName] || 0) + 1;
+          });
+
+          return {
+            ...item,
+            resolvedLocation,
+            reporterUser,
+            dispatches: matchedDispatches,
+          };
         })
       );
 
-      const typeCounts = {
-        FIRE: 0,
-        ACCIDENT: 0,
-        LANDSLIDE: 0,
-        POLICE: 0,
-        OTHER: 0,
-      };
+      const topAreas = Object.entries(areaCounter)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6);
 
-      const statusCounts = { pending: 0, ongoing: 0, resolved: 0 };
-      const areaCounts = {};
-      const responderCounts = {};
-      const reporterCounts = {};
+      const topResponders = Object.entries(responderCounter)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6);
 
-      processedData.forEach((item) => {
-        let rawType = "OTHER";
-        if (reportSource === "incident") {
-          rawType = (item.type || "OTHER").toUpperCase().trim();
-        } else {
-          rawType = (item.assigned_department || "UNASSIGNED").toUpperCase().trim();
-        }
-
-        if (Object.prototype.hasOwnProperty.call(typeCounts, rawType)) {
-          typeCounts[rawType]++;
-        } else {
-          typeCounts[rawType] = (typeCounts[rawType] || 0) + 1;
-        }
-
-        const rawStatus = (item.status || "pending").toLowerCase().trim();
-        if (rawStatus === "resolved") {
-          statusCounts.resolved++;
-        } else if (rawStatus === "pending" || rawStatus === "unassigned") {
-          statusCounts.pending++;
-        } else {
-          statusCounts.ongoing++;
-        }
-
-        const area = item.resolvedLocation;
-        areaCounts[area] = (areaCounts[area] || 0) + 1;
-
-        if (!item.dispatches || item.dispatches.length === 0) {
-          responderCounts["Unassigned Unit"] = (responderCounts["Unassigned Unit"] || 0) + 1;
-        } else {
-          item.dispatches.forEach(d => {
-            const r = d.expand?.responder_id;
-            let responderName = "Unknown Unit";
-            if (r) {
-              if (r.unit_name) {
-                responderName = r.department ? `${r.unit_name} (${r.department.toUpperCase()})` : r.unit_name;
-              } else if (r.department) {
-                responderName = `${r.department.toUpperCase()} Unit`;
-              } else if (r.first_name || r.last_name) {
-                responderName = `${r.first_name || ""} ${r.last_name || ""}`.trim();
-              }
-            } else if (d.department) {
-              responderName = `${d.department.toUpperCase()} Unit`;
-            }
-            responderCounts[responderName] = (responderCounts[responderName] || 0) + 1;
-          });
-        }
-
-        const userObj = item.reporterUser;
-        let reporterName = "Anonymous";
-
-        if (userObj) {
-          const fullName = `${userObj.first_name || ""} ${
-            userObj.last_name || ""
-          }`.trim();
-          reporterName =
-            fullName || userObj.contact_number || "Registered Citizen";
-        }
-        reporterCounts[reporterName] = (reporterCounts[reporterName] || 0) + 1;
-      });
-
-      const getTop = (obj, limit = 5) => {
-        return Object.entries(obj)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, limit);
-      };
-
-      const activeTypeCounts = Object.fromEntries(
-        Object.entries(typeCounts).filter(([, count]) => count > 0)
-      );
+      const topReporters = Object.entries(reporterCounter)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
 
       setReports(processedData);
       setAnalytics({
-        types: activeTypeCounts,
-        statuses: statusCounts,
-        topAreas: getTop(areaCounts, 5),
-        topResponders: getTop(responderCounts, 5),
-        topReporters: getTop(reporterCounts, 8),
+        types: typeCounter,
+        statuses: statusCounter,
+        topAreas,
+        topResponders,
+        topReporters,
       });
 
       setLoadingProgress(100);
-      setTimeout(() => {
-        setIsDataLoaded(true);
-        setIsLoading(false);
-      }, 300);
-    } catch (error) {
-      console.error("Database telemetry read error:", error);
-      alert("Failed to read parameters from PocketBase.");
+      setLoadingStep("Ready!");
+      setIsDataLoaded(true);
+    } catch (err) {
+      console.error("Report aggregation error:", err);
+      alert("Failed to compile operations analytics. Please check network connection.");
+    } finally {
       setIsLoading(false);
-      setLoadingProgress(0);
     }
   };
 
+  // Filtered reports for the log table
+  const filteredReports = useMemo(() => {
+    if (!tableSearch.trim()) return reports;
+    const q = tableSearch.toLowerCase();
+    return reports.filter((r) => {
+      const type = (r.type || r.assigned_department || "").toLowerCase();
+      const loc = (r.resolvedLocation || "").toLowerCase();
+      const status = (r.status || "").toLowerCase();
+      const rep = r.reporterUser
+        ? `${r.reporterUser.first_name || ""} ${r.reporterUser.last_name || ""} ${r.reporterUser.contact_number || ""}`.toLowerCase()
+        : "anonymous";
+      return type.includes(q) || loc.includes(q) || status.includes(q) || rep.includes(q);
+    });
+  }, [reports, tableSearch]);
+
+  const resolutionRate = useMemo(() => {
+    if (!reports.length) return 0;
+    return Math.round((analytics.statuses.resolved / reports.length) * 100);
+  }, [reports, analytics]);
+
+  const primaryIncidentType = useMemo(() => {
+    const entries = Object.entries(analytics.types);
+    if (!entries.length) return { name: "N/A", count: 0, pct: 0 };
+    entries.sort((a, b) => b[1] - a[1]);
+    const top = entries[0];
+    return {
+      name: top[0],
+      count: top[1],
+      pct: Math.round((top[1] / reports.length) * 100),
+    };
+  }, [analytics.types, reports.length]);
+
+  // Executive PDF Generation
   const generatePDFReport = () => {
+    if (!reports || reports.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+
     const doc = new jsPDF("p", "mm", "a4");
 
-    doc.setFillColor(15, 23, 42);
-    doc.rect(0, 0, 210, 35, "F");
+    // Header banner
+    doc.setFillColor(21, 128, 61);
+    doc.rect(0, 0, 210, 26, "F");
 
-    doc.setFontSize(18);
+    doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text("LAGONGLONG DRRMO COMMAND CENTER", 14, 16);
+    doc.text("MUNICIPALITY OF LAGONGLONG - EMERGENCY OPERATIONS CENTER", 14, 11);
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(148, 163, 184);
-    doc.text(`Official Operations & Telemetry Audit Report (${reportSource === "incident" ? "Incident Reports" : "SOS Alerts"})`, 14, 24);
+    doc.text(`Official Executive Incident Analytics & Audit Dossier • Range: ${startDate} to ${endDate}`, 14, 18);
+    doc.text(`Report Source: ${reportSource === "incident" ? "Incident Reports" : "SOS Emergency Alerts"} • Generated on ${new Date().toLocaleString()}`, 14, 22);
 
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 44);
-    doc.text(`Total Records Processed: ${reports.length}`, 14, 50);
-    doc.text(
-      `Active (Ongoing): ${analytics.statuses.ongoing}`,
-      110,
-      44
-    );
-    doc.text(
-      `Resolved Cases: ${analytics.statuses.resolved}`,
-      110,
-      50
-    );
+    // Summary Metric Box
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("EXECUTIVE PERFORMANCE INDICATORS", 14, 35);
 
+    const summaryData = [
+      ["Total Logged Incidents", reports.length.toString()],
+      ["Resolved Emergencies", `${analytics.statuses.resolved} (${resolutionRate}% efficiency)`],
+      ["Active / Ongoing Operations", analytics.statuses.ongoing.toString()],
+      ["Pending Intake Queue", analytics.statuses.pending.toString()],
+      ["Primary Incident Driver", `${primaryIncidentType.name} (${primaryIncidentType.count} cases / ${primaryIncidentType.pct}%)`],
+    ];
+
+    autoTable(doc, {
+      startY: 39,
+      head: [["Operational Indicator", "Telemetry Metric"]],
+      body: summaryData,
+      theme: "grid",
+      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 9, cellPadding: 2.5 },
+    });
+
+    // Capture Charts
     const typeImg = typeChartRef.current?.toBase64Image("image/png", 1.0);
-    const areaImg = areaChartRef.current?.toBase64Image("image/png", 1.0);
-    const responderImg = responderChartRef.current?.toBase64Image("image/png", 1.0);
+    const statusImg = statusChartRef.current?.toBase64Image("image/png", 1.0);
 
-    if (typeImg) {
-      doc.setFontSize(12);
+    let nextY = 82;
+    if (typeImg && statusImg) {
+      doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(15, 23, 42);
-      doc.text(reportSource === "incident" ? "Visual Classification Breakdown" : "Assigned Department Breakdown", 14, 62);
-
-      // Give it full width
-      doc.addImage(typeImg, "PNG", 14, 68, 180, 50);
-    }
-    
-    if (areaImg && responderImg) {
-      doc.text("Hotspots & Responder Deployments", 14, 125);
-      doc.addImage(areaImg, "PNG", 14, 131, 85, 45);
-      doc.addImage(responderImg, "PNG", 110, 131, 85, 45);
+      doc.text("INCIDENT CLASSIFICATION & STATUS BREAKDOWN", 14, nextY);
+      doc.addImage(typeImg, "PNG", 14, nextY + 4, 115, 52);
+      doc.addImage(statusImg, "PNG", 135, nextY + 4, 60, 52);
+      nextY += 62;
     }
 
     doc.addPage();
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
-    doc.text("Log Entries Audit Table", 14, 16);
+    doc.text("INCIDENT LOG AUDIT RECORDS", 14, 16);
 
     const tableHeaders = [
       "Timestamp",
-      "Location",
-      reportSource === "incident" ? "Type" : "Department",
+      "Classification",
+      "Resolved Location",
+      "Reporter Citizen",
       "Status",
-      "Assigned Unit",
-      "Reporter",
+      "Assigned Units",
     ];
 
     const tableRows = reports.map((r) => {
       let unit = "Unassigned";
       if (r.dispatches && r.dispatches.length > 0) {
-        unit = r.dispatches.map(d => {
-          const resp = d.expand?.responder_id;
-          return resp?.unit_name || (resp?.department ? `${resp.department.toUpperCase()} Dept` : d.department);
-        }).join(", ");
+        unit = r.dispatches
+          .map((d) => {
+            const resp = d.expand?.responder_id;
+            return resp?.unit_name || (resp?.department ? `${resp.department.toUpperCase()} Dept` : d.department);
+          })
+          .join(", ");
       }
 
       const reporterName = r.reporterUser
-        ? `${r.reporterUser.first_name || ""} ${
-            r.reporterUser.last_name || ""
-          }`.trim() ||
+        ? `${r.reporterUser.first_name || ""} ${r.reporterUser.last_name || ""}`.trim() ||
           r.reporterUser.contact_number ||
           "Registered Citizen"
-        : "Anonymous";
-        
-      const rawType = reportSource === "incident" ? (r.type || "OTHER") : (r.assigned_department || "UNASSIGNED");
+        : "Anonymous Citizen";
+
+      const rawType = reportSource === "incident" ? r.type || "OTHER" : r.assigned_department || "EMERGENCY SOS";
 
       return [
         new Date(r.created).toLocaleDateString([], {
@@ -378,11 +426,11 @@ export default function Report() {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        r.resolvedLocation,
         rawType.toUpperCase(),
+        r.resolvedLocation,
+        reporterName,
         (r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE")).toUpperCase().replace("_", " "),
         unit,
-        reporterName,
       ];
     });
 
@@ -391,356 +439,832 @@ export default function Report() {
       head: [tableHeaders],
       body: tableRows,
       theme: "striped",
-      headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
-      styles: { fontSize: 8 },
+      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255] },
+      styles: { fontSize: 8, cellPadding: 2 },
     });
 
-    doc.save(`DRRMO_Report_${startDate}_to_${endDate}.pdf`);
+    // Signature Block
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 16 : 240;
+    if (finalY < 260) {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("VERIFIED & AUDITED BY:", 14, finalY);
+      doc.line(14, finalY + 14, 74, finalY + 14);
+      doc.setFont("helvetica", "normal");
+      doc.text("MDRRMO Lead Operations Officer", 14, finalY + 19);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("NOTED BY:", 130, finalY);
+      doc.line(130, finalY + 14, 190, finalY + 14);
+      doc.setFont("helvetica", "normal");
+      doc.text("Municipal Mayor / DRRMC Chairman", 130, finalY + 19);
+    }
+
+    doc.save(`MDRRMO_Executive_Report_${startDate}_to_${endDate}.pdf`);
   };
 
   const customCanvasBackgroundColor = {
-    id: 'customCanvasBackgroundColor',
+    id: "customCanvasBackgroundColor",
     beforeDraw: (chart, args, options) => {
-      const {ctx} = chart;
+      const { ctx } = chart;
       ctx.save();
-      ctx.globalCompositeOperation = 'destination-over';
-      ctx.fillStyle = options.color || '#ffffff';
+      ctx.globalCompositeOperation = "destination-over";
+      ctx.fillStyle = options.color || "#ffffff";
       ctx.fillRect(0, 0, chart.width, chart.height);
       ctx.restore();
-    }
-  };
-
-  const darkChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: { color: "#374151", font: { weight: "700", size: 11 } },
-      },
-      customCanvasBackgroundColor: { color: '#ffffff' }
-    },
-    scales: {
-      x: {
-        ticks: { color: "#5f7b69", font: { weight: "600" } },
-        grid: { color: "#dfeae3" },
-      },
-      y: {
-        ticks: { color: "#5f7b69", font: { weight: "600" } },
-        grid: { color: "#dfeae3" },
-      },
     },
   };
 
-  const horizontalBarOptions = {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { 
-      legend: { display: false },
-      customCanvasBackgroundColor: { color: '#ffffff' }
-    },
-    scales: {
-      x: {
-        ticks: { color: "#5f7b69", font: { weight: "600" } },
-        grid: { color: "#dfeae3" },
-      },
-      y: {
-        ticks: { color: "#5f7b69", font: { weight: "700" } },
-        grid: { color: "#dfeae3" },
-      },
-    },
-  };
-
+  // Chart Configs
   const typeChartData = {
     labels: Object.keys(analytics.types),
     datasets: [
       {
-        label: "Incidents Captured",
+        label: "Logged Incidents",
         data: Object.values(analytics.types),
-        backgroundColor: ["#ef4444", "#f97316", "#a855f7", "#38bdf8", "#10b981"],
+        backgroundColor: [
+          "#dc2626",
+          "#ea580c",
+          "#0284c7",
+          "#15803d",
+          "#ca8a04",
+          "#7c3aed",
+          "#db2777",
+        ],
+        borderRadius: 8,
+        barThickness: 28,
       },
     ],
   };
 
-
-
-  const areaChartData = {
-    labels: analytics.topAreas.map((item) => item[0]),
+  const statusChartData = {
+    labels: ["Resolved", "Active / Ongoing", "Pending Queue"],
     datasets: [
       {
-        label: "Incident Hotspots",
-        data: analytics.topAreas.map((item) => item[1]),
-        backgroundColor: "#f43f5e",
-      },
-    ],
-  };
-
-  const responderChartData = {
-    labels: analytics.topResponders.map((item) => item[0]),
-    datasets: [
-      {
-        label: "Deployments",
-        data: analytics.topResponders.map((item) => item[1]),
-        backgroundColor: "#a855f7",
+        data: [
+          analytics.statuses.resolved,
+          analytics.statuses.ongoing,
+          analytics.statuses.pending,
+        ],
+        backgroundColor: ["#15803d", "#f59e0b", "#dc2626"],
+        borderWidth: 0,
+        hoverOffset: 6,
       },
     ],
   };
 
   return (
-    <div style={styles.shell}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
-      <main style={styles.main}>
-        {/* Header */}
-        <header style={styles.header}>
+      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 38px", minWidth: 0, overflowY: "auto" }}>
+        {/* EXECUTIVE HERO BANNER */}
+        <header
+          style={{
+            marginBottom: "28px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            gap: "18px",
+          }}
+        >
           <div>
-            <div style={styles.headerTitleGroup}>
-              <div style={styles.statusDot} />
-              <h1 style={styles.title}>OPERATIONS ANALYTICS & AUDIT RECORDS</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+              <span className="live-status-pulse" style={{ width: "11px", height: "11px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
+              <span style={{ fontSize: "11.5px", fontWeight: "900", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.06em", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 9px", borderRadius: "6px" }}>
+                Lagonglong MDRRMO Intelligence & Audit
+              </span>
             </div>
-            <p style={styles.subtitle}>
-              Generate telemetry metrics, hotspot maps, and export DRRMO audit forms
+            <h1 style={{ fontSize: "clamp(24px, 3.2vw, 32px)", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+              Operations Analytics & Reporting Center
+            </h1>
+            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px", fontWeight: "500" }}>
+              Aggregate real-time emergency telemetry, audit response efficacy, analyze geographic hotspots, and generate executive dossiers.
             </p>
           </div>
+
+          {isDataLoaded && (
+            <button
+              type="button"
+              onClick={generatePDFReport}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "11px 22px",
+                borderRadius: "12px",
+                border: "none",
+                background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
+                color: "#ffffff",
+                fontSize: "13.5px",
+                fontWeight: "800",
+                cursor: "pointer",
+                boxShadow: "0 6px 18px rgba(21, 128, 61, 0.28)",
+                transition: "all 0.18s ease",
+              }}
+            >
+              <Download size={16} />
+              <span>Export Executive PDF Dossier</span>
+            </button>
+          )}
         </header>
 
-        {/* Date Filter Bar */}
-        <div style={styles.filterBar}>
-          <div style={styles.dateInputGroup}>
-            <label style={styles.dateLabel}>
-              <Calendar size={14} color="#38bdf8" /> START DATE
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={styles.dateInput}
-            />
-          </div>
+        {/* TACTICAL FILTER & CONTROL RIBBON */}
+        <div
+          className="premium-table-card"
+          style={{
+            padding: "24px",
+            marginBottom: "28px",
+            borderTop: "4px solid #15803d",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.06)",
+          }}
+        >
+          {/* Top Quick-Preset Buttons & Source Selector */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "14px",
+              paddingBottom: "18px",
+              borderBottom: "1px solid #f1f5f9",
+              marginBottom: "18px",
+            }}
+          >
+            {/* Quick Range Presets */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", marginRight: "4px", letterSpacing: "0.04em" }}>
+                Range Presets:
+              </span>
+              {[
+                { id: "today", label: "Today" },
+                { id: "7days", label: "Last 7 Days" },
+                { id: "30days", label: "Last 30 Days" },
+                { id: "thisMonth", label: "This Month" },
+                { id: "ytd", label: "Year-to-Date" },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => applyDatePreset(p.id)}
+                  style={{
+                    padding: "5px 11px",
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    backgroundColor: "#f8fafc",
+                    color: "#334155",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
 
-          <div style={styles.dateInputGroup}>
-            <label style={styles.dateLabel}>
-              <Calendar size={14} color="#38bdf8" /> END DATE
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={styles.dateInput}
-            />
-          </div>
-
-          <div style={styles.dateInputGroup}>
-            <label style={styles.dateLabel}>
-              <ShieldAlert size={14} color="#38bdf8" /> DATA SOURCE
-            </label>
-            <select
-              value={reportSource}
-              onChange={(e) => setReportSource(e.target.value)}
-              style={{ ...styles.dateInput, cursor: "pointer", appearance: "auto" }}
+            {/* Source Segmented Toggle */}
+            <div
+              style={{
+                display: "inline-flex",
+                backgroundColor: "#f1f5f9",
+                borderRadius: "10px",
+                padding: "3px",
+                border: "1px solid #e2e8f0",
+              }}
             >
-              <option value="incident">Incident Reports</option>
-              <option value="sos">SOS Alerts</option>
-            </select>
-          </div>
-
-          {reportSource === "incident" && (
-            <div style={styles.dateInputGroup}>
-              <label style={styles.dateLabel}>
-                <ShieldAlert size={14} color="#38bdf8" /> INCIDENT TYPE
-              </label>
-              <select
-                value={selectedIncidentType}
-                onChange={(e) => setSelectedIncidentType(e.target.value)}
-                style={{ ...styles.dateInput, cursor: "pointer", appearance: "auto" }}
+              <button
+                type="button"
+                onClick={() => setReportSource("incident")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: reportSource === "incident" ? "#ffffff" : "transparent",
+                  color: reportSource === "incident" ? "#15803d" : "#64748b",
+                  fontWeight: "800",
+                  fontSize: "12.5px",
+                  cursor: "pointer",
+                  boxShadow: reportSource === "incident" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                }}
               >
-                <option value="ALL">All Types</option>
-                <option value="fire">Fire Emergency</option>
-                <option value="accident">Accident</option>
-                <option value="landslide">Landslide</option>
-                <option value="police">Police</option>
-              </select>
-            </div>
-          )}
-
-          <div style={styles.actionColumn}>
-            <button
-              onClick={fetchAnalyticsData}
-              disabled={isLoading}
-              style={styles.generateBtn}
-            >
-              {isLoading ? (
-                <Loader className="animate-spin" size={18} />
-              ) : (
-                <BarChart3 size={18} />
-              )}
-              {isLoading
-                ? `COMPILING TELEMETRY... ${loadingProgress}%`
-                : "GENERATE ANALYTICS"}
-            </button>
-
-            {isLoading && (
-              <div style={styles.progressBarTrack}>
-                <div style={styles.progressBarFill(loadingProgress)} />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Telemetry Stats & Charts */}
-        {isDataLoaded && (
-          <div>
-            {/* Top Key Metrics Banner */}
-            <div style={styles.metricsGrid}>
-              <div style={styles.metricCardDefault}>
-                <span style={styles.metricLabel("#94a3b8")}>TOTAL LOGGED</span>
-                <h2 style={styles.metricValue("#111827")}>{reports.length}</h2>
-              </div>
-
-              <div style={styles.metricCardOngoing}>
-                <span style={styles.metricLabel("#fbbf24")}>
-                  ACTIVE DISPATCHES (ONGOING)
-                </span>
-                <h2 style={styles.metricValue("#fbbf24")}>
-                  {analytics.statuses.ongoing}
-                </h2>
-              </div>
-
-              <div style={styles.metricCardResolved}>
-                <span style={styles.metricLabel("#34d399")}>
-                  RESOLVED EMERGENCIES
-                </span>
-                <h2 style={styles.metricValue("#34d399")}>
-                  {analytics.statuses.resolved}
-                </h2>
-              </div>
-
-              <div style={styles.metricCardPending}>
-                <span style={styles.metricLabel("#f87171")}>PENDING QUEUE</span>
-                <h2 style={styles.metricValue("#f87171")}>
-                  {analytics.statuses.pending}
-                </h2>
-              </div>
-            </div>
-
-            {/* Dashboard Action Header */}
-            <div style={styles.sectionHeaderRow}>
-              <h2 style={styles.sectionTitle}>
-                <CheckCircle2 size={20} color="#10b981" /> VISUAL OPERATIONS SUMMARY
-              </h2>
-
-              <button onClick={generatePDFReport} style={styles.exportPdfBtn}>
-                <Download size={16} /> EXPORT PDF REPORT
+                <FileText size={14} /> Incident Reports
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportSource("sos")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: reportSource === "sos" ? "#ffffff" : "transparent",
+                  color: reportSource === "sos" ? "#dc2626" : "#64748b",
+                  fontWeight: "800",
+                  fontSize: "12.5px",
+                  cursor: "pointer",
+                  boxShadow: reportSource === "sos" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                }}
+              >
+                <Radio size={14} /> Emergency SOS Alerts
               </button>
             </div>
+          </div>
 
-            {/* Top Charts Row */}
-            <div style={{ marginBottom: "32px" }}>
-              <div style={styles.chartPanel}>
-                <h3 style={styles.chartTitle}>
-                  <ShieldAlert size={18} color="#f87171" /> CLASSIFICATION BREAKDOWN
-                </h3>
-                <div style={{ maxHeight: "280px", position: "relative" }}>
+          {/* Date & Classification Form Inputs */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr)) 220px",
+              gap: "16px",
+              alignItems: "flex-end",
+            }}
+          >
+            <div>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                <Calendar size={13} color="#15803d" /> Start Date
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  backgroundColor: "#ffffff",
+                  color: "#0f172a",
+                  fontSize: "13.5px",
+                  fontWeight: "700",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                <Calendar size={13} color="#15803d" /> End Date
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  backgroundColor: "#ffffff",
+                  color: "#0f172a",
+                  fontSize: "13.5px",
+                  fontWeight: "700",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            {reportSource === "incident" && (
+              <div>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                  <Filter size={13} color="#15803d" /> Classification
+                </label>
+                <CustomDropdown
+                  minWidth="100%"
+                  value={selectedIncidentType}
+                  onChange={(val) => setSelectedIncidentType(val)}
+                  options={INCIDENT_CATEGORIES.map((c) => ({
+                    value: c.value,
+                    label: c.label,
+                  }))}
+                />
+              </div>
+            )}
+
+            <div>
+              <button
+                type="button"
+                onClick={fetchAnalyticsData}
+                disabled={isLoading}
+                style={{
+                  width: "100%",
+                  padding: "11px 18px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
+                  color: "#ffffff",
+                  fontSize: "13.5px",
+                  fontWeight: "900",
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "0 4px 14px rgba(21, 128, 61, 0.25)",
+                }}
+              >
+                {isLoading ? <Loader className="animate-spin" size={16} /> : <BarChart3 size={16} />}
+                <span>{isLoading ? `Compiling (${loadingProgress}%)` : "Compile Analytics"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Compilation Progress Bar if Loading */}
+          {isLoading && (
+            <div style={{ marginTop: "18px", paddingTop: "14px", borderTop: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "12px", color: "#64748b" }}>
+                <span style={{ fontWeight: "700", color: "#15803d", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Loader className="animate-spin" size={12} /> {loadingStep}
+                </span>
+                <span style={{ fontWeight: "800", color: "#0f172a" }}>{loadingProgress}%</span>
+              </div>
+              <div style={{ width: "100%", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${loadingProgress}%`,
+                    height: "100%",
+                    background: "linear-gradient(90deg, #15803d 0%, #22c55e 100%)",
+                    transition: "width 0.25s ease-out",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* PRE-FLIGHT BRIEFING BANNER IF NOT YET LOADED */}
+        {!isDataLoaded && !isLoading && (
+          <div
+            className="premium-table-card"
+            style={{
+              padding: "48px 32px",
+              textAlign: "center",
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              border: "1px dashed #cbd5e1",
+            }}
+          >
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "20px",
+                backgroundColor: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                color: "#15803d",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <Activity size={30} />
+            </div>
+            <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#0f172a", margin: "0 0 8px" }}>
+              Ready to Compile Municipal Telemetry
+            </h2>
+            <p style={{ maxWidth: "560px", margin: "0 auto 24px", color: "#64748b", fontSize: "14px", lineHeight: "1.6" }}>
+              Select a date range preset above and click <strong>Compile Analytics</strong> to generate interactive telemetry charts, emergency resolution rates, hotspot analysis, and printable audit dossiers.
+            </p>
+            <div style={{ display: "inline-flex", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  applyDatePreset("30days");
+                  setTimeout(fetchAnalyticsData, 50);
+                }}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: "10px",
+                  border: "none",
+                  backgroundColor: "#15803d",
+                  color: "#ffffff",
+                  fontSize: "13px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  boxShadow: "0 4px 12px rgba(21, 128, 61, 0.22)",
+                }}
+              >
+                <Sparkles size={14} /> Quick Compile Last 30 Days
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* COMPILED TELEMETRY INTELLIGENCE VIEW */}
+        {isDataLoaded && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+            {/* TOP SCALE-JUMP KPI RIBBON */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
+              {/* Total Cases Card */}
+              <div
+                className="premium-table-card"
+                style={{
+                  padding: "22px 24px",
+                  position: "relative",
+                  overflow: "hidden",
+                  borderLeft: "6px solid #0f172a",
+                }}
+              >
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Layers size={14} color="#0f172a" /> Total Operations Logged
+                </span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
+                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+                    {reports.length}
+                  </h2>
+                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b" }}>cases</span>
+                </div>
+                <div style={{ marginTop: "12px", fontSize: "12px", color: "#15803d", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <TrendingUp size={13} /> {startDate} to {endDate}
+                </div>
+              </div>
+
+              {/* Resolved / Efficiency Card */}
+              <div
+                className="premium-table-card"
+                style={{
+                  padding: "22px 24px",
+                  borderLeft: "6px solid #15803d",
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <CheckCircle2 size={14} color="#15803d" /> Resolved Efficiency
+                </span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
+                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: "#15803d", margin: 0, letterSpacing: "-0.03em" }}>
+                    {resolutionRate}%
+                  </h2>
+                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#166534" }}>
+                    ({analytics.statuses.resolved} resolved)
+                  </span>
+                </div>
+                {/* Visual mini-bar */}
+                <div style={{ width: "100%", height: "5px", backgroundColor: "#f0fdf4", borderRadius: "999px", marginTop: "12px", overflow: "hidden" }}>
+                  <div style={{ width: `${resolutionRate}%`, height: "100%", backgroundColor: "#15803d" }} />
+                </div>
+              </div>
+
+              {/* Active Dispatches Card */}
+              <div
+                className="premium-table-card"
+                style={{
+                  padding: "22px 24px",
+                  borderLeft: "6px solid #f59e0b",
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#d97706", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Activity size={14} color="#d97706" /> Active Field Units
+                </span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
+                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: "#d97706", margin: 0, letterSpacing: "-0.03em" }}>
+                    {analytics.statuses.ongoing}
+                  </h2>
+                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#b45309" }}>en route / scene</span>
+                </div>
+                <div style={{ marginTop: "12px", fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                  {analytics.statuses.pending} awaiting assignment
+                </div>
+              </div>
+
+              {/* Leading Incident Driver */}
+              <div
+                className="premium-table-card"
+                style={{
+                  padding: "22px 24px",
+                  borderLeft: "6px solid #dc2626",
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#b91c1c", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <ShieldAlert size={14} color="#dc2626" /> Primary Incident Driver
+                </span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
+                  <h2 style={{ fontSize: "28px", fontWeight: "900", color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "-0.02em" }}>
+                    {primaryIncidentType.name}
+                  </h2>
+                </div>
+                <div style={{ marginTop: "12px", fontSize: "12px", color: "#b91c1c", fontWeight: "800" }}>
+                  {primaryIncidentType.count} cases ({primaryIncidentType.pct}% of volume)
+                </div>
+              </div>
+            </div>
+
+            {/* DUAL CHARTS DISPLAY */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: "24px" }}>
+              {/* Classification Bar Chart */}
+              <div className="premium-table-card" style={{ padding: "26px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "900", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <BarChart3 size={18} color="#15803d" /> Incident Classification Breakdown
+                    </h3>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                      Volume distribution across emergency categories
+                    </span>
+                  </div>
+                </div>
+                <div style={{ height: "260px", position: "relative" }}>
                   <Bar
                     ref={typeChartRef}
                     data={typeChartData}
-                    options={darkChartOptions}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        customCanvasBackgroundColor: { color: "#ffffff" },
+                      },
+                      scales: {
+                        x: {
+                          ticks: { color: "#475569", font: { weight: "700", size: 11 } },
+                          grid: { display: false },
+                        },
+                        y: {
+                          ticks: { color: "#64748b", font: { weight: "600" }, precision: 0 },
+                          grid: { color: "#f1f5f9" },
+                        },
+                      },
+                    }}
+                    plugins={[customCanvasBackgroundColor]}
+                  />
+                </div>
+              </div>
+
+              {/* Status Distribution Donut */}
+              <div className="premium-table-card" style={{ padding: "26px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "900", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <PieChart size={18} color="#0284c7" /> Operational Status Distribution
+                    </h3>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                      Case resolution & operational queue lifecycle
+                    </span>
+                  </div>
+                </div>
+                <div style={{ height: "260px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Doughnut
+                    ref={statusChartRef}
+                    data={statusChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      cutout: "68%",
+                      plugins: {
+                        legend: {
+                          position: "bottom",
+                          labels: { color: "#334155", font: { weight: "700", size: 11.5 }, boxWidth: 12, padding: 14 },
+                        },
+                        customCanvasBackgroundColor: { color: "#ffffff" },
+                      },
+                    }}
                     plugins={[customCanvasBackgroundColor]}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Middle Charts Row */}
-            <div style={styles.middleChartsGrid}>
-              <div style={styles.chartPanel}>
-                <h3 style={styles.chartTitle}>
-                  <MapPin size={18} color="#f43f5e" /> TOP INCIDENT HOTSPOTS
-                </h3>
-                <div style={{ height: "220px", position: "relative" }}>
-                  <Bar
-                    ref={areaChartRef}
-                    data={areaChartData}
-                    options={horizontalBarOptions}
-                    plugins={[customCanvasBackgroundColor]}
-                  />
+            {/* HOTSPOTS & DISPATCHED RESPONDERS LEADERBOARDS */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "24px" }}>
+              {/* Geographic Hotspots */}
+              <div className="premium-table-card" style={{ padding: "24px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <MapPin size={17} color="#dc2626" /> Top Incident Hotspots (Barangays)
+                  </h3>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#dc2626", backgroundColor: "#fef2f2", padding: "2px 7px", borderRadius: "6px" }}>
+                    {analytics.topAreas.length} Areas Identified
+                  </span>
                 </div>
+
+                {analytics.topAreas.length === 0 ? (
+                  <p style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>No location data recorded.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {analytics.topAreas.map(([areaName, count], idx) => {
+                      const pct = Math.round((count / (reports.length || 1)) * 100);
+                      return (
+                        <div key={areaName}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", fontSize: "13px" }}>
+                            <span style={{ fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ width: "20px", height: "20px", borderRadius: "6px", backgroundColor: idx === 0 ? "#dc2626" : "#f1f5f9", color: idx === 0 ? "#fff" : "#475569", fontSize: "11px", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: "900" }}>
+                                {idx + 1}
+                              </span>
+                              {areaName}
+                            </span>
+                            <span style={{ fontWeight: "800", color: "#0f172a" }}>
+                              {count} <span style={{ color: "#64748b", fontWeight: "600", fontSize: "11.5px" }}>({pct}%)</span>
+                            </span>
+                          </div>
+                          <div style={{ width: "100%", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: idx === 0 ? "linear-gradient(90deg, #dc2626 0%, #f87171 100%)" : "#94a3b8" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              <div style={styles.chartPanel}>
-                <h3 style={styles.chartTitle}>
-                  <TrendingUp size={18} color="#a855f7" /> RESPONDER UNIT DEPLOYMENTS
-                </h3>
-                <div style={{ height: "220px", position: "relative" }}>
-                  <Bar
-                    ref={responderChartRef}
-                    data={responderChartData}
-                    options={horizontalBarOptions}
-                    plugins={[customCanvasBackgroundColor]}
-                  />
+              {/* Top Responders Leaderboard */}
+              <div className="premium-table-card" style={{ padding: "24px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Users size={17} color="#15803d" /> Top Deployed Response Units
+                  </h3>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", padding: "2px 7px", borderRadius: "6px" }}>
+                    Multi-Agency Telemetry
+                  </span>
                 </div>
-              </div>
-            </div>
 
-            {/* Bottom Row: Active Reporters & Log Table */}
-            <div style={styles.bottomGrid}>
-              <div style={styles.chartPanel}>
-                <h3 style={styles.chartTitle}>
-                  <Users size={18} color="#38bdf8" /> MOST ACTIVE REPORTERS
-                </h3>
-                <ul style={styles.reporterList}>
-                  {analytics.topReporters.map((reporter, index) => (
-                    <li key={index} style={styles.reporterItem}>
-                      <span
+                {analytics.topResponders.length === 0 ? (
+                  <p style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>No unit dispatch logs in selected range.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {analytics.topResponders.map(([responderName, count], idx) => (
+                      <div
+                        key={responderName}
                         style={{
-                          fontWeight: "700",
-                          color: "#111827",
-                          fontSize: "13px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          backgroundColor: "#f8fafc",
+                          border: "1px solid #e2e8f0",
                         }}
                       >
-                        {reporter[0]}
-                      </span>
-                      <span style={styles.reporterBadge}>
-                        {reporter[1]} Reports
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#15803d", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11.5px", fontWeight: "900" }}>
+                            {idx + 1}
+                          </div>
+                          <span style={{ fontSize: "13px", fontWeight: "700", color: "#0f172a" }}>
+                            {responderName}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: "12px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "6px" }}>
+                          {count} Dispatches
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* AUDIT LOG TABLE & SEARCH */}
+            <div className="premium-table-card" style={{ padding: "24px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "14px",
+                  marginBottom: "18px",
+                  paddingBottom: "14px",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "900", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <FileText size={19} color="#15803d" /> Incident Telemetry Log Records
+                  </h3>
+                  <span style={{ fontSize: "12.5px", color: "#64748b", fontWeight: "600" }}>
+                    Showing {filteredReports.length} of {reports.length} compiled operation entries
+                  </span>
+                </div>
+
+                {/* Table Search Bar */}
+                <div className="search-box-premium" style={{ width: "280px" }}>
+                  <Search size={15} color="#94a3b8" />
+                  <input
+                    type="text"
+                    placeholder="Search logs by keyword, location, or unit..."
+                    value={tableSearch}
+                    onChange={(e) => setTableSearch(e.target.value)}
+                    style={{ fontSize: "12.5px" }}
+                  />
+                </div>
               </div>
 
-              <div style={styles.chartPanel}>
-                <h3 style={styles.chartTitle}>LOG ENTRIES AUDIT</h3>
-                <div style={{ maxHeight: "300px", overflowY: "auto", paddingRight: "8px" }}>
-                  <table style={styles.auditTable}>
-                    <thead style={{ position: "sticky", top: 0, backgroundColor: "#f6faf7", zIndex: 1 }}>
-                      <tr>
-                        <th style={styles.auditTh}>{reportSource === "incident" ? "Type" : "Department"}</th>
-                        <th style={styles.auditTh}>Location</th>
-                        <th style={styles.auditTh}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reports.map((r) => {
-                        const rawType = reportSource === "incident" ? (r.type || "OTHER") : (r.assigned_department || "UNASSIGNED");
-                        return (
-                          <tr key={r.id} style={styles.auditTr}>
-                            <td style={styles.auditTdType}>
-                              {rawType.toUpperCase()}
-                            </td>
-                            <td style={styles.auditTdLoc}>{r.resolvedLocation}</td>
-                            <td>
-                              <span style={styles.statusBadge(r.status || (reportSource === "incident" ? "pending" : "active"))}>
-                                {(r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE"))
-                                  .toUpperCase()
-                                  .replace("_", " ")}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+              <div style={{ overflowX: "auto" }}>
+                <table className="premium-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "10px 0 0 0" }}>
+                        Classification
+                      </th>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                        Date & Time
+                      </th>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                        Resolved Incident Location
+                      </th>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                        Reporter Citizen
+                      </th>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                        Assigned Units
+                      </th>
+                      <th style={{ textAlign: "center", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "0 10px 0 0" }}>
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredReports.slice(0, 100).map((r) => {
+                      const rawType = reportSource === "incident" ? r.type || "OTHER" : r.assigned_department || "EMERGENCY SOS";
+                      const reporterName = r.reporterUser
+                        ? `${r.reporterUser.first_name || ""} ${r.reporterUser.last_name || ""}`.trim() || r.reporterUser.contact_number || "Registered Citizen"
+                        : "Anonymous Citizen";
+
+                      let assignedUnits = "None Assigned";
+                      if (r.dispatches && r.dispatches.length > 0) {
+                        assignedUnits = r.dispatches
+                          .map((d) => {
+                            const resp = d.expand?.responder_id;
+                            return resp?.unit_name || (resp?.department ? `${resp.department.toUpperCase()} Dept` : d.department);
+                          })
+                          .join(", ");
+                      }
+
+                      return (
+                        <tr key={r.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px 14px" }}>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: "800",
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                backgroundColor: "#f8fafc",
+                                color: "#0f172a",
+                                border: "1px solid #cbd5e1",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {rawType}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>
+                            {new Date(r.created).toLocaleDateString([], {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: "#0f172a", fontWeight: "700", maxWidth: "260px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                              <MapPin size={13} color="#15803d" style={{ flexShrink: 0, marginTop: "2px" }} />
+                              <span>{r.resolvedLocation}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: "#334155", fontWeight: "600" }}>
+                            {reporterName}
+                          </td>
+                          <td style={{ padding: "12px 14px", fontSize: "12px", color: "#64748b" }}>
+                            {assignedUnits}
+                          </td>
+                          <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                            <span
+                              style={{
+                                fontSize: "10.5px",
+                                fontWeight: "800",
+                                padding: "2px 8px",
+                                borderRadius: "6px",
+                                backgroundColor: r.status === "resolved" ? "#f0fdf4" : r.status === "ongoing" ? "#fffbeb" : "#fef2f2",
+                                color: r.status === "resolved" ? "#15803d" : r.status === "ongoing" ? "#b45309" : "#b91c1c",
+                                border: r.status === "resolved" ? "1px solid #bbf7d0" : r.status === "ongoing" ? "1px solid #fde68a" : "1px solid #fecaca",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {(r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE")).replace("_", " ")}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -749,5 +1273,3 @@ export default function Report() {
     </div>
   );
 }
-
-

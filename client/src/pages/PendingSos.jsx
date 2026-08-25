@@ -1,25 +1,70 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
-import LiveVideoPlayer from "../components/LiveVideoPlayer";
+// Agora SDK is lazy-loaded — only downloads when user opens the live camera feed
+const LiveVideoPlayer = lazy(() => import("../components/LiveVideoPlayer"));
 import { getReadableAddress } from "../utils/utils";
 import SosRoutingTracker from "../components/SosRoutingTracker";
-import { sosStyles } from "../themes/sosStyles";
+import CustomDropdown from "../components/CustomDropdown";
 import {
   MapPin,
   User,
   X,
-  RefreshCw,
   Phone,
   Radio,
   CheckCircle,
-  Siren,
   ShieldCheck,
   Maximize2,
-  AlertOctagon,
   Loader,
+  Search,
+  RotateCcw,
+  Shield,
+  Clock,
+  ExternalLink,
+  ShieldAlert,
+  Send,
+  Users,
+  Video,
+  CheckCircle2,
+  AlertTriangle,
+  ChevronDown,
+  Check,
+  Flame,
+  Ambulance,
+  Activity,
 } from "lucide-react";
 import { getResponderOptionLabel } from "../utils/responderOptions";
+import { useMessageBox } from "../components/MessageBox";
+
+const renderDepartmentBadge = (dept) => {
+  const d = (dept || "").toLowerCase();
+  if (d.includes("fire")) {
+    return (
+      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+        <Flame size={10} /> BFP
+      </span>
+    );
+  }
+  if (d.includes("police")) {
+    return (
+      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#6d28d9", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+        <Shield size={10} /> PNP
+      </span>
+    );
+  }
+  if (d.includes("ambulance") || d.includes("ems") || d.includes("medical")) {
+    return (
+      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#0369a1", backgroundColor: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+        <Ambulance size={10} /> EMS
+      </span>
+    );
+  }
+  return (
+    <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <Activity size={10} /> MDRRMO
+    </span>
+  );
+};
 
 export default function PendingSos() {
   const [sosSignals, setSosSignals] = useState([]);
@@ -31,9 +76,12 @@ export default function PendingSos() {
   const [availableResponders, setAvailableResponders] = useState([]);
   const [respondersLoading, setRespondersLoading] = useState(false);
   const [selectedResponderIds, setSelectedResponderIds] = useState({});
+  const [departmentFilters, setDepartmentFilters] = useState({});
   const [activeVideoId, setActiveVideoId] = useState(null);
+  const [selectedSos, setSelectedSos] = useState(null);
 
   const fetchedAddressIds = useRef(new Set());
+  const { confirm, alert: showAlert } = useMessageBox();
 
   // Address Resolver
   const resolveAddresses = useCallback(async (records) => {
@@ -66,15 +114,15 @@ export default function PendingSos() {
       const allDispatches = await pb.collection("dispatches").getFullList({
         filter: 'sos_id != ""',
         expand: "responder_id",
-        requestKey: null
+        requestKey: null,
       });
       setDispatches(allDispatches);
 
-      const activeDispatches = allDispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
-      const activeSosIds = [...new Set(activeDispatches.map(d => d.sos_id).filter(id => !!id))];
+      const activeDispatches = allDispatches.filter((d) => d.status?.toLowerCase() !== "resolved");
+      const activeSosIds = [...new Set(activeDispatches.map((d) => d.sos_id).filter((id) => !!id))];
       let filterString = 'status = "active"';
       if (activeSosIds.length > 0) {
-        const idFilters = activeSosIds.map(id => `id = "${id}"`).join(" || ");
+        const idFilters = activeSosIds.map((id) => `id = "${id}"`).join(" || ");
         filterString = `(${filterString}) || (${idFilters})`;
       }
 
@@ -88,8 +136,9 @@ export default function PendingSos() {
       await resolveAddresses(records);
     } catch (e) {
       if (!e.isAbort) console.error("Fetch SOS error:", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [resolveAddresses]);
 
   // Handle Video Toggle
@@ -100,9 +149,12 @@ export default function PendingSos() {
     } else {
       setActiveVideoId(sosId);
       window.__isMutedByLiveVideo = true;
-      window.dispatchEvent(new CustomEvent('force-pause-alarm'));
+      window.dispatchEvent(new CustomEvent("force-pause-alarm"));
       const audio = document.getElementById("emergency-alert-sound");
-      if (audio) { audio.pause(); audio.currentTime = 0; }
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
     }
   };
 
@@ -110,20 +162,17 @@ export default function PendingSos() {
   const fetchAvailableResponders = useCallback(async () => {
     setRespondersLoading(true);
     try {
-      const responders = await pb
-        .collection("responder_accounts")
-        .getFullList({
-          sort: "department, first_name, last_name",
-          fields:
-            "id,first_name,last_name,department,unit_name,contact_number,is_available",
-          requestKey: null,
-        });
-
+      const responders = await pb.collection("responder_accounts").getFullList({
+        sort: "department, first_name, last_name",
+        fields: "id,first_name,last_name,department,unit_name,contact_number,is_available",
+        requestKey: null,
+      });
       setAvailableResponders(responders);
     } catch (error) {
       console.error("Responder fetch error:", error);
+    } finally {
+      setRespondersLoading(false);
     }
-    setRespondersLoading(false);
   }, []);
 
   // Assign Responder to SOS
@@ -132,14 +181,16 @@ export default function PendingSos() {
     responderIds = selectedResponderIds[sosSignal.id] || []
   ) => {
     if (!responderIds || responderIds.length === 0) {
-      alert("Select at least one responder before assigning this SOS.");
+      showAlert("Please select at least one standby responder before deploying.", { title: "Responder Required" });
       return;
     }
 
-    const selectedResponders = responderIds.map(id => availableResponders.find(r => r.id === id)).filter(Boolean);
+    const selectedResponders = responderIds
+      .map((id) => availableResponders.find((r) => r.id === id))
+      .filter(Boolean);
 
     if (selectedResponders.length === 0) {
-      alert("Select at least one valid responder before assigning this SOS.");
+      showAlert("Selected responders are currently offline.", { title: "Error" });
       return;
     }
 
@@ -151,12 +202,12 @@ export default function PendingSos() {
       for (const r of selectedResponders) {
         await pb.collection("responder_accounts").update(r.id, { is_available: false });
         reservedResponders.push(r);
-        
+
         const dispatch = await pb.collection("dispatches").create({
           sos_id: sosSignal.id,
           responder_id: r.id,
           department: r.department,
-          status: 'pending' // Responder will accept this
+          status: "pending",
         });
         dispatchesCreated.push(dispatch);
       }
@@ -165,39 +216,61 @@ export default function PendingSos() {
         dispatch_status: "assigned",
       });
 
-      const updatedSnapshot = {
-        ...sosSignal,
-        dispatch_status: "assigned"
-      };
-
-      setSosSignals((prev) =>
-        prev.map((item) => (item.id === sosSignal.id ? updatedSnapshot : item))
-      );
-      setSelectedMap((current) =>
-        current?.id === sosSignal.id ? updatedSnapshot : current
-      );
-      setSelectedResponderIds((prev) => {
-        const next = { ...prev };
-        delete next[sosSignal.id];
-        return next;
-      });
-      window.dispatchEvent(new Event("sos-handled"));
-      await fetchAvailableResponders();
-    } catch (e) {
-      console.error("Error assigning responder to SOS:", e);
+      setSelectedResponderIds((prev) => ({ ...prev, [sosSignal.id]: [] }));
+      await fetchSosSignals();
+      await showAlert(`Successfully dispatched ${selectedResponders.length} unit(s) to emergency SOS signal.`, { title: "Units Dispatched" });
+    } catch (err) {
+      console.error("Dispatch assignment error:", err);
       for (const r of reservedResponders) {
         await pb.collection("responder_accounts").update(r.id, { is_available: true }).catch(() => {});
       }
       for (const d of dispatchesCreated) {
         await pb.collection("dispatches").delete(d.id).catch(() => {});
       }
-      alert("Failed to assign responder.");
+      await showAlert("Failed to assign responder: " + (err.message || "Unknown error"), { title: "Error" });
     } finally {
       setAssigningId(null);
     }
   };
 
-  // Realtime Subscriptions with Full Relation Resolution
+  // Resolve SOS
+  const resolveSos = async (sosSignal) => {
+    const shouldResolve = await confirm(
+      "Mark this emergency SOS signal as fully resolved? All field dispatches will be concluded.",
+      {
+        title: "Confirm SOS Resolution",
+        primaryLabel: "Resolve SOS",
+        secondaryLabel: "Cancel",
+      }
+    );
+    if (!shouldResolve) return;
+
+    try {
+      const sosDispatches = dispatches.filter(
+        (d) => d.sos_id === sosSignal.id && d.status?.toLowerCase() !== "resolved"
+      );
+
+      for (const d of sosDispatches) {
+        await pb.collection("dispatches").update(d.id, { status: "resolved" });
+        if (d.responder_id) {
+          await pb.collection("responder_accounts").update(d.responder_id, { is_available: true }).catch(() => {});
+        }
+      }
+
+      await pb.collection("sos_tracking").update(sosSignal.id, {
+        status: "resolved",
+        dispatch_status: "resolved",
+      });
+
+      setSosSignals((prev) => prev.filter((s) => s.id !== sosSignal.id));
+      await showAlert("Emergency SOS signal resolved successfully.", { title: "SOS Resolved" });
+    } catch (err) {
+      console.error("Error resolving SOS:", err);
+      await showAlert("Failed to resolve SOS: " + (err.message || "Unknown error"), { title: "Error" });
+    }
+  };
+
+  // Realtime Subscriptions
   useEffect(() => {
     let isMounted = true;
     let unsubSos, unsubResponders, unsubDispatches;
@@ -206,17 +279,12 @@ export default function PendingSos() {
       await fetchSosSignals();
       await fetchAvailableResponders();
 
-      // Subscribe to real-time events on sos_tracking
       unsubSos = await pb.collection("sos_tracking").subscribe("*", () => {
         if (isMounted) fetchSosSignals();
       });
-
-      // Subscribe to real-time events on dispatches
       unsubDispatches = await pb.collection("dispatches").subscribe("*", () => {
         if (isMounted) fetchSosSignals();
       });
-
-      // Subscribe to real-time events on responder_accounts
       unsubResponders = await pb.collection("responder_accounts").subscribe("*", () => {
         if (isMounted) fetchAvailableResponders();
       });
@@ -226,256 +294,596 @@ export default function PendingSos() {
 
     return () => {
       isMounted = false;
-      unsubSos?.();
-      unsubDispatches?.();
-      unsubResponders?.();
+      if (typeof unsubSos === "function") unsubSos().catch(() => {});
+      if (typeof unsubDispatches === "function") unsubDispatches().catch(() => {});
+      if (typeof unsubResponders === "function") unsubResponders().catch(() => {});
     };
   }, [fetchSosSignals, fetchAvailableResponders]);
 
   return (
-    <div style={sosStyles.shell}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
-      <main style={sosStyles.main}>
+      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* Header */}
-        <header style={sosStyles.header}>
+        <header style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <div style={sosStyles.headerTitleGroup}>
-              <div style={sosStyles.titleDot} className="animate-pulse" />
-              <h1 style={sosStyles.pageTitle}>LIVE SOS DISTRESS FEED</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ef4444", display: "inline-block" }} />
+              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+                Live SOS Distress Feeds
+              </h1>
             </div>
-            <p style={sosStyles.subtitle}>
-              Real-time emergency distress signals and responder dispatch routing
+            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+              Real-time emergency distress telemetry, citizen live camera feeds, and priority responder dispatch routing.
             </p>
           </div>
 
-          <button
-            onClick={fetchSosSignals}
-            disabled={loading}
-            style={sosStyles.refreshBtn}
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            REFRESH SIGNALS
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                backgroundColor: sosSignals.length > 0 ? "#fef2f2" : "#f0fdf4",
+                border: sosSignals.length > 0 ? "1px solid #fecaca" : "1px solid #bbf7d0",
+                color: sosSignals.length > 0 ? "#b91c1c" : "#15803d",
+                fontSize: "13px",
+                fontWeight: "800",
+              }}
+            >
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: sosSignals.length > 0 ? "#dc2626" : "#16a34a" }} />
+              <span>{sosSignals.length} Active SOS Signals</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={fetchSosSignals}
+              disabled={loading}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 14px",
+                borderRadius: "10px",
+                border: "1px solid #e2e8f0",
+                backgroundColor: "#ffffff",
+                color: "#475569",
+                fontSize: "12.5px",
+                fontWeight: "700",
+                cursor: "pointer",
+              }}
+            >
+              <RotateCcw size={13} className={loading ? "animate-spin" : ""} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </header>
 
         {/* Empty State */}
         {sosSignals.length === 0 && !loading && (
-          <div style={sosStyles.emptyState}>
-            <CheckCircle
-              size={56}
-              color="#10b981"
-              style={sosStyles.emptyStateIcon}
-            />
-            <h3 style={sosStyles.emptyStateTitle}>No Active Distress Signals</h3>
-            <p style={sosStyles.emptyStateText}>
-              All resident emergency signals have been handled and dispatched.
+          <div
+            className="premium-table-card"
+            style={{
+              padding: "70px 24px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+            }}
+          >
+            <div
+              style={{
+                width: "72px",
+                height: "72px",
+                borderRadius: "24px",
+                backgroundColor: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#15803d",
+                marginBottom: "18px",
+                boxShadow: "0 10px 25px -5px rgba(21, 128, 61, 0.15)",
+              }}
+            >
+              <CheckCircle size={36} />
+            </div>
+            <h3 style={{ color: "#0f172a", fontSize: "20px", fontWeight: "800", margin: "0 0 8px 0" }}>
+              No Active SOS Distress Signals
+            </h3>
+            <p style={{ margin: 0, fontSize: "14.5px", color: "#64748b", maxWidth: "440px", lineHeight: "1.5" }}>
+              All resident emergency distress beacons have been handled and dispatched. New emergency alarms will trigger instantly.
             </p>
           </div>
         )}
 
         {loading && sosSignals.length === 0 && (
-          <div style={sosStyles.loadingState}>
-            <Loader className="animate-spin" size={42} color="#1d7a4d" />
-            <span>Loading live SOS alerts...</span>
+          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#15803d" }}>
+            <Loader className="animate-spin" size={32} />
+            <span style={{ fontWeight: "700", fontSize: "15px" }}>Loading live SOS alerts...</span>
           </div>
         )}
 
         {/* SOS Cards Grid */}
-        <div style={sosStyles.grid}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(440px, 1fr))", gap: "24px" }}>
           {sosSignals.map((sos) => {
-            const sosDispatches = dispatches.filter(d => d.sos_id === sos.id);
-            const activeSosDispatches = sosDispatches.filter(d => d.status?.toLowerCase() !== 'resolved');
-            const previouslyDispatchedIds = new Set(sosDispatches.map(d => d.responder_id));
-            const responderOptions = availableResponders.filter(r => !previouslyDispatchedIds.has(r.id));
+            const sosDispatches = dispatches.filter((d) => d.sos_id === sos.id);
+            const activeSosDispatches = sosDispatches.filter((d) => d.status?.toLowerCase() !== "resolved");
+            const previouslyDispatchedIds = new Set(sosDispatches.map((d) => d.responder_id));
             const selectedIds = selectedResponderIds[sos.id] || [];
 
             return (
-              <div key={sos.id} style={sosStyles.card}>
+              <div
+                key={sos.id}
+                className="premium-table-card"
+                style={{
+                  padding: "22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                  borderTop: "4px solid #ef4444",
+                  position: "relative",
+                }}
+              >
                 {/* Header Banner */}
-                <div style={sosStyles.cardBanner}>
-                  <span style={sosStyles.bannerLabel}>
-                    <Radio size={18} className="animate-pulse" />
-                    CRITICAL SOS DISTRESS
-                  </span>
-
-                  <span style={sosStyles.timeBadge}>
-                    {new Date(sos.created).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-
-                <div style={sosStyles.cardBody}>
-                  {/* Caller Profile Box */}
-                  <div style={sosStyles.callerBox}>
-                    <div style={sosStyles.callerHeader}>
-                      <div style={sosStyles.avatarIcon}>
-                        <User size={22} />
-                      </div>
-                      <div>
-                        <span style={sosStyles.callerName}>
-                          {sos.expand?.user?.first_name || "Resident"}{" "}
-                          {sos.expand?.user?.last_name || ""}
-                        </span>
-                        <div style={sosStyles.verifiedBadge}>
-                          <ShieldCheck size={12} /> Verified Resident Signal
-                        </div>
-                      </div>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "10px",
+                        backgroundColor: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                      className="urgent-status-pulse"
+                    >
+                      <Radio size={18} color="#dc2626" />
                     </div>
-
-                    <div style={sosStyles.phoneText}>
-                      <Phone size={14} color="#f87171" />
-                      {sos.expand?.user?.contact_number || "No contact info"}
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#b91c1c", textTransform: "uppercase" }}>
+                        CRITICAL SOS DISTRESS
+                      </h3>
+                      <span style={{ fontSize: "12px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                        <Clock size={12} /> Broadcasted at {new Date(sos.created).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Location Banner */}
-                  <p style={sosStyles.locationText}>
-                    <MapPin
-                      size={16}
-                      color="#60a5fa"
-                      style={sosStyles.locationIcon}
-                    />
-                    {addresses[sos.id] || "Locating coordinates..."}
-                  </p>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      padding: "3px 8px",
+                      borderRadius: "10px",
+                      backgroundColor: activeSosDispatches.length > 0 ? "#f0fdf4" : "#fef2f2",
+                      color: activeSosDispatches.length > 0 ? "#15803d" : "#b91c1c",
+                      border: activeSosDispatches.length > 0 ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {activeSosDispatches.length > 0 ? "UNITS DISPATCHED" : "UNASSIGNED"}
+                  </span>
+                </div>
 
-                  {/* Live Camera Button */}
+                {/* Citizen Caller Profile */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "12px 14px",
+                    borderRadius: "12px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #f1f5f9",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "10px",
+                      backgroundColor: "#fef2f2",
+                      color: "#b91c1c",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: "800",
+                      fontSize: "13px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <User size={18} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <strong style={{ fontSize: "13.5px", color: "#0f172a" }}>
+                        {sos.expand?.user?.first_name || "Resident"} {sos.expand?.user?.last_name || ""}
+                      </strong>
+                      <span style={{ fontSize: "11px", fontWeight: "700", color: "#15803d", display: "flex", alignItems: "center", gap: "3px" }}>
+                        <ShieldCheck size={12} /> Verified Resident
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "11.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Phone size={11} /> {sos.expand?.user?.contact_number || "No contact"} • Brgy. {sos.expand?.user?.baranggay || "Lagonglong"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Location Banner */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    fontSize: "12.5px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                    <MapPin size={15} color="#15803d" style={{ flexShrink: 0 }} />
+                    <span style={{ color: "#334155", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {addresses[sos.id] || "Acquiring GPS Telemetry..."}
+                    </span>
+                  </div>
+
+                  {sos.latitude && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMap({
+                          lat: sos.latitude,
+                          lng: sos.longitude,
+                          address: addresses[sos.id] || `Emergency Coordinates (${sos.latitude.toFixed(5)}, ${sos.longitude.toFixed(5)})`,
+                        });
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#15803d",
+                        fontWeight: "700",
+                        fontSize: "11.5px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ExternalLink size={12} /> Map
+                    </button>
+                  )}
+                </div>
+
+                {/* Embedded Interactive Mini Map Preview */}
+                {sos.latitude != null && sos.longitude != null && (
+                  <div
+                    onClick={() =>
+                      setSelectedMap({
+                        lat: sos.latitude,
+                        lng: sos.longitude,
+                        address: addresses[sos.id] || `SOS Location (${sos.latitude.toFixed(5)}, ${sos.longitude.toFixed(5)})`,
+                      })
+                    }
+                    style={{
+                      height: "145px",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      position: "relative",
+                      border: "1px solid #e2e8f0",
+                      cursor: "pointer",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                      backgroundColor: "#f1f5f9",
+                    }}
+                  >
+                    <iframe
+                      title={`Map Preview for SOS ${sos.id}`}
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      scrolling="no"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://maps.google.com/maps?q=${sos.latitude},${sos.longitude}&z=16&t=k&output=embed`}
+                      style={{ border: 0, pointerEvents: "none", width: "100%", height: "100%" }}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "8px",
+                        right: "8px",
+                        backgroundColor: "rgba(15, 23, 42, 0.75)",
+                        color: "#ffffff",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        backdropFilter: "blur(4px)",
+                      }}
+                    >
+                      <Maximize2 size={12} /> Enlarge Map
+                    </div>
+                  </div>
+                )}
+
+                {/* Live Camera Feed Button & Player */}
+                <div>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleVideo(sos.id);
                     }}
                     style={{
-                      backgroundColor: activeVideoId === sos.id ? "#374151" : "#b91c1c",
-                      color: "white",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
+                      backgroundColor: activeVideoId === sos.id ? "#334155" : "#dc2626",
+                      color: "#ffffff",
+                      padding: "9px 14px",
+                      borderRadius: "10px",
                       border: "none",
-                      fontWeight: "bold",
+                      fontWeight: "800",
+                      fontSize: "12.5px",
                       cursor: "pointer",
                       width: "100%",
-                      marginBottom: "10px",
                       display: "flex",
                       justifyContent: "center",
                       alignItems: "center",
-                      gap: "8px"
+                      gap: "8px",
+                      boxShadow: activeVideoId === sos.id ? "none" : "0 4px 12px rgba(220, 38, 38, 0.25)",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    {activeVideoId === sos.id ? "Close Live Camera" : "🔴 View Live Camera"}
+                    <Video size={16} />
+                    <span>{activeVideoId === sos.id ? "Close Live Camera Feed" : "View Live Citizen Camera"}</span>
                   </button>
 
-                  {/* The Live Video Player */}
                   {activeVideoId === sos.id && (
-                    <div style={{ width: "100%", height: "250px", marginBottom: "15px" }}>
-                      <LiveVideoPlayer channelName={sos.id} responderId={activeSosDispatches[0]?.responder_id || null} />
+                    <div style={{ width: "100%", height: "260px", marginTop: "12px", borderRadius: "12px", overflow: "hidden", border: "2px solid #dc2626", backgroundColor: "#070b14" }}>
+                      <Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", fontSize: "13px" }}>Loading camera...</div>}>
+                        <LiveVideoPlayer channelName={sos.id} responderId={activeSosDispatches[0]?.responder_id || null} />
+                      </Suspense>
                     </div>
                   )}
+                </div>
 
-                  {/* Responder Assignment Section */}
-                  <div style={sosStyles.assignmentBox}>
-                    <div style={sosStyles.statusHeader}>
-                      <span style={sosStyles.statusLabel}>CURRENT STATUS:</span>
-                      <span style={sosStyles.statusBadge(sos.dispatch_status === "assigned" || activeSosDispatches.length > 0)}>
-                        {sos.dispatch_status === "assigned" || activeSosDispatches.length > 0
-                          ? "DISPATCHED"
-                          : "UNASSIGNED"}
-                      </span>
+                {/* Deployed Units List */}
+                {activeSosDispatches.length > 0 && (
+                  <div style={{ backgroundColor: "#f8fafc", padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                    <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+                      Deployed Response Units ({activeSosDispatches.length}):
+                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      {activeSosDispatches.map((d) => {
+                        const r = d.expand?.responder_id;
+                        return (
+                          <div
+                            key={d.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              fontSize: "12px",
+                              backgroundColor: "#ffffff",
+                              border: "1px solid #e2e8f0",
+                              padding: "6px 8px",
+                              borderRadius: "6px",
+                            }}
+                          >
+                            <span style={{ color: "#0f172a", fontWeight: "700" }}>
+                              {r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department}
+                            </span>
+                            <span style={{ color: "#15803d", textTransform: "uppercase", fontSize: "10.5px", fontWeight: "800" }}>
+                              {d.status}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
+                  </div>
+                )}
 
-                    {activeSosDispatches.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px", background: "#ffffff", border: "1px solid #dfeae3", borderRadius: "8px", marginBottom: "10px" }}>
-                        <span style={{ fontSize: "11px", color: "#5f7b69", fontWeight: "bold", textTransform: "uppercase" }}>DEPLOYED UNITS:</span>
-                        {activeSosDispatches.map(d => {
-                          const r = d.expand?.responder_id;
-                          return (
-                            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "#f6faf7", padding: "6px 8px", borderRadius: "6px" }}>
-                              <span style={{ color: "#177a4a", fontWeight: "bold" }}>
-                                {r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department} 
-                                {d.is_primary_responder && <span style={{ color: "#b45309", marginLeft: "6px", fontSize: "10px" }}>(PRIMARY)</span>}
-                              </span>
-                              <span style={{ color: "#5f7b69", textTransform: "uppercase", fontSize: "10px", fontWeight: "bold" }}>{d.status}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div style={{ maxHeight: "120px", overflowY: "auto", border: "1px solid #dfeae3", borderRadius: "8px", padding: "4px", marginBottom: "10px", backgroundColor: "#ffffff" }} onClick={(e) => e.stopPropagation()}>
-                      {respondersLoading ? (
-                        <div style={{ padding: "12px 8px", display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#1d7a4d", fontWeight: "700" }}>
-                          <Loader className="animate-spin" size={18} />
-                          Loading available responders...
-                        </div>
-                      ) : responderOptions.length === 0 ? (
-                        <div style={{ padding: "8px", fontSize: "12px", color: "#5f7b69" }}>No Standby Responders</div>
-                      ) : (
-                        responderOptions.map((r) => {
-                          const isSelected = selectedIds.includes(r.id);
-                          return (
-                            <label key={r.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 8px", cursor: "pointer", backgroundColor: isSelected ? "#e7f5eb" : "transparent", borderRadius: "6px", marginBottom: "2px" }}>
-                              <input 
-                                type="checkbox" 
-                                checked={isSelected}
-                                onChange={() => {
-                                  setSelectedResponderIds((prev) => {
-                                    const current = prev[sos.id] || [];
-                                    if (current.includes(r.id)) {
-                                      return { ...prev, [sos.id]: current.filter(id => id !== r.id) };
-                                    } else {
-                                      return { ...prev, [sos.id]: [...current, r.id] };
-                                    }
-                                  });
-                                }}
-                                style={{ cursor: "pointer" }}
-                              />
-                              <span style={{ fontSize: "12px", color: isSelected ? "#177a4a" : "#374151", fontWeight: isSelected ? "700" : "600" }}>
-                                {getResponderOptionLabel(r)} ({r.department})
-                              </span>
-                            </label>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    <button
-                      className={assigningId === sos.id ? "sosDispatchButton sosDispatching" : "sosDispatchButton"}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        assignResponderToSos(sos, selectedIds);
-                      }}
-                      disabled={
-                        assigningId === sos.id ||
-                        responderOptions.length === 0 ||
-                        selectedIds.length === 0
-                      }
-                      style={sosStyles.dispatchBtn(
-                        selectedIds.length === 0 || assigningId === sos.id
-                      )}
-                    >
-                      <Siren size={16} />
-                      {assigningId === sos.id
-                        ? "DISPATCHING..."
-                        : sos.dispatch_status === "assigned"
-                        ? "DISPATCH ADDITIONAL"
-                        : "DISPATCH RESPONDER(S)"}
-                    </button>
+                {/* Standby Responders Multi-Selector */}
+                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                      Dispatch Standby Responders
+                    </label>
+                    <CustomDropdown
+                      size="sm"
+                      minWidth="135px"
+                      value={departmentFilters[sos.id] || ""}
+                      onChange={(val) => setDepartmentFilters((prev) => ({ ...prev, [sos.id]: val }))}
+                      options={[
+                        { value: "", label: "All Departments" },
+                        { value: "police", label: "Police" },
+                        { value: "ambulance", label: "Ambulance" },
+                        { value: "MDRRMO", label: "MDRRMO" },
+                        { value: "Fire", label: "BFP (Fire)" },
+                      ]}
+                    />
                   </div>
 
-                  {/* Embedded Interactive Map Preview */}
-                  <div
-                    onClick={() => setSelectedMap(sos)}
-                    style={sosStyles.mapPreviewWrapper}
-                  >
-                    <SosRoutingTracker
-                      key={`card-map-${sos.id}`}
-                      targetLat={sos.latitude}
-                      targetLng={sos.longitude}
-                    />
-                    <div style={sosStyles.mapBadge}>
-                      <Maximize2 size={12} /> FULL ROUTE MAP
-                    </div>
+                  <div style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: "#f8fafc", padding: "6px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px" }}>
+                    {respondersLoading ? (
+                      <span style={{ fontSize: "11.5px", color: "#15803d", padding: "6px", textAlign: "center" }}>Loading standby units...</span>
+                    ) : availableResponders.length === 0 ? (
+                      <span style={{ fontSize: "11.5px", color: "#94a3b8", padding: "6px", textAlign: "center" }}>No Standby Responders Online</span>
+                    ) : (() => {
+                      const filtered = availableResponders.filter(
+                        (r) =>
+                          !previouslyDispatchedIds.has(r.id) &&
+                          (!departmentFilters[sos.id] || r.department === departmentFilters[sos.id])
+                      );
+                      if (filtered.length === 0) {
+                        return <span style={{ fontSize: "11.5px", color: "#94a3b8", padding: "6px", textAlign: "center" }}>No units in this department</span>;
+                      }
+                      return filtered.map((r) => {
+                        const isSelected = selectedIds.includes(r.id);
+                        return (
+                          <div
+                            key={r.id}
+                            onClick={() => {
+                              setSelectedResponderIds((prev) => {
+                                const current = prev[sos.id] || [];
+                                return {
+                                  ...prev,
+                                  [sos.id]: current.includes(r.id) ? current.filter((id) => id !== r.id) : [...current, r.id],
+                                };
+                              });
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "8px",
+                              padding: "6px 9px",
+                              borderRadius: "8px",
+                              backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
+                              border: isSelected ? "1.5px solid #15803d" : "1px solid #e2e8f0",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                              boxShadow: isSelected ? "0 2px 6px rgba(21, 128, 61, 0.12)" : "0 1px 2px rgba(0,0,0,0.02)",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                              {/* Custom Checkbox */}
+                              <div
+                                style={{
+                                  width: "16px",
+                                  height: "16px",
+                                  borderRadius: "4px",
+                                  backgroundColor: isSelected ? "#15803d" : "#ffffff",
+                                  border: isSelected ? "none" : "1.5px solid #cbd5e1",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                {isSelected && <Check size={11} strokeWidth={3.5} color="#ffffff" />}
+                              </div>
+
+                              {/* Online status dot */}
+                              <span
+                                style={{
+                                  width: "6px",
+                                  height: "6px",
+                                  borderRadius: "50%",
+                                  backgroundColor: "#22c55e",
+                                  flexShrink: 0,
+                                }}
+                              />
+
+                              {/* Responder Name */}
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  fontWeight: isSelected ? "800" : "700",
+                                  color: isSelected ? "#14532d" : "#0f172a",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {getResponderOptionLabel(r)}
+                              </span>
+                            </div>
+
+                            {/* Department Badge */}
+                            {renderDepartmentBadge(r.department)}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => assignResponderToSos(sos, selectedIds)}
+                      disabled={assigningId === sos.id || selectedIds.length === 0}
+                      style={{
+                        flex: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "none",
+                        background: selectedIds.length > 0 ? "linear-gradient(135deg, #15803d 0%, #166534 100%)" : "#cbd5e1",
+                        color: "#ffffff",
+                        fontSize: "13px",
+                        fontWeight: "800",
+                        cursor: selectedIds.length > 0 ? "pointer" : "not-allowed",
+                        boxShadow: selectedIds.length > 0 ? "0 4px 12px rgba(21, 128, 61, 0.25)" : "none",
+                      }}
+                    >
+                      {assigningId === sos.id ? <Loader className="animate-spin" size={15} /> : <Send size={15} />}
+                      <span>{assigningId === sos.id ? "Deploying..." : `Dispatch (${selectedIds.length})`}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => resolveSos(sos)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        padding: "10px 16px",
+                        borderRadius: "10px",
+                        border: "none",
+                        backgroundColor: "#10b981",
+                        color: "#ffffff",
+                        fontSize: "13px",
+                        fontWeight: "800",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
+                      }}
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>Resolve</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSos(sos)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#475569",
+                        fontSize: "12.5px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Maximize2 size={14} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -484,43 +892,152 @@ export default function PendingSos() {
         </div>
       </main>
 
-      {/* FULL SCREEN ROUTING MODAL */}
+      {/* FULLSCREEN MAP LIGHTBOX */}
       {selectedMap && (
         <div
+          className="lightboxModalBackdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(10px)",
+            zIndex: 99999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "24px",
+          }}
           onClick={() => setSelectedMap(null)}
-          style={sosStyles.overlayModal}
         >
           <div
+            className="lightboxModalCard"
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "760px",
+              overflow: "hidden",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+            }}
             onClick={(e) => e.stopPropagation()}
-            style={sosStyles.modalCard}
           >
-            <div style={sosStyles.modalHeader}>
-              <div>
-                <h3 style={sosStyles.modalTitle}>
-                  <AlertOctagon size={20} /> EMERGENCY ROUTING NAVIGATION
-                </h3>
-                <p style={sosStyles.modalSubtitle}>
-                  {addresses[selectedMap.id] || "Locating coordinates..."}
-                </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                <MapPin size={17} color="#15803d" /> {selectedMap.address}
+              </h3>
+              <button
+                type="button"
+                className="animatedCloseButton"
+                onClick={() => setSelectedMap(null)}
+                style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <iframe
+              title="Full Map"
+              width="100%"
+              height="480px"
+              frameBorder="0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&t=k&output=embed`}
+              style={{ border: 0 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* SOS INSPECTION MODAL */}
+      {selectedSos && (
+        <div
+          className="lightboxModalBackdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(10px)",
+            zIndex: 9999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "24px",
+          }}
+          onClick={() => setSelectedSos(null)}
+        >
+          <div
+            className="lightboxModalCard"
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "680px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              padding: "26px",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "16px", borderBottom: "1px solid #f1f5f9", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: "#fef2f2", color: "#b91c1c", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Radio size={20} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>
+                    SOS Beacon #{selectedSos.id}
+                  </h2>
+                  <span style={{ fontSize: "12px", color: "#64748b" }}>
+                    Signal active since {new Date(selectedSos.created).toLocaleString()}
+                  </span>
+                </div>
               </div>
 
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <button
-                  className="animatedCloseButton"
-                  onClick={() => setSelectedMap(null)}
-                  style={sosStyles.modalCloseBtn}
-                >
-                  <X size={18} />
-                </button>
+              <button
+                type="button"
+                className="animatedCloseButton"
+                onClick={() => setSelectedSos(null)}
+                style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            {/* Resident Full Data */}
+            <div style={{ backgroundColor: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0", marginBottom: "18px" }}>
+              <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                Citizen Profile
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
+                <div><span style={{ color: "#64748b" }}>Name:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.first_name} {selectedSos.expand?.user?.last_name}</strong></div>
+                <div><span style={{ color: "#64748b" }}>Phone:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.contact_number || "N/A"}</strong></div>
+                <div><span style={{ color: "#64748b" }}>Email:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.email || "N/A"}</strong></div>
+                <div><span style={{ color: "#64748b" }}>Barangay:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.baranggay || "Lagonglong"}</strong></div>
               </div>
             </div>
 
-            <div style={sosStyles.modalMapCanvas}>
-              <SosRoutingTracker
-                key={`modal-map-${selectedMap.id}`}
-                targetLat={selectedMap.latitude}
-                targetLng={selectedMap.longitude}
-              />
+            {/* Location & Routing Tracker */}
+            {selectedSos.latitude && (
+              <div style={{ marginBottom: "20px" }}>
+                <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                  Live Field Telemetry
+                </h4>
+                <div style={{ padding: "12px", borderRadius: "12px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#14532d", fontSize: "13px" }}>
+                  <strong>Coordinates:</strong> {selectedSos.latitude}, {selectedSos.longitude} <br />
+                  <strong>Address:</strong> {addresses[selectedSos.id] || "Acquiring telemetry..."}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => setSelectedSos(null)}
+                style={{ padding: "10px 18px", borderRadius: "10px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
+              >
+                Close Inspector
+              </button>
             </div>
           </div>
         </div>
@@ -528,5 +1045,3 @@ export default function PendingSos() {
     </div>
   );
 }
-
-

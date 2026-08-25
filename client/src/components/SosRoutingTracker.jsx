@@ -210,8 +210,10 @@ export default function SosRoutingTracker({ targetLat, targetLng }) {
         .radar-blip { width: 18px; height: 18px; background-color: #ef4444; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 rgba(239, 68, 68, 0.5); animation: radar-pulse 2s infinite cubic-bezier(0.66, 0, 0, 1); }
         @keyframes radar-pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
       `}</style>
-      <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
-      <div style={{ position: "absolute", top: 16, left: 16, zIndex: 1, background: "rgba(255, 255, 255, 0.95)", color: "#ef4444", padding: "8px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: "800", pointerEvents: "none", boxShadow: "0 4px 15px rgba(0,0,0,0.1)", backdropFilter: "blur(4px)", letterSpacing: "0.5px" }}>🔴 LIVE SOS TRACKING</div>
+      <div style={{ position: "absolute", top: 16, left: 16, zIndex: 1, background: "rgba(255, 255, 255, 0.95)", color: "#ef4444", padding: "8px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: "800", pointerEvents: "none", boxShadow: "0 4px 15px rgba(0,0,0,0.1)", backdropFilter: "blur(4px)", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "6px" }}>
+        <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ef4444", display: "inline-block" }} />
+        <span>LIVE SOS TRACKING</span>
+      </div>
     </div>
   );
 }

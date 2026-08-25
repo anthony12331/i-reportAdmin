@@ -23,12 +23,37 @@ import {
   Calendar,
   ChevronDown,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
 
-const USERS_PER_PAGE = 12;
+const USERS_PER_PAGE = 10;
 
 const getFileUrl = (record, field) =>
   record && record[field] ? pb.files.getURL(record, record[field]) : null;
+
+const getInitials = (user) => {
+  const first = user.first_name ? user.first_name.trim().charAt(0).toUpperCase() : "";
+  const last = user.last_name ? user.last_name.trim().charAt(0).toUpperCase() : "";
+  return (first + last) || "U";
+};
+
+const getAvatarStyle = (name) => {
+  const palettes = [
+    { bg: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", color: "#ffffff" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < (name || "").length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % palettes.length;
+  return palettes[index];
+};
 
 function RegistrationDatePicker({ value, onChange }) {
   const selectedDate = value ? new Date(`${value}T00:00:00`) : null;
@@ -108,6 +133,7 @@ export default function VerifiedUsers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     barangay: "",
     municipality: "",
@@ -133,7 +159,7 @@ export default function VerifiedUsers() {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
       setPage(1);
-    }, 500);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -260,7 +286,7 @@ export default function VerifiedUsers() {
       try {
         await pb.collection("users").update(user.id, {
           status: "suspended",
-          suspension_reason: message,
+          description: message,
         });
 
         addAuditLog({
@@ -309,7 +335,7 @@ export default function VerifiedUsers() {
       try {
         await pb.collection("users").update(user.id, {
           status: "verified",
-          suspension_reason: "",
+          description: "",
         });
 
         addAuditLog({
@@ -337,8 +363,9 @@ export default function VerifiedUsers() {
 
   const selectedUserProfileImageUrl = getFileUrl(selectedUser, "selfie");
   const selectedUserIdPhotoUrl = getFileUrl(selectedUser, "id_photo");
+
   const formatRegisteredDate = (value) => {
-    if (!value) return "N/A";
+    if (!value) return "—";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
     return date.toLocaleDateString("en-US", {
@@ -348,133 +375,342 @@ export default function VerifiedUsers() {
     });
   };
 
+  const activeFilterCount = [
+    filters.barangay,
+    filters.municipality,
+    filters.registrationDate,
+    filters.status !== "verified" ? filters.status : null,
+  ].filter(Boolean).length;
+
   return (
     <div style={styles.container}>
       <Sidebar />
 
       <main style={styles.main}>
         {/* Header */}
-        <header style={styles.header}>
-          <div style={styles.headerContent}>
-            <div style={styles.headerTitleGroup}>
-              <h1 style={styles.title}>Registered Users Management</h1>
-            </div>
-            <p style={styles.subtitle}>Manage and monitor all verified residents of Barangay Lagonglong.</p>
+        <header style={{ marginBottom: "28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+              Registered Users Management
+            </h1>
           </div>
-
+          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+            Monitor and manage verified civilian resident records, contact info, and account statuses.
+          </p>
         </header>
 
-        <div style={styles.filterBar}>
-          <div className="verifiedUsersSearchBox" style={{ ...styles.searchBox, ...styles.filterBarSearch }}>
-            <Search size={18} color="#94a3b8" />
-            <input
-              type="text"
-              placeholder="Search by name or phone number..."
-              style={styles.searchInput}
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
-          </div>
-          <FilterDropdown label="All Barangays" value={filters.barangay} options={[{ value: "", label: "All Barangays" }, ...[...new Set(users.map((user) => user.baranggay).filter(Boolean))].map((barangay) => ({ value: barangay, label: barangay }))]} onChange={(barangay) => { setPage(1); setFilters((current) => ({ ...current, barangay })); }} />
-          <FilterDropdown label="All Municipalities" value={filters.municipality} options={[{ value: "", label: "All Municipalities" }, ...[...new Set(users.map((user) => user.municipality).filter(Boolean))].map((municipality) => ({ value: municipality, label: municipality }))]} onChange={(municipality) => { setPage(1); setFilters((current) => ({ ...current, municipality })); }} />
-          <RegistrationDatePicker value={filters.registrationDate} onChange={(registrationDate) => { setPage(1); setFilters((current) => ({ ...current, registrationDate })); }} />
-          <FilterDropdown label="Verified" value={filters.status} options={[{ value: "verified", label: "Verified" }, { value: "suspended", label: "Suspended" }, { value: "all", label: "All Statuses" }]} onChange={(status) => { setPage(1); setFilters((current) => ({ ...current, status })); }} />
-          <button
-            type="button"
-            className="verifiedUsersButton"
-            style={styles.filterAction}
-            onClick={openSuspendedUsersPopup}
-          >
-            <UserX size={15} />
-            View Suspended Users
-          </button>
-          <button
-            type="button"
-            className="verifiedUsersButton"
-            style={styles.clearFiltersButton}
-            onClick={() => {
-              setSearchTerm("");
-              setFilters({ barangay: "", municipality: "", registrationDate: "", status: "verified" });
-              setPage(1);
-            }}
-          >
-            <X size={14} />
-            Clear Filters
-          </button>
-        </div>
+        {/* Premium Table Card Upgrade */}
+        <div className="premium-table-card">
+          {/* Top Toolbar */}
+          <div className="table-toolbar">
+            <div className="search-box-premium">
+              <Search size={18} color="#94a3b8" />
+              <input
+                type="text"
+                placeholder="Search by citizen name, ID, or phone number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "flex",
+                    color: "#94a3b8",
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
 
-        {/* State Error Handling */}
-        {error ? (
-          <div style={styles.errorContainer}>
-            <AlertCircle size={48} color="#ef4444" />
-            <p style={{ margin: 0, fontWeight: "700" }}>{error}</p>
-            <button
-              className="verifiedUsersButton"
-              onClick={() => fetchVerifiedUsers()}
-              style={styles.btnRetry}
+            <div className="table-toolbar-actions">
+              <button
+                type="button"
+                className={`premium-btn-filter ${showFilters || activeFilterCount > 0 ? "active" : ""}`}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <SlidersHorizontal size={15} />
+                <span>Filter</span>
+                {activeFilterCount > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: "#15803d",
+                      color: "#ffffff",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      borderRadius: "10px",
+                      padding: "1px 6px",
+                    }}
+                  >
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="premium-btn-action"
+                onClick={openSuspendedUsersPopup}
+              >
+                <UserX size={16} />
+                <span>Suspended Users</span>
+                {suspendedUsers.length > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: "#fef2f2",
+                      color: "#b91c1c",
+                      border: "1px solid #fecaca",
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      borderRadius: "10px",
+                      padding: "1px 6px",
+                      marginLeft: "2px",
+                    }}
+                  >
+                    {suspendedUsers.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Expandable Filter Row */}
+          {showFilters && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "10px",
+                padding: "14px 16px",
+                marginBottom: "18px",
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "12px",
+              }}
             >
-              RETRY FETCH
-            </button>
-          </div>
-        ) : loading && users.length === 0 ? (
-          <div style={styles.loadingContainer}>
-            <Loader className="animate-spin" size={42} color="#1d7a4d" />
-            <span>Loading verified user records...</span>
-          </div>
-        ) : users.length === 0 ? (
-          <div style={styles.emptyContainer}>
-            <ShieldCheck
-              size={56}
-              color="#64748b"
-              style={{ marginBottom: "16px", opacity: 0.8 }}
-            />
-            <h3 style={{ color: "#111827", margin: "0 0 8px 0" }}>
-              No Verified Citizens Found
-            </h3>
-            <p style={{ margin: 0, fontSize: "14px" }}>
-              No active citizen records match your search filter criteria.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Citizen Cards Grid */}
-            <div style={styles.tableCard}>
-              <div style={styles.tableScroll}>
-                <table style={styles.usersTable}>
+              <FilterDropdown
+                label="All Barangays"
+                value={filters.barangay}
+                options={[
+                  { value: "", label: "All Barangays" },
+                  ...[...new Set(users.map((user) => user.baranggay).filter(Boolean))].map((barangay) => ({
+                    value: barangay,
+                    label: barangay,
+                  })),
+                ]}
+                onChange={(barangay) => {
+                  setPage(1);
+                  setFilters((current) => ({ ...current, barangay }));
+                }}
+              />
+              <FilterDropdown
+                label="All Municipalities"
+                value={filters.municipality}
+                options={[
+                  { value: "", label: "All Municipalities" },
+                  ...[...new Set(users.map((user) => user.municipality).filter(Boolean))].map((municipality) => ({
+                    value: municipality,
+                    label: municipality,
+                  })),
+                ]}
+                onChange={(municipality) => {
+                  setPage(1);
+                  setFilters((current) => ({ ...current, municipality }));
+                }}
+              />
+              <RegistrationDatePicker
+                value={filters.registrationDate}
+                onChange={(registrationDate) => {
+                  setPage(1);
+                  setFilters((current) => ({ ...current, registrationDate }));
+                }}
+              />
+              <FilterDropdown
+                label="Verified"
+                value={filters.status}
+                options={[
+                  { value: "verified", label: "Verified" },
+                  { value: "suspended", label: "Suspended" },
+                  { value: "all", label: "All Statuses" },
+                ]}
+                onChange={(status) => {
+                  setPage(1);
+                  setFilters((current) => ({ ...current, status }));
+                }}
+              />
+              <button
+                type="button"
+                className="verifiedUsersButton"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "9px 14px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  backgroundColor: "#ffffff",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                }}
+                onClick={() => {
+                  setSearchTerm("");
+                  setFilters({ barangay: "", municipality: "", registrationDate: "", status: "verified" });
+                  setPage(1);
+                }}
+              >
+                <X size={14} />
+                Clear
+              </button>
+            </div>
+          )}
+
+          {/* Table Error / Loading / Content */}
+          {error ? (
+            <div style={styles.errorContainer}>
+              <AlertCircle size={48} color="#ef4444" />
+              <p style={{ margin: 0, fontWeight: "700" }}>{error}</p>
+              <button
+                className="verifiedUsersButton"
+                onClick={() => fetchVerifiedUsers()}
+                style={styles.btnRetry}
+              >
+                RETRY FETCH
+              </button>
+            </div>
+          ) : loading && users.length === 0 ? (
+            <div style={styles.loadingContainer}>
+              <Loader className="animate-spin" size={42} color="#15803d" />
+              <span>Loading verified citizen records...</span>
+            </div>
+          ) : users.length === 0 ? (
+            <div style={styles.emptyContainer}>
+              <ShieldCheck
+                size={56}
+                color="#64748b"
+                style={{ marginBottom: "16px", opacity: 0.8 }}
+              />
+              <h3 style={{ color: "#111827", margin: "0 0 8px 0" }}>
+                No Verified Citizens Found
+              </h3>
+              <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>
+                No verified citizen records match your search or filter criteria. Try clearing your filters or using different keywords.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Table Wrapper */}
+              <div className="premium-table-wrapper" style={{ overflowX: "auto" }}>
+                <table className="premium-table">
                   <thead>
                     <tr>
-                      <th style={styles.tableHeader}>USER</th>
-                      <th style={styles.tableHeader}>CONTACT</th>
-                      <th style={styles.tableHeader}>ADDRESS</th>
-                      <th style={styles.tableHeader}>REGISTERED DATE</th>
-                      <th style={styles.tableHeader}>STATUS</th>
-                      <th style={styles.tableHeader}>ACTIONS</th>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Contact</th>
+                      <th>Registered</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "center" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {users.map((user) => {
                       const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Unknown User";
-                      const address = user.baranggay || "No address";
+                      const initials = getInitials(user);
+                      const avatarPalette = getAvatarStyle(fullName);
+                      const selfieUrl = getFileUrl(user, "selfie");
+
                       return (
-                        <tr key={user.id} style={styles.tableRow}>
-                          <td style={styles.tableCell}>
-                            <div style={styles.tableUserButton}>
-                              {getFileUrl(user, "selfie") ? (
-                                <img src={getFileUrl(user, "selfie")} alt="" style={styles.tableAvatar} />
-                              ) : <span style={styles.tableAvatarFallback}><ShieldCheck size={14} /></span>}
-                              <div style={styles.tableUserInfo}>
-                                <strong>{fullName}</strong>
-                                <span style={styles.tableCitizenId}>Citizen ID: #{user.user_id || "N/A"}</span>
+                        <tr key={user.id}>
+                          <td>
+                            <div className="premium-user-cell">
+                              {selfieUrl ? (
+                                <img
+                                  src={selfieUrl}
+                                  alt={fullName}
+                                  className="premium-avatar"
+                                  onClick={() => openImagePreview(selfieUrl)}
+                                  style={{ cursor: "pointer" }}
+                                />
+                              ) : (
+                                <div
+                                  className="premium-avatar"
+                                  style={{
+                                    background: avatarPalette.bg,
+                                    color: avatarPalette.color,
+                                  }}
+                                >
+                                  {initials}
+                                </div>
+                              )}
+                              <div className="premium-user-info">
+                                <span
+                                  className="premium-user-name"
+                                  onClick={() => openUserDetails(user)}
+                                  style={{ cursor: "pointer" }}
+                                >
+                                  {fullName}
+                                </span>
+                                <span className="premium-user-sub">
+                                  {user.email || `Citizen ID: #${user.user_id || "N/A"}`}
+                                </span>
                               </div>
                             </div>
                           </td>
-                          <td style={styles.tableCell}>{user.contact_number || user.contactNumber || "No contact"}</td>
-                          <td style={styles.tableCell}>{address}</td>
-                          <td style={styles.tableCell}>{formatRegisteredDate(user.date_time)}</td>
-                          <td style={styles.tableCell}><span style={styles.statusPill(user.status)}>{user.status === "verified" ? "Active" : user.status === "suspended" ? "Suspended" : user.status || "Unknown"}</span></td>
-                          <td style={styles.tableCell}>
-                            <button type="button" className="verifiedUsersActionLink" style={styles.actionLink} onClick={() => openUserDetails(user)}>
-                              View/Suspend
+                          <td>
+                            <div>
+                              <span style={{ fontWeight: 600, color: "#1e293b", display: "block" }}>
+                                Resident
+                              </span>
+                              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                                {user.baranggay || "Lagonglong"}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{ color: "#334155", fontWeight: 500 }}>
+                              {user.contact_number || user.contactNumber || "—"}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ color: "#64748b", fontSize: "13px" }}>
+                              {formatRegisteredDate(user.date_time)}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={`premium-status-pill ${
+                                user.status === "verified"
+                                  ? "status-pill-active"
+                                  : user.status === "suspended"
+                                  ? "status-pill-suspended"
+                                  : "status-pill-pending"
+                              }`}
+                            >
+                              {user.status === "verified"
+                                ? "Active"
+                                : user.status === "suspended"
+                                ? "Suspended"
+                                : user.status || "Active"}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            <button
+                              type="button"
+                              className="premium-action-btn"
+                              onClick={() => openUserDetails(user)}
+                              title="View details"
+                            >
+                              View Details
                             </button>
                           </td>
                         </tr>
@@ -483,61 +719,51 @@ export default function VerifiedUsers() {
                   </tbody>
                 </table>
               </div>
-              <div style={styles.tableFooter}>
-                Showing {Math.min((page - 1) * USERS_PER_PAGE + 1, totalItems)} to {Math.min(page * USERS_PER_PAGE, totalItems)} of {totalItems} results
-              </div>
-            </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div style={styles.paginationContainer}>
-                <button
-                  className="verifiedUsersButton"
-                  onClick={() =>
-                    setPage((pageNumber) => Math.max(1, pageNumber - 1))
-                  }
-                  disabled={page === 1 || loading}
-                  style={styles.paginationBtn(page === 1 || loading)}
-                >
-                  <ChevronLeft size={16} /> PREV
-                </button>
-
-                <span style={styles.paginationText}>
-                  Showing {Math.min((page - 1) * USERS_PER_PAGE + 1, totalItems)} to {Math.min(page * USERS_PER_PAGE, totalItems)} of {totalItems} results
-                </span>
-
-                <div style={styles.pageNumbers}>
-                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                    <button
-                      key={pageNumber}
-                      type="button"
-                      className="verifiedUsersButton"
-                      onClick={() => setPage(pageNumber)}
-                      disabled={loading}
-                      style={styles.pageNumberBtn(page === pageNumber, loading)}
-                    >
-                      {pageNumber}
-                    </button>
-                  ))}
+              {/* Table Footer with Pagination matching reference */}
+              <div className="premium-table-footer">
+                <div className="premium-pagination-info">
+                  Showing <strong>{Math.min((page - 1) * USERS_PER_PAGE + 1, totalItems)}</strong>–
+                  <strong>{Math.min(page * USERS_PER_PAGE, totalItems)}</strong> of <strong>{totalItems}</strong> Users
                 </div>
 
-                <button
-                  className="verifiedUsersButton"
-                  onClick={() =>
-                    setPage((pageNumber) =>
-                      Math.min(totalPages, pageNumber + 1)
-                    )
-                  }
-                  disabled={page === totalPages || loading}
-                  style={styles.paginationBtn(page === totalPages || loading)}
-                >
-                  NEXT <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
-          </>
-        )}
+                <div className="premium-pagination-controls">
+                  <button
+                    type="button"
+                    className="premium-page-nav-btn"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1 || loading}
+                    aria-label="Previous Page"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
 
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      className={`premium-page-num-btn ${page === pageNum ? "active" : ""}`}
+                      onClick={() => setPage(pageNum)}
+                      disabled={loading}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="premium-page-nav-btn"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages || loading}
+                    aria-label="Next Page"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </main>
 
       {/* Modal Components */}
@@ -558,7 +784,11 @@ export default function VerifiedUsers() {
         isOpen={showSuspendedPopup}
         users={suspendedUsers}
         onClose={closeSuspendedUsersPopup}
-        onViewUser={viewSuspendedUser}
+        onViewUser={(user) => {
+          closeSuspendedUsersPopup();
+          navigate(`/verified-users/${user.id}`);
+        }}
+        onUnsuspend={handleUnsuspendUser}
       />
 
       <SuspendPromptModal
@@ -573,5 +803,3 @@ export default function VerifiedUsers() {
     </div>
   );
 }
-
-

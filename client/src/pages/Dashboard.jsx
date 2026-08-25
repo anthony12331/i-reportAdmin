@@ -1,10 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
-import SummaryCard from "../components/SummaryCard";
 import DashboardMap from "../components/DashboardMap";
-import { dashboardStyles as darkStyles } from "../themes/dashboardStyles";   
 import { getReadableAddress } from "../utils/utils";
 import { sortIncidentReportsByPriority } from "../utils/incidentPriority";
 import { formatWaitTime } from "../utils/timeUtils";
@@ -27,10 +25,44 @@ import {
   Ambulance,
   Car,
   AlertOctagon,
+  Shield,
+  Zap,
+  HeartPulse,
+  ChevronRight,
+  Tv,
+  Maximize2,
+  Minimize2,
+  Users,
+  FileText,
+  Settings,
 } from "lucide-react";
 
 // Standardized list of ongoing statuses used across the system
-const ONGOING_STATUSES = ["ongoing", "accepted", "en_route", "at_scene", "dispatched"];
+const ONGOING_STATUSES = [
+  "ongoing",
+  "accepted",
+  "en_route",
+  "enroute",
+  "at_scene",
+  "atscene",
+  "dispatched",
+  "in_progress",
+];
+
+// Isolated clock component — its 1-second setInterval re-renders ONLY this
+// tiny node, not the entire Dashboard tree (KPIs, map, panels, etc.)
+function LiveClock({ color = "#0f172a", size = 13, style = {} }) {
+  const [time, setTime] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span style={style}>
+      {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+    </span>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -45,6 +77,8 @@ export default function Dashboard() {
   });
   const [addresses, setAddresses] = useState({});
   const [soundMuted, setSoundMuted] = useState(false);
+  const [isTvMode, setIsTvMode] = useState(false);
+  const mapCardRef = useRef(null);
   const prevSosCount = useRef(0);
   const isMounted = useRef(true);
 
@@ -53,6 +87,48 @@ export default function Dashboard() {
       isMounted.current = false;
     };
   }, []);
+
+  // TV Fullscreen Event Handler
+  const toggleTvMode = () => {
+    if (!isTvMode) {
+      const elem = mapCardRef.current;
+      if (elem && elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      }
+      setIsTvMode(true);
+    } else {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setIsTvMode(false);
+    }
+    setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 200);
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      const isFs = !!document.fullscreenElement;
+      setIsTvMode(isFs);
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+      }, 150);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isTvMode) {
+        setIsTvMode(false);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFsChange);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isTvMode]);
 
   // Auth Guard
   useEffect(() => {
@@ -67,15 +143,19 @@ export default function Dashboard() {
     if (soundMuted) return;
     try {
       const audio = new Audio("/notification_sound.mp3");
-      audio.play().catch(() => {}).catch(() => {});
+      audio.play().catch(() => {});
     } catch (e) {
       console.warn("Audio alert failed to play:", e);
     }
   }, [soundMuted]);
 
-  // Parallel reverse-geocoding helper
-  const resolveAddresses = async (items) => {
-    const geoItems = items.filter((item) => item.latitude && item.longitude);
+  // Parallel reverse-geocoding with persistent cache.
+  // Items already resolved (ID present in `addresses`) are skipped entirely
+  // so we don't hit the Nominatim rate limit on every 400ms subscription event.
+  const resolveAddresses = useCallback(async (items) => {
+    const geoItems = items.filter(
+      (item) => item.latitude && item.longitude && !addresses[item.id]
+    );
     if (geoItems.length === 0) return;
 
     const resolvedEntries = await Promise.all(
@@ -89,18 +169,20 @@ export default function Dashboard() {
       })
     );
 
-    setAddresses((prev) => ({
-      ...prev,
-      ...Object.fromEntries(resolvedEntries.filter(Boolean)),
-    }));
-  };
+    if (resolvedEntries.some(Boolean)) {
+      setAddresses((prev) => ({
+        ...prev,
+        ...Object.fromEntries(resolvedEntries.filter(Boolean)),
+      }));
+    }
+  }, [addresses]);
 
   const loadData = useCallback(async () => {
     try {
       if (!pb.authStore.isValid) return;
 
       const [usersRes, reportsRes, sosRes, respondersRes, dispatchesRes, auditLogsRes, backupRequestsRes] = await Promise.all([
-        pb.collection("users").getList(1, 1, { filter: 'status = "pending"', requestKey: "dash-users" }).catch(() => ({ totalItems: 0 })),
+        pb.collection("users").getFullList({ fields: "id,status", requestKey: "dash-users" }).catch(() => []),
         pb.collection("incident_reports").getFullList({
           sort: "-created",
           expand: "users",
@@ -116,7 +198,7 @@ export default function Dashboard() {
           expand: "responder_id,incident_id,sos_id",
           requestKey: "dash-dispatches",
         }).catch(() => []),
-        pb.collection("audit_logs").getList(1, 5, { sort: "-created", requestKey: "dash-audit" }).catch(() => ({ items: [] })),
+        pb.collection("audit_logs").getList(1, 6, { sort: "-created", requestKey: "dash-audit" }).catch(() => ({ items: [] })),
         pb.collection("backup_requests").getFullList({
           expand: "requester_id,assigned_responder,incident_id,sos_id",
           requestKey: "dash-backups",
@@ -125,8 +207,11 @@ export default function Dashboard() {
 
       if (!isMounted.current) return;
 
-      const users = []; // Keep original structure
-      const pendingUsersCount = usersRes.totalItems || 0;
+      const rawUsers = usersRes || [];
+      const pendingUsersCount = rawUsers.filter((u) => {
+        const s = (u.status || "").toLowerCase().trim();
+        return s === "pending" || s === "" || (s !== "verified" && s !== "suspended" && s !== "rejected");
+      }).length;
       const reports = reportsRes || [];
       const sos = sosRes || [];
       const responders = respondersRes || [];
@@ -147,13 +232,13 @@ export default function Dashboard() {
         sos,
         responders,
         dispatches,
-        auditLogs: auditLogs,
+        auditLogs,
         backupRequests,
       });
 
       const itemsToResolve = [
-        ...reports.filter((r) => ["new", "pending"].includes(r.status)).slice(0, 5),
-        ...sos.slice(0, 3),
+        ...reports.filter((r) => ["new", "pending"].includes(r.status)).slice(0, 6),
+        ...sos.slice(0, 4),
       ];
       resolveAddresses(itemsToResolve);
 
@@ -196,275 +281,1107 @@ export default function Dashboard() {
     };
   }, [loadData]);
 
-  // Derived Dashboard Metrics
-  const activeDispatches = data.dispatches.filter(d => d.status?.toLowerCase() !== "resolved");
-  const activeIncidentIds = new Set(activeDispatches.map(d => d.incident_id).filter(id => !!id));
-  const activeSosIds = new Set(activeDispatches.map(d => d.sos_id).filter(id => !!id));
+  // Derived Dashboard Metrics — all memoized so they only recompute when
+  // the underlying data changes, not on every parent render / timer tick
+  const activeDispatches = useMemo(
+    () => data.dispatches.filter((d) => d.status?.toLowerCase() !== "resolved"),
+    [data.dispatches]
+  );
 
-  const activeSosList = data.sos.filter(s => s.status?.toLowerCase() !== "resolved" || activeSosIds.has(s.id));
+  const activeIncidentIds = useMemo(
+    () => new Set(activeDispatches.map((d) => d.incident_id).filter(Boolean)),
+    [activeDispatches]
+  );
 
-  const stats = {
-    pending: sortIncidentReportsByPriority(
-      data.reports.filter((r) => ["new", "pending"].includes(r.status))
-    ),
-    ongoing: data.reports.filter((r) =>
-      ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)
-    ).length,
-    resolved: data.reports.filter((r) => r.status === "resolved").length,
-    uPending: data.pendingUsersCount || 0,
-    respondersAvailable: data.responders.filter((r) => r.is_available === true).length,
-  };
+  const activeSosIds = useMemo(
+    () => new Set(activeDispatches.map((d) => d.sos_id).filter(Boolean)),
+    [activeDispatches]
+  );
+
+  const activeSosList = useMemo(
+    () => data.sos.filter((s) => s.status?.toLowerCase() !== "resolved" || activeSosIds.has(s.id)),
+    [data.sos, activeSosIds]
+  );
+
+  const pendingIncidents = useMemo(() => {
+    return sortIncidentReportsByPriority(
+      data.reports.filter((r) => ["new", "pending"].includes(r.status?.toLowerCase()))
+    );
+  }, [data.reports]);
+
+  const ongoingCount = useMemo(() => {
+    return data.reports.filter(
+      (r) => ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)
+    ).length;
+  }, [data.reports, activeIncidentIds]);
+
+  const resolvedCount = useMemo(() => {
+    return data.reports.filter((r) => r.status === "resolved").length;
+  }, [data.reports]);
 
   // Category Breakdown Aggregator
-  const categoryCounts = data.reports.reduce((acc, r) => {
-    const type = (r.type || "OTHER").toLowerCase();
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {});
+  const categoryCounts = useMemo(() => {
+    return data.reports.reduce((acc, r) => {
+      const type = (r.type || "OTHER").toLowerCase();
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+  }, [data.reports]);
+
+  // Fleet breakdown by Agency
+  const fleetByAgency = useMemo(() => {
+    const agencies = {
+      BFP: { label: "Fire Protection", available: 0, total: 0, color: "#dc2626", icon: Flame },
+      PNP: { label: "National Police", available: 0, total: 0, color: "#7c3aed", icon: Shield },
+      EMS: { label: "Medical Services", available: 0, total: 0, color: "#0284c7", icon: Ambulance },
+      MDRRMO: { label: "Disaster Risk", available: 0, total: 0, color: "#15803d", icon: Activity },
+    };
+
+    data.responders.forEach((r) => {
+      const dept = (r.department || "").toUpperCase();
+      let key = "MDRRMO";
+      if (dept.includes("FIRE") || dept.includes("BFP")) key = "BFP";
+      else if (dept.includes("POLICE") || dept.includes("PNP")) key = "PNP";
+      else if (dept.includes("AMBULANCE") || dept.includes("EMS") || dept.includes("MED")) key = "EMS";
+
+      if (agencies[key]) {
+        agencies[key].total++;
+        if (r.is_available === true) agencies[key].available++;
+      }
+    });
+
+    return agencies;
+  }, [data.responders]);
+
+  const totalRespondersAvailable = useMemo(
+    () => data.responders.filter((r) => r.is_available === true).length,
+    [data.responders]
+  );
 
   const getCategoryIcon = (type) => {
-    const t = type.toLowerCase();
-    if (t.includes("fire")) return <Flame size={14} color="#f97316" />;
-    if (t.includes("medical") || t.includes("health")) return <Ambulance size={14} color="#ef4444" />;
-    if (t.includes("traffic") || t.includes("accident")) return <Car size={14} color="#3b82f6" />;
-    return <AlertOctagon size={14} color="#a855f7" />;
+    const t = (type || "").toLowerCase();
+    if (t.includes("fire")) return <Flame size={13} color="#dc2626" />;
+    if (t.includes("medical") || t.includes("health")) return <HeartPulse size={13} color="#0284c7" />;
+    if (t.includes("traffic") || t.includes("accident")) return <Car size={13} color="#ea580c" />;
+    if (t.includes("police")) return <Shield size={13} color="#7c3aed" />;
+    return <AlertOctagon size={13} color="#64748b" />;
   };
 
   return (
-    <div style={darkStyles.shell}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar
-        pendingIncidentsCount={stats.pending.length}
-        ongoingIncidentsCount={stats.ongoing}
-        pendingUsersCount={stats.uPending}
+        pendingIncidentsCount={pendingIncidents.length}
+        ongoingIncidentsCount={ongoingCount}
+        pendingUsersCount={data.pendingUsersCount}
         pendingSosCount={activeSosList.length}
       />
 
-      
-      <main style={darkStyles.main}>
-        {/* HEADER BAR WITH CONTROLS */}
-        <header style={darkStyles.header}>
+      <main style={{ flex: 1, marginLeft: "216px", padding: "28px 34px", minWidth: 0, overflowY: "auto" }}>
+        {/* 1. EXECUTIVE HEADER */}
+        <header
+          style={{
+            marginBottom: "24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            gap: "16px",
+          }}
+        >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <h1 style={darkStyles.title}>Command Center</h1>
-              <span style={darkStyles.liveTag}>I-report</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <span className="live-status-pulse" style={{ width: "11px", height: "11px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
+              <span style={{ fontSize: "11.5px", fontWeight: "900", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.06em", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 9px", borderRadius: "6px" }}>
+                Lagonglong MDRRMO Command Center
+              </span>
             </div>
-            <p style={darkStyles.subtitle}>Real-time emergency telemetry & operational dispatch</p>
+            <h1 style={{ fontSize: "clamp(24px, 3.2vw, 30px)", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+              Emergency Operations Telemetry
+            </h1>
+            <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "13.5px", fontWeight: "500" }}>
+              Live emergency telemetry, multi-agency dispatch matrix, and municipal incident monitoring.
+            </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          {/* Right Header Live Telemetry Controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            {/* Audio Alert Toggle */}
+            <button
+              type="button"
+              onClick={() => setSoundMuted((prev) => !prev)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "10px",
+                border: soundMuted ? "1px solid #cbd5e1" : "1px solid #bbf7d0",
+                backgroundColor: soundMuted ? "#ffffff" : "#f0fdf4",
+                color: soundMuted ? "#64748b" : "#15803d",
+                fontSize: "12px",
+                fontWeight: "800",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              title={soundMuted ? "Audio sirens muted" : "Audio sirens active"}
+            >
+              {soundMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              <span>{soundMuted ? "Sirens Muted" : "Sirens Active"}</span>
+            </button>
 
+            {/* Live Clock Pill */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "10px",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                color: "#0f172a",
+                fontSize: "12px",
+                fontWeight: "800",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              }}
+            >
+              <Clock size={13} color="#15803d" />
+              <LiveClock />
+            </div>
 
-            <div style={darkStyles.statusBadge}>
-              <span style={darkStyles.statusDot} />
-              ACTIVE
+            {/* Active Status Badge */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "10px",
+                backgroundColor: "#15803d",
+                color: "#ffffff",
+                fontSize: "12px",
+                fontWeight: "900",
+                letterSpacing: "0.04em",
+                boxShadow: "0 4px 12px rgba(21, 128, 61, 0.22)",
+              }}
+            >
+              <Activity size={13} />
+              <span>LIVE TELEMETRY</span>
             </div>
           </div>
         </header>
 
-        {/* METRIC RIBBON CARDS */}
-        <div style={darkStyles.cardGrid}>
-          <SummaryCard
-            title="Active SOS"
-            val={activeSosList.length}
-            icon={<Radio size={16} color="#ef4444" />}
-            accent="#ef4444"
-            urgent={activeSosList.length > 0}
+        {/* 2. HIGH-IMPACT SCALE-JUMP KPI RIBBON */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "16px",
+            marginBottom: "24px",
+          }}
+        >
+          {/* Active SOS Card */}
+          <div
+            className="premium-table-card"
             onClick={() => navigate("/pending-sos")}
-          />
-          <SummaryCard
-            title="Pending Incidents"
-            val={stats.pending.length}
-            icon={<AlertTriangle size={16} color="#f97316" />}
-            accent="#f97316"
+            style={{
+              padding: "18px 20px",
+              cursor: "pointer",
+              borderLeft: activeSosList.length > 0 ? "5px solid #dc2626" : "5px solid #cbd5e1",
+              backgroundColor: activeSosList.length > 0 ? "#fef2f2" : "#ffffff",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: activeSosList.length > 0 ? "#dc2626" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Active SOS Alerts
+              </span>
+              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: activeSosList.length > 0 ? "#fee2e2" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Radio size={14} color={activeSosList.length > 0 ? "#dc2626" : "#64748b"} className={activeSosList.length > 0 ? "animate-pulse" : ""} />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <h2 style={{ fontSize: "32px", fontWeight: "900", color: activeSosList.length > 0 ? "#dc2626" : "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+                {activeSosList.length}
+              </h2>
+              <span style={{ fontSize: "11.5px", fontWeight: "700", color: activeSosList.length > 0 ? "#b91c1c" : "#64748b" }}>critical</span>
+            </div>
+          </div>
+
+          {/* Pending Incidents */}
+          <div
+            className="premium-table-card"
             onClick={() => navigate("/pending-incidents")}
-          />
-          <SummaryCard
-            title="Ongoing Dispatches"
-            val={stats.ongoing}
-            icon={<Clock size={16} color="#38bdf8" />}
-            accent="#38bdf8"
+            style={{
+              padding: "18px 20px",
+              cursor: "pointer",
+              borderLeft: pendingIncidents.length > 0 ? "5px solid #ea580c" : "5px solid #cbd5e1",
+              backgroundColor: "#ffffff",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#d97706", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Pending Queue
+              </span>
+              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <AlertTriangle size={14} color="#d97706" />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+                {pendingIncidents.length}
+              </h2>
+              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#d97706" }}>unassigned</span>
+            </div>
+          </div>
+
+          {/* Ongoing Operations */}
+          <div
+            className="premium-table-card"
             onClick={() => navigate("/ongoing-incidents")}
-          />
-          <SummaryCard
-            title="Resolved Total"
-            val={stats.resolved}
-            icon={<CheckCircle2 size={16} color="#22c55e" />}
-            accent="#22c55e"
+            style={{
+              padding: "18px 20px",
+              cursor: "pointer",
+              borderLeft: "5px solid #0284c7",
+              backgroundColor: "#ffffff",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Active Dispatches
+              </span>
+              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Clock size={14} color="#0284c7" />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#0284c7", margin: 0, letterSpacing: "-0.03em" }}>
+                {ongoingCount}
+              </h2>
+              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1" }}>in field</span>
+            </div>
+          </div>
+
+          {/* Resolved Total */}
+          <div
+            className="premium-table-card"
             onClick={() => navigate("/resolved-incidents")}
-          />
-          <SummaryCard
-            title="Verification Queue"
-            val={stats.uPending}
-            icon={<UserCheck size={16} color="#818cf8" />}
-            accent="#818cf8"
+            style={{
+              padding: "18px 20px",
+              cursor: "pointer",
+              borderLeft: "5px solid #15803d",
+              backgroundColor: "#ffffff",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Resolved Total
+              </span>
+              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircle2 size={14} color="#15803d" />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#15803d", margin: 0, letterSpacing: "-0.03em" }}>
+                {resolvedCount}
+              </h2>
+              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#166534" }}>cases</span>
+            </div>
+          </div>
+
+          {/* Verification Queue */}
+          <div
+            className="premium-table-card"
             onClick={() => navigate("/pending-users")}
-          />
+            style={{
+              padding: "18px 20px",
+              cursor: "pointer",
+              borderLeft: "5px solid #7c3aed",
+              backgroundColor: "#ffffff",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Citizen Registrations
+              </span>
+              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <UserCheck size={14} color="#7c3aed" />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#7c3aed", margin: 0, letterSpacing: "-0.03em" }}>
+                {data.pendingUsersCount}
+              </h2>
+              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#6d28d9" }}>pending</span>
+            </div>
+          </div>
         </div>
 
-        {/* MASTER GRID */}
-        <div style={darkStyles.masterGrid}>
-          {/* LEFT COLUMN: SOS & QUEUE */}
-          <div style={darkStyles.gridCol}>
-            {activeSosList.length > 0 && (
-              <div style={darkStyles.sosPanel}>
-                <div style={darkStyles.sosHeader}>
-                  <h2 style={darkStyles.sosHeading}>
-                    <Radio className="animate-pulse" size={12} /> CRITICAL ALERTS ({activeSosList.length})
-                  </h2>
-                  <button onClick={() => navigate("/pending-sos")} style={darkStyles.sosViewBtn}>
-                    HUB <ArrowUpRight size={10} />
-                  </button>
+        {/* 3. HERO LIVE TACTICAL MAP (FULL WIDTH DIRECTLY IN THE MIDDLE + TV FULLSCREEN SUPPORT) */}
+        <div
+          ref={mapCardRef}
+          className={isTvMode ? "" : "premium-table-card"}
+          style={
+            isTvMode
+              ? {
+                  position: "fixed",
+                  inset: 0,
+                  width: "100vw",
+                  height: "100vh",
+                  zIndex: 999999,
+                  backgroundColor: "#0f172a",
+                  borderRadius: 0,
+                  margin: 0,
+                  padding: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                }
+              : {
+                  padding: "0",
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "540px",
+                  marginBottom: "24px",
+                  boxShadow: "0 8px 30px rgba(15, 23, 42, 0.08)",
+                }
+          }
+        >
+          {/* Map Header / TV Fullscreen HUD Bar */}
+          <div
+            style={
+              isTvMode
+                ? {
+                    padding: "12px 24px",
+                    backgroundColor: "rgba(15, 23, 42, 0.95)",
+                    backdropFilter: "blur(16px)",
+                    borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    color: "#ffffff",
+                    zIndex: 1000,
+                    flexWrap: "wrap",
+                    gap: "12px",
+                  }
+                : {
+                    padding: "16px 22px",
+                    borderBottom: "1px solid #f1f5f9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#ffffff",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                  }
+            }
+          >
+            {/* Title & Live Status */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: isTvMode ? "36px" : "32px",
+                  height: isTvMode ? "36px" : "32px",
+                  borderRadius: "8px",
+                  backgroundColor: isTvMode ? "#166534" : "#f0fdf4",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: isTvMode ? "1px solid #22c55e" : "1px solid #bbf7d0",
+                }}
+              >
+                <MapPin size={isTvMode ? 20 : 18} color={isTvMode ? "#86efac" : "#15803d"} />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <h3 style={{ margin: 0, fontSize: isTvMode ? "17px" : "16px", fontWeight: "900", color: isTvMode ? "#ffffff" : "#0f172a", letterSpacing: "-0.02em" }}>
+                    {isTvMode ? "LAGONGLONG MDRRMO • COMMAND CENTER LIVE MAP" : "Live Tactical Emergency Map"}
+                  </h3>
+                  {isTvMode && (
+                    <span style={{ fontSize: "10.5px", fontWeight: "900", color: "#22c55e", backgroundColor: "rgba(34, 197, 94, 0.15)", border: "1px solid rgba(34, 197, 94, 0.3)", padding: "2px 8px", borderRadius: "6px" }}>
+                      ● LIVE FEED
+                    </span>
+                  )}
                 </div>
-                <div style={{ overflow: "auto", flex: 1 }}>
-                  <table style={darkStyles.table}>
-                    <thead>
-                      <tr style={darkStyles.thRow}>
-                        <th style={darkStyles.th}>CITIZEN</th>
-                        <th style={darkStyles.th}>WAIT</th>
-                        <th style={darkStyles.thRight}>ACT</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activeSosList.slice(0, 3).map((s) => {
-                        const citizenName = s.expand?.user?.first_name || s.expand?.users?.first_name || "Resident";
-                        return (
-                          <tr key={s.id} style={darkStyles.tr}>
-                            <td style={darkStyles.tdBold}>{citizenName}</td>
-                            <td style={darkStyles.tdHighlight}>{formatWaitTime(s.created)}</td>
-                            <td style={darkStyles.tdRight}>
-                              <button onClick={() => navigate("/pending-sos")} style={darkStyles.sosActionBtn}>Go</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-            
-            <div style={darkStyles.panelFlex}>
-              <div style={darkStyles.panelHeader}>
-                <h2 style={darkStyles.sectionTitle}>
-                  <ShieldAlert size={14} color="#f97316" /> Incident Queue
-                </h2>
-                <button onClick={() => navigate("/pending-incidents")} style={darkStyles.ghostBtn}>
-                  All ({stats.pending.length})
-                </button>
-              </div>
-              <div style={{ overflow: "auto", flex: 1 }}>
-                {stats.pending.length === 0 ? (
-                  <p style={darkStyles.emptyState}>No pending incidents.</p>
-                ) : (
-                  <table style={darkStyles.table}>
-                    <tbody>
-                      {stats.pending.map((r) => (
-                        <tr key={r.id} style={darkStyles.tr}>
-                          <td style={darkStyles.tdBold}>
-                            <span style={darkStyles.typeTag}>
-                              {getCategoryIcon(r.type)} {r.type?.toUpperCase()}
-                            </span>
-                          </td>
-                          <td style={darkStyles.tdMuted}>
-                            {addresses[r.id]?.substring(0, 15) || "Locating..."}
-                          </td>
-                          <td style={darkStyles.tdRight}>
-                            <button onClick={() => navigate("/pending-incidents")} style={darkStyles.dispatchBtn}>GO</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-
-            <div style={darkStyles.panelFixed}>
-              <div style={darkStyles.panelHeader}>
-                <h2 style={darkStyles.sectionTitle}>
-                  <PieIcon size={14} color="#a855f7" /> Breakdown
-                </h2>
-                <span style={darkStyles.subBadge}>{data.reports.length} Total</span>
-              </div>
-              <div style={darkStyles.categoryList}>
-                {Object.keys(categoryCounts).length === 0 ? (
-                  <p style={darkStyles.emptyState}>No data.</p>
-                ) : (
-                  Object.entries(categoryCounts).slice(0, 3).map(([type, count]) => (
-                    <div key={type} style={darkStyles.categoryRow}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        {getCategoryIcon(type)}
-                        <span style={{ textTransform: "uppercase", fontSize: "9px", color: "#cbd5e1", fontWeight: 600 }}>
-                          {type}
-                        </span>
-                      </div>
-                      <span style={darkStyles.categoryCountBadge}>{count}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* MIDDLE COLUMN: MAP */}
-          <div style={darkStyles.mapPanel}>
-            <div style={darkStyles.panelHeader}>
-              <h2 style={darkStyles.sectionTitle}>
-                <MapPin size={14} color="#34d399" /> Live Tactical Map
-              </h2>
-            </div>
-            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-              <DashboardMap reports={data.reports} sos={activeSosList} responders={data.responders} dispatches={data.dispatches} backupRequests={data.backupRequests} />
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: Fleet & Audit */}
-          <div style={darkStyles.rightGridCol}>
-            <div style={darkStyles.panelFixed}>
-              <div style={darkStyles.panelHeader}>
-                <h2 style={darkStyles.sectionTitle}>
-                  <Truck size={14} color="#38bdf8" /> Fleet Readiness
-                </h2>
-                <span style={darkStyles.subBadgeBlue}>
-                  {stats.respondersAvailable}/{data.responders.length || 0} Ready
+                <span style={{ fontSize: "11.5px", color: isTvMode ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+                  Real-time GPS emergency positioning, live responder units, and municipal jurisdiction boundaries
                 </span>
               </div>
-              <p style={darkStyles.fleetSubtext}>
-                {data.responders.length === 0
-                  ? "No responder units registered in system."
-                  : `${stats.respondersAvailable} emergency units ready for immediate deployment.`}
-              </p>
             </div>
 
-            <div style={darkStyles.panelFlex}>
-              <div style={darkStyles.panelHeader}>
-                <h2 style={darkStyles.sectionTitle}>
-                  <History size={14} color="#818cf8" /> Live Audit Stream
-                </h2>
-                <button onClick={() => navigate("/audit-logs")} style={darkStyles.ghostBtn}>View All</button>
-              </div>
-              {data.auditLogs.length === 0 ? (
-                <p style={darkStyles.emptyState}>No recent records.</p>
-              ) : (
-                <ul style={darkStyles.auditList}>
-                  {data.auditLogs.slice(0, 5).map((log) => (
-                    <li key={log.id} style={darkStyles.auditItem}>
-                      <Activity size={10} color="#64748b" style={{ flexShrink: 0, marginTop: "2px" }} />
-                      <div style={darkStyles.auditContent}>
-                        <p style={darkStyles.auditText}>{log.action || log.details || "System Event"}</p>
-                        <span style={darkStyles.auditTime}>{formatWaitTime(log.created)}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+            {/* Live Badges & Controls */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              {/* Large Clock in Fullscreen Mode */}
+              {isTvMode && (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    backgroundColor: "rgba(255, 255, 255, 0.08)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#ffffff",
+                    fontSize: "13px",
+                    fontWeight: "900",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  <Clock size={14} color="#22c55e" />
+                  <LiveClock />
+                </div>
               )}
+
+              {/* Status Badges */}
+              <span
+                style={{
+                  fontSize: "11.5px",
+                  fontWeight: "800",
+                  color: activeSosList.length > 0 ? "#dc2626" : isTvMode ? "#94a3b8" : "#64748b",
+                  backgroundColor: activeSosList.length > 0 ? (isTvMode ? "#450a0a" : "#fef2f2") : isTvMode ? "rgba(255,255,255,0.06)" : "#f1f5f9",
+                  border: activeSosList.length > 0 ? "1px solid #fecaca" : isTvMode ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0",
+                  padding: "5px 11px",
+                  borderRadius: "7px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                }}
+              >
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: "#dc2626", display: "inline-block" }} />
+                <span>{activeSosList.length} SOS Alerts</span>
+              </span>
+              <span
+                style={{
+                  fontSize: "11.5px",
+                  fontWeight: "800",
+                  color: isTvMode ? "#38bdf8" : "#0284c7",
+                  backgroundColor: isTvMode ? "rgba(56, 189, 248, 0.15)" : "#f0f9ff",
+                  border: isTvMode ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid #bae6fd",
+                  padding: "5px 11px",
+                  borderRadius: "7px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                }}
+              >
+                <Truck size={13} color={isTvMode ? "#38bdf8" : "#0284c7"} />
+                <span>{ongoingCount} Ongoing Incidents</span>
+              </span>
+              <span
+                style={{
+                  fontSize: "11.5px",
+                  fontWeight: "800",
+                  color: isTvMode ? "#4ade80" : "#15803d",
+                  backgroundColor: isTvMode ? "rgba(74, 222, 128, 0.15)" : "#f0fdf4",
+                  border: isTvMode ? "1px solid rgba(74, 222, 128, 0.3)" : "1px solid #bbf7d0",
+                  padding: "5px 11px",
+                  borderRadius: "7px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                }}
+              >
+                <Shield size={13} color={isTvMode ? "#4ade80" : "#15803d"} />
+                <span>{totalRespondersAvailable} Units Ready</span>
+              </span>
+
+              {/* Fullscreen Button Toggle */}
+              <button
+                type="button"
+                onClick={toggleTvMode}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: isTvMode ? "6px 14px" : "6px 13px",
+                  borderRadius: "8px",
+                  backgroundColor: isTvMode ? "#dc2626" : "#0f172a",
+                  color: "#ffffff",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  border: isTvMode ? "1px solid #ef4444" : "1px solid #334155",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                  transition: "all 0.15s ease",
+                }}
+                title={isTvMode ? "Exit Fullscreen (Esc)" : "Expand map to full screen"}
+              >
+                {isTvMode ? (
+                  <>
+                    <Minimize2 size={14} />
+                    <span>Exit Full Screen (Esc)</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 size={14} color="#38bdf8" />
+                    <span>Full Screen</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Map Container */}
+          <div
+            style={{
+              flex: 1,
+              width: "100%",
+              height: isTvMode ? "calc(100vh - 110px)" : "430px",
+              minHeight: isTvMode ? "400px" : "430px",
+              position: "relative",
+            }}
+          >
+            <DashboardMap
+              reports={data.reports}
+              sos={data.sos}
+              responders={data.responders}
+              dispatches={data.dispatches}
+              backupRequests={data.backupRequests}
+            />
+          </div>
+
+          {/* Map Legend Ribbon */}
+          <div
+            style={
+              isTvMode
+                ? {
+                    padding: "8px 24px",
+                    backgroundColor: "rgba(15, 23, 42, 0.95)",
+                    backdropFilter: "blur(16px)",
+                    borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-around",
+                    flexWrap: "wrap",
+                    gap: "14px",
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    color: "#e2e8f0",
+                  }
+                : {
+                    padding: "10px 22px",
+                    backgroundColor: "#ffffff",
+                    borderTop: "1px solid #f1f5f9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-around",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    fontSize: "11.5px",
+                    fontWeight: "800",
+                    color: "#475569",
+                  }
+            }
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "#dc2626", display: "inline-block", boxShadow: "0 0 0 2px rgba(220, 38, 38, 0.4)" }} />
+              <span>Critical Citizen SOS</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "#ea580c", display: "inline-block" }} />
+              <span>Reported Incident</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "#0284c7", display: "inline-block" }} />
+              <span>Deployed Responder Unit</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ width: "9px", height: "9px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
+              <span>MDRRMO Municipal Station Base</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. UNIFIED & CLEAN 3-PANEL COMMAND WORKBENCH */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "20px",
+            alignItems: "stretch",
+          }}
+        >
+          {/* PANEL 1: EMERGENCY & INCIDENT TRIAGE QUEUE */}
+          <div
+            className="premium-table-card"
+            style={{
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              height: "440px",
+              overflow: "hidden",
+            }}
+          >
+            {/* Panel Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "28px", height: "28px", borderRadius: "7px", backgroundColor: "#fff7ed", border: "1px solid #ffedd5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <ShieldAlert size={15} color="#ea580c" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "14px", fontWeight: "900", color: "#0f172a" }}>
+                    Emergency Triage Queue
+                  </h3>
+                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                    {pendingIncidents.length + activeSosList.length} total pending dispatch
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/pending-incidents")}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  backgroundColor: "#f8fafc",
+                  color: "#0f172a",
+                  fontSize: "11.5px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                }}
+              >
+                View All
+              </button>
+            </div>
+
+            {/* Panel Scrollable Body */}
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", paddingRight: "4px" }}>
+              {/* Active SOS Banner if any */}
+              {activeSosList.length > 0 && (
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    backgroundColor: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Radio className="animate-pulse" size={15} color="#dc2626" />
+                    <div>
+                      <div style={{ fontSize: "12px", fontWeight: "900", color: "#dc2626" }}>
+                        {activeSosList.length} Active SOS Alert{activeSosList.length > 1 ? "s" : ""}
+                      </div>
+                      <div style={{ fontSize: "10.5px", color: "#991b1b", fontWeight: "600" }}>
+                        Immediate dispatch required
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/pending-sos")}
+                    style={{
+                      padding: "4px 9px",
+                      borderRadius: "6px",
+                      border: "none",
+                      backgroundColor: "#dc2626",
+                      color: "#ffffff",
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Console
+                  </button>
+                </div>
+              )}
+
+              {/* Pending Incidents List */}
+              {pendingIncidents.length === 0 && activeSosList.length === 0 ? (
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#94a3b8", textAlign: "center", padding: "20px 0" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "50%", backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "10px" }}>
+                    <CheckCircle2 size={22} color="#15803d" />
+                  </div>
+                  <div style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a", marginBottom: "2px" }}>
+                    Triage Queue is Clear
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "#64748b" }}>
+                    All citizen reports and emergency SOS signals are dispatched.
+                  </div>
+                </div>
+              ) : (
+                pendingIncidents.map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "9px 12px",
+                      borderRadius: "8px",
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      gap: "10px",
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+                        {getCategoryIcon(r.type)}
+                        <span style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                          {r.type || "INCIDENT"}
+                        </span>
+                        <span style={{ fontSize: "10px", color: "#ea580c", backgroundColor: "#fef3c7", padding: "1px 5px", borderRadius: "4px", fontWeight: "800" }}>
+                          PENDING
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {addresses[r.id] || "GPS Coordinates Acquired"}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/pending-incidents")}
+                      style={{
+                        padding: "5px 11px",
+                        borderRadius: "6px",
+                        border: "none",
+                        backgroundColor: "#15803d",
+                        color: "#ffffff",
+                        fontSize: "11px",
+                        fontWeight: "800",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      Assign
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Panel Footer */}
+            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", color: "#64748b", fontWeight: "700" }}>
+              <span>Live Queue Monitor</span>
+              <span style={{ color: "#15803d" }}>● Operational</span>
+            </div>
+          </div>
+
+          {/* PANEL 2: MULTI-AGENCY FLEET & CLASSIFICATION */}
+          <div
+            className="premium-table-card"
+            style={{
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              height: "440px",
+              overflow: "hidden",
+            }}
+          >
+            {/* Panel Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "28px", height: "28px", borderRadius: "7px", backgroundColor: "#f0f9ff", border: "1px solid #e0f2fe", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Truck size={15} color="#0284c7" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "14px", fontWeight: "900", color: "#0f172a" }}>
+                    Fleet Readiness & Volume
+                  </h3>
+                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                    Multi-agency emergency deployment
+                  </span>
+                </div>
+              </div>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "6px" }}>
+                {totalRespondersAvailable}/{data.responders.length} Ready
+              </span>
+            </div>
+
+            {/* Panel Body */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", overflowY: "auto", paddingRight: "4px" }}>
+              {/* Agency Readiness Matrix (2x2 Grid) */}
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "8px" }}>
+                  Department Readiness
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
+                  {Object.entries(fleetByAgency).map(([key, agency]) => {
+                    const Icon = agency.icon;
+                    return (
+                      <div
+                        key={key}
+                        style={{
+                          padding: "8px 10px",
+                          borderRadius: "8px",
+                          backgroundColor: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <Icon size={13} color={agency.color} />
+                          <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#0f172a" }}>{key}</span>
+                        </div>
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: agency.available > 0 ? "#15803d" : "#64748b" }}>
+                          {agency.available}/{agency.total}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Classification Progress Distribution */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Incident Volume
+                  </span>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b" }}>
+                    {data.reports.length} Total Cases
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                  {Object.entries(categoryCounts).slice(0, 3).map(([type, count]) => {
+                    const pct = Math.round((count / (data.reports.length || 1)) * 100);
+                    return (
+                      <div key={type}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px", fontSize: "11.5px" }}>
+                          <span style={{ fontWeight: "700", color: "#0f172a", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
+                            {getCategoryIcon(type)} {type}
+                          </span>
+                          <span style={{ fontWeight: "800", color: "#0f172a", fontSize: "11px" }}>
+                            {count} <span style={{ color: "#64748b", fontWeight: "600" }}>({pct}%)</span>
+                          </span>
+                        </div>
+                        <div style={{ width: "100%", height: "4px", backgroundColor: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", backgroundColor: "#15803d" }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Panel Footer */}
+            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
+              <button
+                type="button"
+                onClick={() => navigate("/ongoing-incidents")}
+                style={{
+                  width: "100%",
+                  padding: "7px",
+                  borderRadius: "7px",
+                  border: "1px solid #e2e8f0",
+                  backgroundColor: "#f8fafc",
+                  color: "#0f172a",
+                  fontSize: "11.5px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "4px",
+                }}
+              >
+                View Active Dispatches <ChevronRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* PANEL 3: LIVE AUDIT FEED & QUICK OPERATIONS */}
+          <div
+            className="premium-table-card"
+            style={{
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              height: "440px",
+              overflow: "hidden",
+            }}
+          >
+            {/* Panel Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "28px", height: "28px", borderRadius: "7px", backgroundColor: "#f5f3ff", border: "1px solid #ede9fe", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <History size={15} color="#7c3aed" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "14px", fontWeight: "900", color: "#0f172a" }}>
+                    Audit Feed & Shortcuts
+                  </h3>
+                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                    Activity stream & fast actions
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/audit-logs")}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  backgroundColor: "#f8fafc",
+                  color: "#0f172a",
+                  fontSize: "11.5px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                }}
+              >
+                View All
+              </button>
+            </div>
+
+            {/* Panel Body */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", overflowY: "auto", paddingRight: "4px" }}>
+              {/* Audit Stream Snippets */}
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "8px" }}>
+                  Recent System Events
+                </div>
+                {data.auditLogs.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "16px 0", color: "#94a3b8", fontSize: "11.5px" }}>
+                    No recent audit activity recorded.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {data.auditLogs.slice(0, 3).map((log) => (
+                      <div
+                        key={log.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "8px",
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          backgroundColor: "#f8fafc",
+                          border: "1px solid #f1f5f9",
+                        }}
+                      >
+                        <Activity size={12} color="#15803d" style={{ flexShrink: 0, marginTop: "2px" }} />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: "11px", fontWeight: "700", color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {log.action || log.details || "System Event"}
+                          </div>
+                          <div style={{ fontSize: "9.5px", color: "#64748b", fontWeight: "600" }}>
+                            {formatWaitTime(log.created)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Operations 2x2 Hub */}
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <Zap size={12} color="#eab308" /> Quick Command Shortcuts
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px" }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/report")}
+                    style={{
+                      padding: "8px",
+                      borderRadius: "7px",
+                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "5px",
+                    }}
+                  >
+                    <FileText size={13} color="#2563eb" />
+                    <span>Reports Hub</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/verified-users")}
+                    style={{
+                      padding: "8px",
+                      borderRadius: "7px",
+                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "5px",
+                    }}
+                  >
+                    <Users size={13} color="#7c3aed" />
+                    <span>Residents</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/ongoing-incidents")}
+                    style={{
+                      padding: "8px",
+                      borderRadius: "7px",
+                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "5px",
+                    }}
+                  >
+                    <Truck size={13} color="#0284c7" />
+                    <span>Dispatches</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/manage-admins")}
+                    style={{
+                      padding: "8px",
+                      borderRadius: "7px",
+                      border: "1px solid #e2e8f0",
+                      backgroundColor: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "5px",
+                    }}
+                  >
+                    <Settings size={13} color="#64748b" />
+                    <span>Admin Mgmt</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel Footer */}
+            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", color: "#64748b", fontWeight: "700" }}>
+              <span>PocketBase Engine</span>
+              <span style={{ color: "#15803d" }}>● Connected</span>
             </div>
           </div>
         </div>
       </main>
-
     </div>
   );
 }
-
-
