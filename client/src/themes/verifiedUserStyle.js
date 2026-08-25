@@ -45,7 +45,7 @@ export const verifiedUserStyle = {
     boxShadow: "0 0 15px rgba(29, 122, 77, 0.28)",
   },
   title: {
-    fontSize: "32px",
+    fontSize: "20px",
     fontWeight: "800",
     letterSpacing: "-0.03em",
     color: "#111111",
@@ -54,7 +54,7 @@ export const verifiedUserStyle = {
 
   },
   subtitle: {
-    fontSize: "10px",
+    fontSize: "15px",
     margin: "8px 0 0 0",
     fontWeight: "600",
     color: "#477257",
@@ -80,6 +80,7 @@ export const verifiedUserStyle = {
     maxWidth: "none",
     gap: "12px",
     transition: "all 0.2s ease",
+    boxShadow: "0 4px 12px rgba(24, 95, 53, 0.08)",
   },
   searchInput: {
     border: "none",
@@ -156,7 +157,7 @@ export const verifiedUserStyle = {
     backgroundColor: "#ffffff",
     border: "1px solid #dfeae3",
     borderRadius: "8px",
-    boxShadow: "0 4px 14px rgba(24, 95, 53, 0.04)",
+    boxShadow: "0 8px 22px rgba(24, 95, 53, 0.09)",
   },
   filterBarSearch: {
     flex: "1 0 100%",
@@ -199,6 +200,7 @@ export const verifiedUserStyle = {
     fontSize: "12px",
     fontWeight: "700",
     textAlign: "left",
+    boxShadow: "0 3px 9px rgba(24, 95, 53, 0.06)",
   },
   filterDropdownMenu: {
     position: "absolute",
@@ -365,7 +367,7 @@ export const verifiedUserStyle = {
     border: "1px solid #dfeae3",
     borderRadius: "8px",
     overflow: "hidden",
-    boxShadow: "0 6px 18px rgba(24, 95, 53, 0.04)",
+    boxShadow: "0 10px 26px rgba(24, 95, 53, 0.10)",
   },
   tableScroll: {
     overflowX: "auto",
@@ -406,6 +408,18 @@ export const verifiedUserStyle = {
     cursor: "pointer",
     fontSize: "14px",
     textAlign: "left",
+  },
+  tableUserInfo: {
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0,
+    gap: "3px",
+  },
+  tableCitizenId: {
+    color: "#7a9a83",
+    fontSize: "11px",
+    fontWeight: "600",
+    overflowWrap: "anywhere",
   },
   tableAvatar: {
     width: "25px",

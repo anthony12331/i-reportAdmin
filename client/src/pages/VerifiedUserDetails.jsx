@@ -130,14 +130,14 @@ export default function VerifiedUserDetails() {
       <Sidebar />
       <main style={styles.main}>
         <button type="button" className="verifiedUsersButton" style={styles.backButton} onClick={() => navigate("/verified-users")}>
-          <ArrowLeft size={16} /> Back to Registered Users
+          <ArrowLeft size={16} /> Back to Verified Users
         </button>
 
         <header style={styles.header}>
           <div>
             <span style={styles.eyebrow}>Resident Details</span>
-            <h1 style={styles.title}>{fullName || "Registered User"}</h1>
-            <p style={styles.subtitle}>Registered on {formatDate(user.date_time)}</p>
+            <h1 style={styles.title}>Resident Verification Review</h1>
+            <p style={styles.subtitle}>Submitted on {formatDate(user.date_time || user.created)} • Citizen ID #{user.user_id || "N/A"}</p>
           </div>
           <span style={styles.statusBadge(isSuspended)}>{isSuspended ? "Suspended" : "Verified"}</span>
         </header>
@@ -146,10 +146,11 @@ export default function VerifiedUserDetails() {
           <div style={styles.sidebarColumn}>
             <aside style={styles.profilePanel}>
               {selfieUrl ? <button type="button" className="verifiedUsersButton" style={styles.imageButton} onClick={() => setPreviewImage({ src: selfieUrl, label: "Resident profile" })}><img src={selfieUrl} alt="Resident profile" style={styles.profileImage} /></button> : <div style={styles.profileFallback}><User size={64} /></div>}
+              <span style={styles.profileNameLabel}>Full Name:</span>
               <h2 style={styles.profileName}>{fullName || "Registered User"}</h2>
-              <div style={styles.profileMeta}><Phone size={14} /> {user.contact_number || "No contact number"}</div>
-              <div style={styles.profileMeta}><MapPin size={14} /> {user.baranggay || "No barangay"}</div>
-              <div style={styles.profileMeta}><CheckCircle2 size={14} /> Citizen ID #{user.user_id || "N/A"}</div>
+              <div style={styles.profileMeta}><Phone size={14} /><span style={styles.profileMetaLabel}>Phone:</span> {user.contact_number || "No contact number"}</div>
+              <div style={styles.profileMeta}><MapPin size={14} /><span style={styles.profileMetaLabel}>Address:</span> {[user.street_address, user.baranggay, user.municipality, user.province].filter(Boolean).join(", ") || "No address"}</div>
+              <div style={styles.profileMeta}><CheckCircle2 size={14} /><span style={styles.profileMetaLabel}>Citizen ID:</span> #{user.user_id || "N/A"}</div>
             </aside>
 
             <section style={{...styles.panel, ...styles.incidentHistoryPanel}}>
@@ -195,7 +196,7 @@ export default function VerifiedUserDetails() {
           <div style={styles.detailsColumn}>
             <section style={styles.panel}>
               <div style={styles.panelHeader}>
-                <div><h2 style={styles.panelTitle}><ShieldAlert size={16} /> Information Comparison</h2><p style={styles.panelSubtitle}>Review the registered profile and submitted identification.</p></div>
+                <div><h2 style={styles.panelTitle}><ShieldAlert size={16} /> Information Comparison</h2><p style={styles.panelSubtitle}>Compare the resident's submitted details with the uploaded proof of identity.</p></div>
               </div>
               <div style={styles.comparisonGrid}>
                 <div style={styles.infoBlock}>
@@ -205,7 +206,9 @@ export default function VerifiedUserDetails() {
                   <Detail label="Last Name" value={user.last_name} />
                   {user.extension && <Detail label="Extension" value={user.extension} />}
                   <Detail label="Date of Birth" value={formatDate(user.birthdate)} />
-                  <Detail label="Address" value={`${user.street_address || "No street address"}, ${user.baranggay || "No barangay"}, ${user.municipality || ""}`} />
+                  <Detail label="Street" value={user.street_address} />
+                  <Detail label="Barangay" value={user.baranggay} />
+                  <Detail label="Municipality" value={user.municipality} />
                   <Detail label="Email" value={user.email || "No email"} />
                   <Detail label="Province" value={user.province || "Not available"} />
                 </div>
@@ -217,13 +220,13 @@ export default function VerifiedUserDetails() {
             </section>
 
             <section style={styles.panel}>
-              <h2 style={styles.panelTitle}>Actions</h2>
+              <h2 style={styles.panelTitle}>Reviewer Decision</h2>
               <p style={styles.panelSubtitle}>Select an action below to update this resident verification record.</p>
               <button type="button" className="verifiedUsersButton" style={styles.statusAction(isSuspended)} onClick={handleStatusChange} disabled={processing}>
                 {processing ? <Loader className="animate-spin" size={17} /> : <ShieldAlert size={17} />}
                 {processing ? "Updating..." : isSuspended ? "Restore Verification" : "Suspend Verification"}
               </button>
-              {!isSuspended && <><label style={styles.reasonLabel} htmlFor="suspension-reason">Suspension Verification</label><textarea id="suspension-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Explain the reason for rejection or what clarification is needed..." style={styles.reasonInput} /></>}
+              {!isSuspended && <><label style={styles.reasonLabel} htmlFor="suspension-reason">Review Notes</label><textarea id="suspension-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Explain the reason for suspension or what clarification is needed..." style={styles.reasonInput} /></>}
             </section>
           </div>
         </section>

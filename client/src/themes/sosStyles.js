@@ -43,7 +43,7 @@ export const sosStyles = {
   },
   pageTitle: {
     fontFamily: "Inter, Arial, sans-serif",
-    fontSize: "clamp(24px, 3vw, 32px)",
+    fontSize: "20px",
     fontWeight: "800",
     color: "#111827",
     letterSpacing: "-0.03em",

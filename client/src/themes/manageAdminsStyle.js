@@ -16,7 +16,7 @@ export const manageAdminsStyle = {
     paddingBottom: "12px",
   },
   title: {
-    fontSize: "clamp(24px, 3vw, 32px)",
+    fontSize: "20px",
     fontWeight: "800",
     color: "#111111",
     margin: 0,

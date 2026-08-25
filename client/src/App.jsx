@@ -709,6 +709,14 @@ function App() {
               }
             />
             <Route
+              path="/resolved-incidents/sos/:incidentId"
+              element={
+                <ProtectedRoute requiredModule="incidents">
+                  <ResolvedIncidentDetails recordType="sos" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/resolved-incidents/:incidentId"
               element={
                 <ProtectedRoute requiredModule="incidents">

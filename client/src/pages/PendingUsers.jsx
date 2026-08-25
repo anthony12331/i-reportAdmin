@@ -22,6 +22,8 @@ export default function PendingUserRegistration() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [previewUser, setPreviewUser] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [reviewMessage, setReviewMessage] = useState("");
   const [rejectionModal, setRejectionModal] = useState({
     isOpen: false,
     userId: null,
@@ -43,6 +45,9 @@ export default function PendingUserRegistration() {
         requestKey: null,
       });
       setUsers(records.items);
+      setPreviewUser((currentUser) => currentUser && records.items.some((user) => user.id === currentUser.id)
+        ? currentUser
+        : records.items[0] || null);
       setSelectedIds([]);
     } catch (error) {
       console.error("Error fetching batch:", error);
@@ -108,6 +113,17 @@ export default function PendingUserRegistration() {
     hours = hours % 12 || 12;
 
     return `${year}-${month}-${day} ${hours}:${minutes}${period}`;
+  };
+
+  const formatBirthdate = (value) => {
+    if (!value) return "Not available";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
   };
 
   const getUserDetails = (user) => {
@@ -236,6 +252,17 @@ export default function PendingUserRegistration() {
   const handleApprove = async (user) => {
     if (!user) return alert("Error: User data is missing.");
 
+    const shouldApprove = await confirm(
+      `Approve ${user.first_name || "this resident"} ${user.last_name || ""}`.trim() +
+        " and mark the account as verified?",
+      {
+        title: "Confirm Resident Approval",
+        primaryLabel: "Approve Resident",
+        secondaryLabel: "Cancel",
+      },
+    );
+    if (!shouldApprove) return;
+
     setIsProcessing(true);
     showOperation(
       "Verifying Citizen",
@@ -281,10 +308,10 @@ export default function PendingUserRegistration() {
     if (!rejectionModal.reason.trim())
       return alert("Please provide a rejection reason.");
     const shouldReject = await confirm(
-      "Reject and permanently delete this user registration?",
+      "Reject this user registration and save the reason to the user record?",
       {
         title: "Confirm User Rejection",
-        primaryLabel: "Reject & Delete",
+        primaryLabel: "Reject Registration",
         secondaryLabel: "Cancel",
       }
     );
@@ -308,7 +335,10 @@ export default function PendingUserRegistration() {
         }).catch((err) => console.warn("Email service not reachable:", err));
       }
 
-      await pb.collection("users").delete(rejectionModal.userId);
+      await pb.collection("users").update(rejectionModal.userId, {
+        status: "rejected",
+        description: rejectionModal.reason.trim(),
+      });
 
       addAuditLog({
         action: "REJECT_CITIZEN",
@@ -326,13 +356,40 @@ export default function PendingUserRegistration() {
         reason: "",
       });
       if (users.length <= 1) fetchBatch();
-      alert("User registration rejected and deleted.");
+      alert("User registration rejected and the reason was saved.");
     } catch (error) {
       console.error("Delete error:", error.data || error);
       alert("Delete Error: " + (error.data?.message || error.message));
     }
     hideOperation();
     setIsProcessing(false);
+  };
+
+  const submitClarification = async () => {
+    if (!previewUser || !reviewMessage.trim()) {
+      return alert("Please provide a clarification message.");
+    }
+
+    setIsProcessing(true);
+    try {
+      await pb.collection("users").update(previewUser.id, {
+        description: reviewMessage.trim(),
+      });
+      addAuditLog({
+        action: "REQUEST_CITIZEN_CLARIFICATION",
+        target: previewUser.id,
+        details: `Requested clarification from ${previewUser.email || "user"}. Message: ${reviewMessage.trim()}`,
+      });
+      setPreviewUser(null);
+      setReviewMessage("");
+      await fetchBatch();
+      alert("Clarification message saved.");
+    } catch (error) {
+      console.error("Clarification error:", error.data || error);
+      alert("Clarification Error: " + (error.data?.message || error.message));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleBatchApprove = async () => {
@@ -403,38 +460,18 @@ export default function PendingUserRegistration() {
     <div style={styles.container}>
       <Sidebar />
 
-      <main style={styles.main}>
+      <main style={{ ...styles.main, ...styles.mainReview }}>
         {/* Header */}
-        <header style={styles.header}>
+        <header style={{ ...styles.header, ...styles.reviewHeaderLayout }}>
           <div>
             <div style={styles.headerTitleGroup}>
-              <div style={styles.statusDot} />
               <h1 style={styles.title}>PENDING CITIZEN VERIFICATIONS</h1>
             </div>
             <p style={styles.subtitle}>
-              Verify resident identity documents for Lagonglong Emergency Dispatch
+              Review pending resident identity documents for Lagonglong Emergency Dispatch
             </p>
           </div>
 
-          {users.length > 0 && (
-            <div style={styles.headerActions}>
-              <button onClick={toggleSelectAll} style={styles.btnSecondary}>
-                {selectedIds.length === users.length
-                  ? "UNSELECT ALL"
-                  : "SELECT ALL"}
-              </button>
-              <button
-                onClick={handleBatchApprove}
-                disabled={isProcessing || selectedIds.length === 0}
-                style={styles.btnBatchApprove(
-                  isProcessing || selectedIds.length === 0
-                )}
-              >
-                <UserCheck size={16} />
-                VERIFY SELECTED ({selectedIds.length})
-              </button>
-            </div>
-          )}
         </header>
 
         {/* Empty State */}
@@ -460,121 +497,33 @@ export default function PendingUserRegistration() {
         )}
 
         {/* Cards Grid */}
-        <div style={styles.cardsGrid}>
-          {users.map((user) => {
+        {users.length > 0 && <section style={styles.choiceHolder}>
+          <div style={styles.choiceHolderHeader}>
+            <h2 style={styles.choiceHolderTitle}>PENDING RESIDENT VERIFICATIONS ({users.length})</h2>
+          </div>
+          <div style={styles.cardsGrid}>
+            {users.map((user) => {
             const isSelected = selectedIds.includes(user.id);
-            const details = getUserDetails(user);
+            const isViewing = previewUser?.id === user.id;
 
             return (
               <div
                 key={user.id}
-                style={styles.card(isSelected)}
+                className="pendingUserChoiceRow"
+                style={styles.choiceRow(isViewing)}
                 onClick={(e) => {
                   if (shouldIgnoreCardToggle(e.target)) return;
-                  toggleSelect(user.id);
+                  setPreviewUser(user);
+                  setReviewMessage(user.description || "");
                 }}
               >
-                {/* Header Strip */}
-                <div style={styles.cardHeaderStrip}>
-                  <div style={styles.cardHeaderUser}>
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSelect(user.id);
-                      }}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {isSelected ? (
-                        <CheckSquare size={20} color="#10b981" />
-                      ) : (
-                        <Square size={20} color="#64748b" />
-                      )}
-                    </div>
-                    <span style={styles.userName}>
-                      {user.first_name} {user.last_name}
-                    </span>
-                  </div>
-
-                  <span style={styles.pendingBadge}>PENDING</span>
-                </div>
-
-                <div style={styles.cardBody}>
-                  {/* Details Container */}
-                  <div style={styles.detailsBox}>
-                    {details.map((item) => (
-                      <div key={item.label} style={styles.detailRow}>
-                        <span style={styles.detailLabel}>{item.label}:</span>
-                        <span style={styles.detailValue}>{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ID & Selfie Image Preview Grid */}
-                  <div style={styles.imageGrid}>
-                    <div
-                      style={styles.imageThumb}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewUser(user);
-                      }}
-                    >
-                      <img
-                        src={pb.files.getURL(user, user.selfie)}
-                        alt="Selfie"
-                        style={styles.imgCover}
-                      />
-                      <span style={styles.imageLabel}>SELFIE</span>
-                    </div>
-
-                    <div
-                      style={styles.imageThumb}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewUser(user);
-                      }}
-                    >
-                      <img
-                        src={pb.files.getURL(user, user.id_photo)}
-                        alt="ID Card"
-                        style={styles.imgCover}
-                      />
-                      <span style={styles.imageLabel}>ID PHOTO</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div style={styles.cardActionGrid}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRejectionModal({
-                          isOpen: true,
-                          userId: user.id,
-                          userEmail: user.email,
-                          reason: "",
-                        });
-                      }}
-                      style={styles.btnReject}
-                    >
-                      <UserX size={16} /> REJECT
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApprove(user);
-                      }}
-                      style={styles.btnApprove}
-                    >
-                      <UserCheck size={16} /> APPROVE
-                    </button>
-                  </div>
-                </div>
+                <span style={styles.choiceEmail}>{user.email || "No email available"}</span>
+                {isViewing && <span style={styles.viewingBadge}>PENDING</span>}
               </div>
             );
-          })}
-        </div>
-      </main>
+            })}
+          </div>
+        </section>}
 
       {/* REJECTION MODAL */}
       {rejectionModal.isOpen && (
@@ -583,7 +532,7 @@ export default function PendingUserRegistration() {
             <div style={styles.rejectionHeader}>
               <MessageSquare color="#ef4444" size={24} />
               <h3 style={{ margin: 0, fontSize: "18px", color: "#111827" }}>
-                Rejection Notice Reason
+                Rejection Reason
               </h3>
             </div>
 
@@ -618,27 +567,28 @@ export default function PendingUserRegistration() {
                 onClick={submitRejection}
                 disabled={isProcessing}
               >
-                CONFIRM REJECT
+                SAVE REJECTION
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* APPLICANT REVIEW MODAL */}
+      {/* APPLICANT REVIEW */}
       {previewUser && (
         <div
           onClick={() => setPreviewUser(null)}
-          style={styles.modalBackdrop}
+          style={styles.reviewPageShell}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={styles.previewModalCard}
+            style={styles.reviewPageCard}
           >
             <div style={styles.previewHeader}>
               <div>
+                <span style={styles.reviewEyebrow}>RESIDENT DETAILS</span>
                 <h2 style={{ margin: 0, fontSize: "20px", color: "#111827" }}>
-                  Applicant ID Document Verification
+                  Resident Verification Review
                 </h2>
                 <p
                   style={{
@@ -647,7 +597,7 @@ export default function PendingUserRegistration() {
                     fontSize: "13px",
                   }}
                 >
-                  Verify photo comparison and citizen details
+                  Submitted on {formatDateTime(previewUser.date_time || previewUser.created) || "Date unavailable"} • Citizen ID #{previewUser.user_id || "N/A"}
                 </p>
               </div>
               <button
@@ -659,41 +609,141 @@ export default function PendingUserRegistration() {
               </button>
             </div>
 
-            {/* Side-by-Side Photos */}
-            <div style={styles.previewPhotoGrid}>
-              <div style={styles.photoBox}>
-                <span style={styles.photoBoxLabel}>LIVE SELFIE PHOTO</span>
+            <div style={styles.reviewContent}>
+              <aside style={styles.reviewProfile}>
+                <span style={styles.reviewImageLabel}>SELFIE PHOTO</span>
                 <img
                   src={pb.files.getURL(previewUser, previewUser.selfie)}
-                  alt="Selfie"
-                  style={styles.previewImg}
+                  alt="Resident selfie"
+                  style={styles.reviewProfileImage}
+                  onClick={() => setPreviewImage({ src: pb.files.getURL(previewUser, previewUser.selfie), alt: "Resident selfie" })}
                 />
-              </div>
-
-              <div style={styles.photoBox}>
-                <span style={styles.photoBoxLabel}>GOVERNMENT ID CARD</span>
+                <span style={styles.reviewImageLabel}>IDENTIFICATION PHOTO</span>
                 <img
                   src={pb.files.getURL(previewUser, previewUser.id_photo)}
-                  alt="ID"
-                  style={styles.previewImg}
+                  alt="Government identification"
+                  style={styles.reviewIdUnderSelfie}
+                  onClick={() => setPreviewImage({ src: pb.files.getURL(previewUser, previewUser.id_photo), alt: "Government identification" })}
                 />
-              </div>
-            </div>
+                <span style={styles.reviewProfileLabel}>Full Name:</span>
+                <strong style={styles.reviewProfileName}>
+                  {previewUser.first_name} {previewUser.last_name}
+                </strong>
+                <span style={styles.reviewProfileMeta}>Pending citizen</span>
+                <span style={styles.reviewProfileMeta}>ID #{previewUser.user_id || "N/A"}</span>
 
-            {/* Profile Fields */}
-            <div style={styles.profileFieldsGrid}>
-              {getUserDetails(previewUser).map((item) => (
-                <div key={item.label}>
-                  <span style={styles.fieldLabel}>
-                    {item.label?.toUpperCase()}
-                  </span>
-                  <span style={styles.fieldValue}>{item.value}</span>
+                <div style={styles.verificationStatus}>
+                  <span style={styles.fieldLabel}>IDENTITY VERIFICATION STATUS</span>
+                  <strong style={styles.verificationStatusBadge}>PENDING REVIEW</strong>
+                  <span style={styles.verificationStatusText}>Documents submitted for identity confirmation.</span>
                 </div>
-              ))}
+              </aside>
+
+              <div style={styles.reviewMain}>
+                <section style={styles.informationPanel}>
+                  <div style={styles.informationHeader}>
+                    <h3 style={styles.reviewSectionTitle}>Resident Information</h3>
+                    <span style={styles.reviewSectionHint}>Compare details with proof of identity</span>
+                  </div>
+                  <div style={styles.comparisonLayout}>
+                    <div style={styles.profileFieldsGrid}>
+                      <span style={styles.personalInfoHeading}>ENTERED PERSONAL INFO</span>
+                      {[
+                        ["First Name", previewUser.first_name],
+                        ["Middle Name", previewUser.middle_name],
+                        ["Last Name", previewUser.last_name],
+                        ["Date of Birth", formatBirthdate(previewUser.birthdate)],
+                        ["Street", previewUser.street_address],
+                        ["Barangay", previewUser.baranggay || previewUser.barangay],
+                        ["Municipality", previewUser.municipality],
+                        ["Email", previewUser.email],
+                        ["Province", previewUser.province],
+                      ].map(([label, value]) => (
+                        <div key={label} style={styles.personalInfoRow}>
+                          <span style={styles.personalInfoLabel}>{label}</span>
+                          <span style={styles.personalInfoValue}>{value || "Not available"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                <div style={styles.reviewDecision}>
+              <div>
+                <h3 style={styles.reviewDecisionTitle}>REVIEWER DECISION</h3>
+                <p style={styles.reviewDecisionSubtitle}>Save a clarification request or complete this verification.</p>
+              </div>
+              <textarea
+                value={reviewMessage}
+                onChange={(e) => setReviewMessage(e.target.value)}
+                placeholder="Add a rejection or clarification message..."
+                style={styles.reviewTextarea}
+                disabled={isProcessing}
+              />
+              <div style={styles.reviewActionGrid}>
+                <button
+                  className="pendingUsersAnimatedButton"
+                  type="button"
+                  style={styles.btnReviewClarify}
+                  onClick={submitClarification}
+                  disabled={isProcessing}
+                >
+                  <MessageSquare size={16} /> CLARIFICATION
+                </button>
+                <button
+                  className="pendingUsersAnimatedButton"
+                  type="button"
+                  style={styles.btnReviewReject}
+                  onClick={() => {
+                    setPreviewUser(null);
+                    setRejectionModal({ isOpen: true, userId: previewUser.id, userEmail: previewUser.email, reason: reviewMessage });
+                  }}
+                  disabled={isProcessing}
+                >
+                  <UserX size={16} /> REJECT
+                </button>
+                <button
+                  className="pendingUsersAnimatedButton"
+                  type="button"
+                  style={styles.btnReviewApprove}
+                  onClick={() => handleApprove(previewUser)}
+                  disabled={isProcessing}
+                >
+                  <UserCheck size={16} /> APPROVE
+                </button>
+              </div>
             </div>
           </div>
         </div>
+        </div>
+      </div>
       )}
+
+      {!previewUser && users.length > 0 && (
+        <div style={styles.selectUserPrompt}>
+          <span style={styles.selectUserPromptTitle}>PLEASE SELECT A USER</span>
+          <span style={styles.selectUserPromptText}>Choose a pending user from the list to view their verification details.</span>
+        </div>
+      )}
+
+      {previewImage && (
+        <div style={styles.imagePreviewOverlay} onClick={() => setPreviewImage(null)}>
+          <div style={styles.imagePreviewPanel} onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="animatedCloseButton"
+              style={styles.imagePreviewClose}
+              onClick={() => setPreviewImage(null)}
+              aria-label="Close image preview"
+            >
+              <X size={20} />
+            </button>
+            <img src={previewImage.src} alt={previewImage.alt} style={styles.imagePreview} />
+          </div>
+        </div>
+      )}
+
+      </main>
 
       {/* OPERATION LOADING OVERLAY */}
       {operationState.open && (

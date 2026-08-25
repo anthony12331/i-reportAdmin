@@ -14,6 +14,7 @@ import {
   BarChart3,
   History,
   KeyRound,
+  ClipboardList,
 } from "lucide-react";
 import { useMessageBox } from "./MessageBox";
 
@@ -166,7 +167,8 @@ export default function Sidebar({
     navigate("/");
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   return (
     <aside style={styles.sidebar}>
@@ -227,7 +229,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/resolved-incidents") ? styles.navItemActive : styles.navItem}
+              style={location.pathname === "/resolved-incidents" ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/resolved-incidents")}
             >
               <div style={styles.navLinkGroup}>
@@ -235,6 +237,17 @@ export default function Sidebar({
                 <span>Resolved Incidents</span>
               </div>
             </div>
+            {location.pathname.startsWith("/resolved-incidents/") && (
+              <div
+                style={location.pathname.startsWith("/resolved-incidents/") ? styles.subNavItemActive : styles.subNavItem}
+                onClick={() => navigate("/resolved-incidents")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <ClipboardList size={16} />
+                  <span>Incident Details</span>
+                </div>
+              </div>
+            )}
 
             <div
               style={isActive("/request-backup") ? styles.navItemActive : styles.navItem}
@@ -301,7 +314,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={location.pathname.startsWith("/verified-users") ? styles.navItemActive : styles.navItem}
+              style={location.pathname === "/verified-users" ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/verified-users")}
             >
               <div style={styles.navLinkGroup}>
@@ -309,6 +322,17 @@ export default function Sidebar({
                 <span>Verified Users</span>
               </div>
             </div>
+            {location.pathname.startsWith("/verified-users/") && (
+              <div
+                style={styles.subNavItemActive}
+                onClick={() => navigate("/verified-users")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <ClipboardList size={16} />
+                  <span>User Details</span>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -416,7 +440,7 @@ const styles = {
     top: 0,
     zIndex: 1000,
     overflow: "hidden",
-    boxShadow: "2px 0 12px rgba(24, 95, 53, 0.04)",
+    boxShadow: "4px 0 18px rgba(24, 95, 53, 0.14)",
   },
   brandBox: { padding: "22px 18px 20px", borderBottom: "1px solid #edf3ee" },
   brandLogo: {
@@ -475,6 +499,25 @@ const styles = {
     transition: "all 0.4s ease",
     borderLeft: "3px solid #18864b",
     letterSpacing: "0.5px",
+  },
+  subNavItem: {
+    padding: "8px 18px 8px 42px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    color: "#53645a",
+    fontSize: "11px",
+    borderLeft: "2px solid transparent",
+  },
+  subNavItemActive: {
+    padding: "8px 18px 8px 42px",
+    backgroundColor: "#e7f5eb",
+    color: "#18864b",
+    fontWeight: "700",
+    display: "flex",
+    alignItems: "center",
+    fontSize: "11px",
+    borderLeft: "3px solid #18864b",
   },
   navLinkGroup: { display: "flex", alignItems: "center", gap: "12px" },
   badgeRed: {

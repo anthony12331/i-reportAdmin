@@ -55,38 +55,73 @@ export default function ResolvedIncidents() {
     };
 
     try {
-      let filterParts = ['status = "resolved"'];
-      if (typeFilter) filterParts.push(`type = "${typeFilter}"`);
+      const incidentFilterParts = ['status = "resolved"'];
+      if (typeFilter && typeFilter !== "sos") incidentFilterParts.push(`type = "${typeFilter}"`);
 
       if (searchTerm.trim() !== "") {
         const s = searchTerm.trim();
-        filterParts.push(`(users.user_id ~ "${s}" || users.first_name ~ "${s}" || users.last_name ~ "${s}" || users.baranggay ~ "${s}")`);
+        incidentFilterParts.push(`(users.user_id ~ "${s}" || users.first_name ~ "${s}" || users.last_name ~ "${s}" || users.baranggay ~ "${s}")`);
       }
 
-      const result = await pb.collection("incident_reports").getList(currentPage, perPage, {
-        filter: filterParts.join(" && "),
-        sort: "-updated",
-        expand: "users",
-        requestKey: null,
-      });
+      const [incidentRecords, sosRecords] = await Promise.all([
+        typeFilter === "sos"
+          ? Promise.resolve([])
+          : pb.collection("incident_reports").getFullList({
+          filter: incidentFilterParts.join(" && "),
+          sort: "-updated",
+          expand: "users",
+          requestKey: null,
+        }),
+        typeFilter && typeFilter !== "sos"
+          ? Promise.resolve([])
+          : pb.collection("sos_tracking").getFullList({
+              filter: 'status = "resolved"',
+              sort: "-updated",
+              expand: "user,assigned_responder",
+              requestKey: null,
+            }),
+      ]);
 
-      const incidentIdsFilter = result.items.map(r => `incident_id="${r.id}"`).join(" || ");
-      if (incidentIdsFilter) {
+      const combinedRecords = [
+        ...incidentRecords.map((record) => ({ ...record, recordType: "incident" })),
+        ...sosRecords.map((record) => ({ ...record, recordType: "sos" })),
+      ]
+        .filter((record) => {
+          if (!searchTerm.trim()) return true;
+          const search = searchTerm.trim().toLowerCase();
+          const reporter = record.expand?.users || record.expand?.user;
+          return [reporter?.user_id, reporter?.first_name, reporter?.last_name, reporter?.baranggay]
+            .some((value) => String(value || "").toLowerCase().includes(search));
+        })
+        .sort((a, b) => new Date(b.updated || b.created) - new Date(a.updated || a.created));
+
+      const totalItemsForPage = combinedRecords.length;
+      const pageStart = (currentPage - 1) * perPage;
+      const pageItems = combinedRecords.slice(pageStart, pageStart + perPage);
+
+      const dispatchFilters = pageItems.map((record) =>
+        `${record.recordType === "sos" ? "sos_id" : "incident_id"}="${record.id}"`
+      );
+      if (dispatchFilters.length > 0) {
         const dispatches = await pb.collection("dispatches").getFullList({
-          filter: incidentIdsFilter,
+          filter: dispatchFilters.join(" || "),
           expand: "responder_id",
           requestKey: null
         });
         
-        result.items.forEach(incident => {
-          incident.dispatches = dispatches.filter(d => d.incident_id === incident.id);
+        pageItems.forEach(incident => {
+          incident.dispatches = dispatches.filter((dispatch) =>
+            incident.recordType === "sos"
+              ? dispatch.sos_id === incident.id
+              : dispatch.incident_id === incident.id
+          );
         });
       }
 
-      setIncidents(result.items);
-      setTotalPages(result.totalPages);
-      setTotalItems(result.totalItems);
-      resolveAddressesParallel(result.items);
+      setIncidents(pageItems);
+      setTotalPages(Math.max(1, Math.ceil(totalItemsForPage / perPage)));
+      setTotalItems(totalItemsForPage);
+      resolveAddressesParallel(pageItems);
     } catch (error) {
       if (!error.isAbort) console.error("Fetch Error:", error);
     } finally {
@@ -142,7 +177,7 @@ export default function ResolvedIncidents() {
               </div>
             </div>
             <div style={ui.filterGroup}>
-              {["", "fire", "accident", "landslide"].map((val) => (
+              {["", "fire", "accident", "landslide", "sos"].map((val) => (
                 <button
                   key={val}
                   onClick={() => {
@@ -188,7 +223,8 @@ export default function ResolvedIncidents() {
                 </tr>
               ) : (
                 incidents.map((incident) => {
-                  const reporter = incident.expand?.users;
+                  const reporter = incident.expand?.users || incident.expand?.user;
+                  const isSos = incident.recordType === "sos";
 
                   return (
                     <tr key={incident.id} style={{ borderBottom: "1px solid #edf3ee" }}>
@@ -196,7 +232,7 @@ export default function ResolvedIncidents() {
                         <div style={{ fontWeight: "900", color: "#111111", fontSize: "15px", display: "flex", alignItems: "center", gap: "6px" }}>
                           <IdCard size={16} color="#818cf8" /> {reporter?.user_id || "N/A"}
                         </div>
-                        <div style={ui.mutedText}>VERIFIED ACCOUNT</div>
+                        <div style={ui.mutedText}>{isSos ? "SOS DISTRESS SIGNAL" : "VERIFIED ACCOUNT"}</div>
                       </td>
 
                       <td style={ui.td}>
@@ -216,7 +252,7 @@ export default function ResolvedIncidents() {
 
                       <td style={ui.td}>
                         <div style={{ fontSize: "10px", fontWeight: "900", color: "#477257", textTransform: "uppercase", marginBottom: "4px" }}>
-                          {incident.type}
+                          {isSos ? "SOS" : incident.type}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                           {incident.dispatches && incident.dispatches.length > 0 ? (
@@ -229,6 +265,10 @@ export default function ResolvedIncidents() {
                                 </div>
                               );
                             })
+                          ) : isSos && incident.expand?.assigned_responder ? (
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: getUnitStyles(incident.expand.assigned_responder.department).color, backgroundColor: getUnitStyles(incident.expand.assigned_responder.department).bg, padding: "5px 10px", borderRadius: "8px", width: "fit-content" }}>
+                              <ShieldCheck size={14} /> {incident.expand.assigned_responder.department.toUpperCase()} - {incident.expand.assigned_responder.first_name}
+                            </div>
                           ) : (
                             <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: getUnitStyles("mdrrmo").color, backgroundColor: getUnitStyles("mdrrmo").bg, padding: "5px 10px", borderRadius: "8px", width: "fit-content" }}>
                               <ShieldCheck size={14} /> MDRRMO HQ
@@ -248,7 +288,7 @@ export default function ResolvedIncidents() {
                         <button
                           type="button"
                           style={ui.detailsButton}
-                          onClick={() => navigate(`/resolved-incidents/${incident.id}`)}
+                          onClick={() => navigate(isSos ? `/resolved-incidents/sos/${incident.id}` : `/resolved-incidents/${incident.id}`)}
                         >
                           View Details
                         </button>

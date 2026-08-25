@@ -52,7 +52,7 @@ export const pendingIncidentsStyles = {
   },
   pageTitle: {
     fontFamily: "Inter, Arial, sans-serif",
-    fontSize: "clamp(24px, 3vw, 32px)",
+    fontSize: "20px",
     fontWeight: "800",
     color: "#111111",
     letterSpacing: "0",
@@ -60,7 +60,7 @@ export const pendingIncidentsStyles = {
     textTransform: "capitalize",
   },
   subtitle: {
-    fontSize: "10px",
+    fontSize: "15px",
     margin: "8px 0 0 0",
     fontWeight: "600",
     color: "#477257",

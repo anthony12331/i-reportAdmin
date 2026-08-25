@@ -79,7 +79,7 @@ export const dashboardStyles = {
   },
   title: {
     fontFamily: editorialFont,
-    fontSize: "clamp(24px, 3vw, 32px)",
+    fontSize: "20px",
     fontWeight: "800",
     color: "#111111",
     margin: 0,
@@ -100,7 +100,7 @@ export const dashboardStyles = {
     verticalAlign: "middle",
   },
   subtitle: {
-    fontSize: "9px",
+    fontSize: "15px",
     margin: "6px 0 0 0",
     fontWeight: "600",
     color: "#477257",

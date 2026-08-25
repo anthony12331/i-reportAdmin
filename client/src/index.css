@@ -110,6 +110,37 @@ textarea {
   outline-offset: 3px;
 }
 
+.pendingUsersAnimatedButton {
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.pendingUsersAnimatedButton:not(:disabled):hover {
+  transform: translateY(-3px);
+  filter: brightness(1.04);
+  box-shadow: 0 9px 18px rgba(24, 95, 53, 0.16);
+}
+
+.pendingUsersAnimatedButton:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.98);
+}
+
+.pendingUsersAnimatedButton:focus-visible {
+  outline: 2px solid #1d7a4d;
+  outline-offset: 3px;
+}
+
+.pendingUserChoiceRow {
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.pendingUserChoiceRow:hover {
+  background-color: #f1faf4 !important;
+  border-radius: 6px;
+  box-shadow: inset 3px 0 0 #8bcaa0, 0 4px 10px rgba(24, 134, 75, 0.1);
+  transform: translateX(2px);
+}
+
 .verifiedUsersActionLink {
   transition: color 180ms ease, text-decoration-color 180ms ease;
 }
@@ -311,7 +342,8 @@ textarea {
   .sidebarLogoutBtn,
   .adminActionButton,
   .sosDispatchButton,
-  .ongoingDispatchButton {
+  .ongoingDispatchButton,
+  .pendingUsersAnimatedButton {
     transition: none !important;
   }
 
@@ -320,7 +352,8 @@ textarea {
   .sidebarLogoutBtn:active,
   .adminActionButton:not(:disabled):hover,
   .sosDispatchButton:not(:disabled):hover,
-  .ongoingDispatchButton:not(:disabled):hover {
+  .ongoingDispatchButton:not(:disabled):hover,
+  .pendingUsersAnimatedButton:not(:disabled):hover {
     transform: none;
   }
 

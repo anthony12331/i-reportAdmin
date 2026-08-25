@@ -462,7 +462,10 @@ export default function VerifiedUsers() {
                               {getFileUrl(user, "selfie") ? (
                                 <img src={getFileUrl(user, "selfie")} alt="" style={styles.tableAvatar} />
                               ) : <span style={styles.tableAvatarFallback}><ShieldCheck size={14} /></span>}
-                              <strong>{fullName}</strong>
+                              <div style={styles.tableUserInfo}>
+                                <strong>{fullName}</strong>
+                                <span style={styles.tableCitizenId}>Citizen ID: #{user.user_id || "N/A"}</span>
+                              </div>
                             </div>
                           </td>
                           <td style={styles.tableCell}>{user.contact_number || user.contactNumber || "No contact"}</td>

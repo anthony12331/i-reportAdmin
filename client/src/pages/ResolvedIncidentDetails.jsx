@@ -15,7 +15,7 @@ const formatDate = (value) => {
 const fileUrl = (record, field) => record?.[field] ? pb.files.getURL(record, record[field]) : null;
 const displayName = (user) => `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Unknown resident";
 
-export default function ResolvedIncidentDetails() {
+export default function ResolvedIncidentDetails({ recordType = "incident" }) {
   const { incidentId } = useParams();
   const navigate = useNavigate();
   const [incident, setIncident] = useState(null);
@@ -27,15 +27,17 @@ export default function ResolvedIncidentDetails() {
     let active = true;
     const load = async () => {
       try {
-        const record = await pb.collection("incident_reports").getOne(incidentId, { expand: "users", requestKey: null });
+        const collectionName = recordType === "sos" ? "sos_tracking" : "incident_reports";
+        const expand = recordType === "sos" ? "user,assigned_responder" : "users";
+        const record = await pb.collection(collectionName).getOne(incidentId, { expand, requestKey: null });
         const dispatches = await pb.collection("dispatches").getFullList({
-          filter: `incident_id = "${record.id}"`,
+          filter: `${recordType === "sos" ? "sos_id" : "incident_id"} = "${record.id}"`,
           expand: "responder_id",
           sort: "created",
           requestKey: null,
         });
         if (!active) return;
-        setIncident({ ...record, dispatches });
+        setIncident({ ...record, dispatches, recordType });
         if (record.latitude != null && record.longitude != null) {
           setAddress(await getReadableAddress(record.latitude, record.longitude));
         }
@@ -47,12 +49,12 @@ export default function ResolvedIncidentDetails() {
     };
     load();
     return () => { active = false; };
-  }, [incidentId]);
+  }, [incidentId, recordType]);
 
   if (loading) return <div style={styles.shell}><Sidebar /><main style={styles.main}><div style={styles.loading}><Loader className="animate-spin" size={22} /> Loading incident details...</div></main></div>;
   if (!incident) return <div style={styles.shell}><Sidebar /><main style={styles.main}><button type="button" className="verifiedUsersButton" style={styles.backButton} onClick={() => navigate("/resolved-incidents")}><ArrowLeft size={16} /> Back to Resolved History</button><p>Incident details could not be loaded.</p></main></div>;
 
-  const reporter = incident.expand?.users;
+  const reporter = incident.expand?.users || incident.expand?.user;
   const imageUrl = fileUrl(incident, "incident_image");
   const videoUrl = fileUrl(incident, "incident_video");
   const selfieUrl = fileUrl(reporter, "selfie");
@@ -63,7 +65,7 @@ export default function ResolvedIncidentDetails() {
       <main style={styles.main}>
         <button type="button" className="verifiedUsersButton" style={styles.backButton} onClick={() => navigate("/resolved-incidents")}><ArrowLeft size={16} /> Back to Resolved History</button>
         <header style={styles.header}>
-          <div><span style={styles.eyebrow}>Resolved Incident Record</span><h1 style={styles.title}>Case #{incident.id}</h1><p style={styles.subtitle}>{incident.type || "Incident"} reported {formatDate(incident.created)}</p></div>
+          <div><span style={styles.eyebrow}>Resolved {incident.recordType === "sos" ? "SOS" : "Incident"} Record</span><h1 style={styles.title}>Case #{incident.id}</h1><p style={styles.subtitle}>{incident.recordType === "sos" ? "SOS distress signal" : incident.type || "Incident"} reported {formatDate(incident.created)}</p></div>
           <span style={styles.status}><CheckCircle2 size={13} /> {incident.status || "resolved"}</span>
         </header>
 
@@ -72,7 +74,7 @@ export default function ResolvedIncidentDetails() {
             <section style={styles.panel}>
               <div style={styles.panelHeader}><h2 style={styles.panelTitle}><FileText size={16} /> Incident Overview</h2></div>
               <div style={styles.metadata}>
-                <div><span style={styles.label}>Incident Type</span><strong style={styles.value}>{incident.type || "Not available"}</strong></div>
+                <div><span style={styles.label}>Record Type</span><strong style={styles.value}>{incident.recordType === "sos" ? "SOS Distress Signal" : incident.type || "Not available"}</strong></div>
                 <div><span style={styles.label}>Status</span><strong style={styles.value}>{incident.status || "Not available"}</strong></div>
                 <div><span style={styles.label}>Date Reported</span><strong style={styles.value}>{formatDate(incident.created)}</strong></div>
                 <div><span style={styles.label}>Last Updated</span><strong style={styles.value}>{formatDate(incident.updated)}</strong></div>

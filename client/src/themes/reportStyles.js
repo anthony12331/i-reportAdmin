@@ -41,7 +41,7 @@ export const reportStyles = {
     boxShadow: "0 0 15px rgba(29, 122, 77, 0.28)",
   },
   title: {
-    fontSize: "clamp(24px, 3vw, 32px)",
+    fontSize: "20px",
     fontWeight: "800",
     letterSpacing: "-0.03em",
     color: "#111111",
@@ -49,7 +49,7 @@ export const reportStyles = {
 
   },
   subtitle: {
-    fontSize: "9px",
+    fontSize: "15px",
     margin: "8px 0 0 0",
     fontWeight: "600",
     color: "#477257",
