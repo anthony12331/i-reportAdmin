@@ -125,39 +125,35 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
     };
   }, [channelName, responderId]);
 
-  const handleTalkStart = async () => {
+  const toggleTalk = async () => {
     if (localAudioTrack && !isPrivateTalking) {
-      await localAudioTrack.setMuted(false);
-      setIsTalking(true);
-    }
-  };
-
-  const handleTalkEnd = async () => {
-    if (localAudioTrack && isTalking) {
-      await localAudioTrack.setMuted(true);
-      setIsTalking(false);
-    }
-  };
-
-  const handlePrivateTalkStart = async () => {
-    if (localAudioTrack && !isTalking) {
-      try {
-        await client.unpublish(localAudioTrack);
-        await privateClient.publish(localAudioTrack);
-        await localAudioTrack.setMuted(false);
-        setIsPrivateTalking(true);
-      } catch (err) { console.error("PTT Start Error:", err); }
-    }
-  };
-
-  const handlePrivateTalkEnd = async () => {
-    if (localAudioTrack && isPrivateTalking) {
-      try {
+      if (isTalking) {
         await localAudioTrack.setMuted(true);
-        await privateClient.unpublish(localAudioTrack);
-        await client.publish(localAudioTrack).catch(() => {});
-        setIsPrivateTalking(false);
-      } catch (err) { console.error("PTT End Error:", err); }
+        setIsTalking(false);
+      } else {
+        await localAudioTrack.setMuted(false);
+        setIsTalking(true);
+      }
+    }
+  };
+
+  const togglePrivateTalk = async () => {
+    if (localAudioTrack && !isTalking) {
+      if (isPrivateTalking) {
+        try {
+          await localAudioTrack.setMuted(true);
+          await privateClient.unpublish(localAudioTrack);
+          await client.publish(localAudioTrack).catch(() => {});
+          setIsPrivateTalking(false);
+        } catch (err) { console.error("PTT End Error:", err); }
+      } else {
+        try {
+          await client.unpublish(localAudioTrack);
+          await privateClient.publish(localAudioTrack);
+          await localAudioTrack.setMuted(false);
+          setIsPrivateTalking(true);
+        } catch (err) { console.error("PTT Start Error:", err); }
+      }
     }
   };
 
@@ -308,11 +304,7 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
 
           <div style={{ position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 10, display: "flex", gap: "10px" }}>
             <button
-              onMouseDown={handleTalkStart}
-              onMouseUp={handleTalkEnd}
-              onMouseLeave={handleTalkEnd}
-              onTouchStart={handleTalkStart}
-              onTouchEnd={handleTalkEnd}
+              onClick={toggleTalk}
               disabled={isPrivateTalking}
               style={{
                 background: isTalking ? "#22c55e" : "rgba(15, 23, 42, 0.8)",
@@ -340,11 +332,7 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
 
             {responderId && (
               <button
-                onMouseDown={handlePrivateTalkStart}
-                onMouseUp={handlePrivateTalkEnd}
-                onMouseLeave={handlePrivateTalkEnd}
-                onTouchStart={handlePrivateTalkStart}
-                onTouchEnd={handlePrivateTalkEnd}
+                onClick={togglePrivateTalk}
                 disabled={isTalking}
                 style={{
                   background: isPrivateTalking ? "#eab308" : "rgba(15, 23, 42, 0.8)",
