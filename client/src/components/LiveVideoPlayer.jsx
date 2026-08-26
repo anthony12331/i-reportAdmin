@@ -70,7 +70,7 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
         // 2. Join the specific SOS channel using the Temp Token
                   // FETCH DYNAMIC TOKEN FROM BACKEND BEFORE JOINING!
           try {
-            const tokenResponse = await fetch('/express-api/token?channel=' + HARDCODED_CHANNEL);
+            const tokenResponse = await fetch('https://api.ireportsystem.com/express-api/token?channel=' + HARDCODED_CHANNEL);
             const tokenData = await tokenResponse.json();
             if (tokenData.token) {
               TEMP_TOKEN_MAIN = tokenData.token;
@@ -85,7 +85,7 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
         if (responderId) {
           // Join the private room for this responder
                       try {
-              const pTokenResponse = await fetch('/express-api/token?channel=capstone_sos_private');
+              const pTokenResponse = await fetch('https://api.ireportsystem.com/express-api/token?channel=capstone_sos_private');
               const pTokenData = await pTokenResponse.json();
               if (pTokenData.token) {
                 TEMP_TOKEN_PRIVATE = pTokenData.token;
@@ -383,5 +383,6 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
     </div>
   );
 }
+
 
 
