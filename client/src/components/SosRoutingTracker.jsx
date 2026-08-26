@@ -7,13 +7,18 @@ const COMMAND_CENTER = [124.788, 8.8066];
 async function fetchRoadRoute(start, end) {
   const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&overview=full`;
   try {
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     const data = await response.json();
     if (data.routes && data.routes.length > 0) {
       return data.routes[0].geometry.coordinates;
     }
   } catch (error) {
-    console.error("Routing error:", error);
+    console.warn("OSRM routing server unavailable. Falling back to straight-line routing.");
   }
   return [start, end];
 }
