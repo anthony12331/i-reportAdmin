@@ -3,8 +3,8 @@ import AgoraRTC from "agora-rtc-sdk-ng";
 import { Mic, MicOff, Camera, Video, Square, Lock } from "lucide-react";
 
 const APP_ID = "4bf767c547a04dfeb581065f5fa11e63"; // Your specific App ID
-const TEMP_TOKEN_MAIN = "007eJxTYPhexH73Do+x1scr5xI7c6YYCup/VLr5bCeP6JXgWhcNdw4FBpOkNHMz82RTE/NEA5OUtNQkUwtDAzPTNNO0REPDVDNj4/fdWZuVcnN+F3gxMzIwMrAwMDKAABOYZAaTLGCShyE5saC4JD8vNb44v5iBAQA98yI6";
-const TEMP_TOKEN_PRIVATE = "007eJxTYAjrnsby5QvnvY0vl63UT/vvdrn53wx5OUG59cZVn966HhNUYDBJSjM3M082NTFPNDBJSUtNMrUwNDAzTTNNSzQ0TDUzNn7fnbVZKTdn0x01ZkYGRgYWBkYGEGACk8xgkgVMijAkJxYUl+TnpcYX5xfHFxRlliWWpDIwAABYjCfM";
+let TEMP_TOKEN_MAIN = "";
+let TEMP_TOKEN_PRIVATE = "";
 const HARDCODED_CHANNEL = "capstone_sos";
 
 const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -68,13 +68,30 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
         });
 
         // 2. Join the specific SOS channel using the Temp Token
-        await client.join(APP_ID, HARDCODED_CHANNEL, TEMP_TOKEN_MAIN, null);
+                  // FETCH DYNAMIC TOKEN FROM BACKEND BEFORE JOINING!
+          try {
+            const tokenResponse = await fetch('/express-api/token?channel=' + HARDCODED_CHANNEL);
+            const tokenData = await tokenResponse.json();
+            if (tokenData.token) {
+              TEMP_TOKEN_MAIN = tokenData.token;
+            }
+          } catch(e) {
+            console.error('Failed to fetch dynamic token:', e);
+          }
+          await client.join(APP_ID, HARDCODED_CHANNEL, TEMP_TOKEN_MAIN, null);
         await client.publish(track);
 
         // 2.5 Join Private Channel if responder is assigned
         if (responderId) {
           // Join the private room for this responder
-          await privateClient.join(APP_ID, "capstone_sos_private", TEMP_TOKEN_PRIVATE, null);
+                      try {
+              const pTokenResponse = await fetch('/express-api/token?channel=capstone_sos_private');
+              const pTokenData = await pTokenResponse.json();
+              if (pTokenData.token) {
+                TEMP_TOKEN_PRIVATE = pTokenData.token;
+              }
+            } catch(e) {}
+            await privateClient.join(APP_ID, "capstone_sos_private", TEMP_TOKEN_PRIVATE, null);
           // DO NOT publish track here to avoid multi-client publish error
         }
 
@@ -366,3 +383,5 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
     </div>
   );
 }
+
+
