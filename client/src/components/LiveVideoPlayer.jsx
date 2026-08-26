@@ -31,10 +31,9 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
 
     const startLiveStream = async () => {
       try {
-        // 0. Initialize Admin Microphone but keep it completely MUTED by default
-        track = await AgoraRTC.createMicrophoneAudioTrack();
-        await track.setMuted(true);
-        if (isMounted) setLocalAudioTrack(track);
+        // 0. DO NOT initialize the microphone here. 
+        // Modern browsers suspend the AudioContext if the mic is created on page load without a user click.
+        // We will lazy-load the microphone precisely when the user clicks the PTT button.
 
         client.removeAllListeners();
           privateClient.removeAllListeners();
@@ -80,7 +79,7 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
             console.error('Failed to fetch dynamic token:', e);
           }
           await client.join(APP_ID, HARDCODED_CHANNEL, TEMP_TOKEN_MAIN, null);
-        await client.publish(track);
+        // Do not publish track here, we publish it on demand
 
         // 2.5 Join Private Channel if responder is assigned
         if (responderId) {
@@ -127,7 +126,20 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
   }, [channelName, responderId]);
 
   const handleTalkStart = async () => {
-    if (localAudioTrack && !isPrivateTalking) {
+    if (isPrivateTalking) return;
+
+    if (!localAudioTrack) {
+      try {
+        // Lazy-load the microphone exactly when the user clicks to guarantee AudioContext is running
+        const track = await AgoraRTC.createMicrophoneAudioTrack();
+        setLocalAudioTrack(track);
+        await client.publish(track);
+        setIsTalking(true);
+      } catch (err) {
+        console.error("Microphone Access Error:", err);
+        alert("Failed to access microphone. Please check browser permissions.");
+      }
+    } else {
       await localAudioTrack.setMuted(false);
       setIsTalking(true);
     }
@@ -141,7 +153,18 @@ export default function LiveVideoPlayer({ channelName, responderId }) {
   };
 
   const handlePrivateTalkStart = async () => {
-    if (localAudioTrack && !isTalking) {
+    if (isTalking) return;
+
+    if (!localAudioTrack) {
+      try {
+        const track = await AgoraRTC.createMicrophoneAudioTrack();
+        setLocalAudioTrack(track);
+        await privateClient.publish(track);
+        setIsPrivateTalking(true);
+      } catch (err) {
+        console.error("PTT Start Error:", err);
+      }
+    } else {
       try {
         await client.unpublish(localAudioTrack);
         await privateClient.publish(localAudioTrack);
