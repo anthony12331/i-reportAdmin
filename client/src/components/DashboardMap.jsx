@@ -223,6 +223,7 @@ function MapFlyToListener({ reports, sos }) {
     };
 
     window.addEventListener("resize", handleResize);
+    window.addEventListener("leaflet-map-resize", handleResize);
 
     let resizeObserver = null;
     try {
@@ -242,6 +243,7 @@ function MapFlyToListener({ reports, sos }) {
       clearTimeout(t2);
       clearTimeout(t3);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("leaflet-map-resize", handleResize);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }

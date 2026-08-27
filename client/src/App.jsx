@@ -29,6 +29,7 @@ const OngoingBackup          = lazy(() => import("./pages/OngoingBackup"));
 // Components
 import { MessageBoxProvider } from "./components/MessageBox";
 import ProtectedRoute from "./components/ProtectedRoute";
+import NetworkStatusModal from "./components/NetworkStatusModal";
 
 // Utils
 import { addAuditLog } from "./utils/auditLog";
@@ -37,11 +38,34 @@ import { getSystemSettings, subscribeToSettings } from "./utils/systemSettings";
 
 // Minimal fallback shown while a lazy page chunk is downloading
 function PageLoader() {
+  const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", backgroundColor: "#f8fafc" }}>
+    <div
+      className="app-page-loader"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        backgroundColor: isDark ? "#090e17" : "#f8fafc",
+        color: isDark ? "#f8fafc" : "#0f172a",
+        transition: "background-color 0.2s ease",
+      }}
+    >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-        <div style={{ width: "32px", height: "32px", border: "3px solid #e2e8f0", borderTopColor: "#15803d", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-        <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: "600", letterSpacing: "0.04em" }}>LOADING</span>
+        <div
+          style={{
+            width: "32px",
+            height: "32px",
+            border: isDark ? "3px solid rgba(255, 255, 255, 0.1)" : "3px solid #e2e8f0",
+            borderTopColor: isDark ? "#4ade80" : "#15803d",
+            borderRadius: "50%",
+            animation: "spin 0.7s linear infinite",
+          }}
+        />
+        <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#94a3b8", fontWeight: "700", letterSpacing: "0.06em" }}>
+          LOADING
+        </span>
       </div>
       <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
     </div>
@@ -789,6 +813,7 @@ function App() {
           </Routes>
           </Suspense>
         </Router>
+        <NetworkStatusModal />
       </MessageBoxProvider>
     </div>
   );
