@@ -39,13 +39,48 @@ const hazardLandslideStyle = {
   dashArray: '3, 6'
 };
 
+const hazardSeverities = {
+  'Poblacion': { flood: 'High (Level 3)', landslide: 'None' },
+  'Tabok': { flood: 'High (Level 3)', landslide: 'None' },
+  'Kauswagan': { flood: 'High (Level 3)', landslide: 'None' },
+  'Kabulawan': { flood: 'Moderate (Level 2)', landslide: 'None' },
+  'Lumbo': { flood: 'Low (Level 1)', landslide: 'Low (Level 1)' },
+  'Manaol': { flood: 'Low (Level 1)', landslide: 'Moderate (Level 2)' },
+  'Dampil': { flood: 'Moderate (Level 2)', landslide: 'Moderate (Level 2)' },
+  'Banglay': { flood: 'None', landslide: 'High (Level 3)' },
+  'Umagos': { flood: 'None', landslide: 'Very High (Level 4)' },
+  'Gaston': { flood: 'None', landslide: 'Very High (Level 4)' }
+};
+
 const onEachBarangay = (feature, layer) => {
   if (feature.properties && feature.properties.NAME_3) {
-    layer.bindTooltip(feature.properties.NAME_3, {
+    const name = feature.properties.NAME_3;
+    const severity = hazardSeverities[name];
+    
+    // Keep the permanent label
+    layer.bindTooltip(name, {
       permanent: true,
       direction: 'center',
-      className: 'barangay-label' // Reusing the style from DashboardMap
+      className: 'barangay-label'
     });
+
+    // Add a clickable popup for severity details
+    if (severity) {
+      const popupContent = `
+        <div style="font-family: sans-serif; min-width: 150px;">
+          <h4 style="margin: 0 0 5px 0; font-size: 14px; text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 5px;">${name} Hazard Profile</h4>
+          <div style="font-size: 12px; margin-bottom: 4px;">
+            <strong style="color: #2563eb;">Flood/Storm Surge:</strong><br/>
+            ${severity.flood}
+          </div>
+          <div style="font-size: 12px;">
+            <strong style="color: #d97706;">Rain-Induced Landslide:</strong><br/>
+            ${severity.landslide}
+          </div>
+        </div>
+      `;
+      layer.bindPopup(popupContent);
+    }
   }
 };
 
