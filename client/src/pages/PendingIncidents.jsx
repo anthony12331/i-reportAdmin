@@ -583,7 +583,6 @@ export default function PendingIncidents() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: "22px" }}>
             {filteredIncidents.map((incident) => {
-              const reporter = incident.expand?.users;
               const imgUrl = incident.incident_image ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_image}` : null;
               const videoUrl = incident.incident_video ? `${pb.baseUrl}/api/files/${incident.collectionId}/${incident.id}/${incident.incident_video}` : null;
               const isNew = !isIncidentReviewed(incident.id);
