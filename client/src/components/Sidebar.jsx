@@ -35,11 +35,32 @@ export default function Sidebar({
 
   const [isHidden, setIsHidden] = useState(() => {
     try {
+      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+        return true;
+      }
       return localStorage.getItem("sidebar_hidden") === "true";
     } catch {
       return false;
     }
   });
+
+  // Auto-close sidebar on mobile/tablet when navigating to any route
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+      setIsHidden(true);
+    }
+  }, [location.pathname]);
+
+  // Handle Escape key to close sidebar on mobile
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && !isHidden && typeof window !== "undefined" && window.innerWidth <= 1024) {
+        setIsHidden(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isHidden]);
 
   const lastAlertTime = useRef(0);
 
@@ -275,6 +296,16 @@ export default function Sidebar({
         >
           <Menu size={20} strokeWidth={2.5} />
         </button>
+      )}
+
+      {/* Mobile Backdrop Overlay when sidebar is open on mobile/tablet screens */}
+      {!isHidden && (
+        <div
+          className="sidebar-mobile-backdrop"
+          onClick={() => setIsHidden(true)}
+          title="Close navigation overlay"
+          aria-label="Close navigation overlay"
+        />
       )}
 
       <aside className="sidebar-container" style={styles.sidebar}>

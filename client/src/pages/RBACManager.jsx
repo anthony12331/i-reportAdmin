@@ -155,7 +155,7 @@ export default function RBACManager() {
         </header>
 
         {/* Main Content Layout */}
-        <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "24px", alignItems: "start" }}>
+        <div className="responsive-workbench-grid" style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: "24px", alignItems: "start" }}>
           {/* Left Panel: Admins List */}
           <div className="premium-table-card" style={{ padding: "18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>

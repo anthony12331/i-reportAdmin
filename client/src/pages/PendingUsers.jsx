@@ -526,7 +526,7 @@ export default function PendingUserRegistration() {
           </div>
         ) : (
           /* Main Modern 2-Column Workbench (With Maximize Toggle) */
-          <div style={{ display: "grid", gridTemplateColumns: isMaximized ? "1fr" : "360px 1fr", gap: "24px", alignItems: "start" }}>
+          <div className="pending-users-workbench responsive-workbench-grid" style={{ display: "grid", gridTemplateColumns: isMaximized ? "1fr" : "360px 1fr", gap: "24px", alignItems: "start" }}>
             {/* Left Column: Applicants Queue (Hidden when maximized) */}
             {!isMaximized && (
               <div className="premium-table-card" style={{ padding: "20px" }}>

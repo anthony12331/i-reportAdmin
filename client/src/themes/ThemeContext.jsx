@@ -101,17 +101,11 @@ export function ThemeSwitch({ size = "default", className = "" }) {
       } ${className}`}
     >
       <span className="premium-switch-track">
-        <span className="switch-icon icon-sun">
-          <Sun size={11} strokeWidth={2.4} />
-        </span>
-        <span className="switch-icon icon-moon">
-          <Moon size={11} strokeWidth={2.4} />
-        </span>
         <span className="switch-blob">
           {isDark ? (
-            <Moon size={11} strokeWidth={2.6} className="blob-inner-icon blob-moon" />
+            <Moon size={size === "sm" ? 9 : 11} strokeWidth={2.6} className="blob-inner-icon blob-moon" />
           ) : (
-            <Sun size={11} strokeWidth={2.6} className="blob-inner-icon blob-sun" />
+            <Sun size={size === "sm" ? 9 : 11} strokeWidth={2.6} className="blob-inner-icon blob-sun" />
           )}
         </span>
       </span>

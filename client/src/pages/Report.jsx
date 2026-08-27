@@ -712,9 +712,10 @@ export default function Report() {
 
           {/* Date & Classification Form Inputs */}
           <div
+            className="report-filter-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr)) 220px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))",
               gap: "16px",
               alignItems: "flex-end",
             }}

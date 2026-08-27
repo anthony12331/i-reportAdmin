@@ -187,7 +187,7 @@ export default function Calamities() {
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: isDark ? '#0f172a' : '#f8fafc', color: isDark ? '#f8fafc' : '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
       
-      <main style={{ flex: 1, marginLeft: '216px', padding: '32px', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <main className="calamities-main" style={{ flex: 1, marginLeft: '216px', padding: '32px', display: 'flex', flexDirection: 'column', minHeight: '100vh', overflowY: 'auto' }}>
         <header style={{ marginBottom: '24px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <AlertTriangle color="#ef4444" size={32} />
@@ -198,9 +198,9 @@ export default function Calamities() {
           </p>
         </header>
 
-        <div style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
+        <div className="calamities-content-grid" style={{ display: 'flex', gap: '24px', flex: 1, minHeight: 0 }}>
           {/* LEFT PANEL - Live Stats */}
-          <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '8px' }}>
+          <div className="calamities-left-panel" style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '8px' }}>
             
             {/* Weather Panel */}
             <div style={{ background: isDark ? '#1e293b' : '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>

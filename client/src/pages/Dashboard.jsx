@@ -94,12 +94,12 @@ export default function Dashboard() {
     if (!isTvMode) {
       const elem = mapCardRef.current;
       if (elem && elem.requestFullscreen) {
-        elem.requestFullscreen().catch(() => {});
+        elem.requestFullscreen().catch(() => { });
       }
       setIsTvMode(true);
     } else {
       if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
       setIsTvMode(false);
     }
@@ -144,7 +144,7 @@ export default function Dashboard() {
     if (soundMuted) return;
     try {
       const audio = new Audio("/notification_sound.mp3");
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
     } catch (e) {
       console.warn("Audio alert failed to play:", e);
     }
@@ -274,11 +274,11 @@ export default function Dashboard() {
 
     return () => {
       isSubscribed = false;
-      if (unsubUsers) unsubUsers().catch(() => {});
-      if (unsubReports) unsubReports().catch(() => {});
-      if (unsubSos) unsubSos().catch(() => {});
-      if (unsubResponders) unsubResponders().catch(() => {});
-      if (unsubDispatches) unsubDispatches().catch(() => {});
+      if (unsubUsers) unsubUsers().catch(() => { });
+      if (unsubReports) unsubReports().catch(() => { });
+      if (unsubSos) unsubSos().catch(() => { });
+      if (unsubResponders) unsubResponders().catch(() => { });
+      if (unsubDispatches) unsubDispatches().catch(() => { });
     };
   }, [loadData]);
 
@@ -631,28 +631,28 @@ export default function Dashboard() {
           style={
             isTvMode
               ? {
-                  position: "fixed",
-                  inset: 0,
-                  width: "100vw",
-                  height: "100vh",
-                  zIndex: 999999,
-                  backgroundColor: "#0f172a",
-                  borderRadius: 0,
-                  margin: 0,
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                }
+                position: "fixed",
+                inset: 0,
+                width: "100vw",
+                height: "100vh",
+                zIndex: 999999,
+                backgroundColor: "#0f172a",
+                borderRadius: 0,
+                margin: 0,
+                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }
               : {
-                  padding: "0",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "540px",
-                  marginBottom: "24px",
-                  boxShadow: "0 8px 30px rgba(15, 23, 42, 0.08)",
-                }
+                padding: "0",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                height: "540px",
+                marginBottom: "24px",
+                boxShadow: "0 8px 30px rgba(15, 23, 42, 0.08)",
+              }
           }
         >
           {/* Map Header / TV Fullscreen HUD Bar */}
@@ -661,28 +661,28 @@ export default function Dashboard() {
             style={
               isTvMode
                 ? {
-                    padding: "12px 24px",
-                    backgroundColor: "rgba(15, 23, 42, 0.95)",
-                    backdropFilter: "blur(16px)",
-                    borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    color: "#ffffff",
-                    zIndex: 1000,
-                    flexWrap: "wrap",
-                    gap: "12px",
-                  }
+                  padding: "12px 24px",
+                  backgroundColor: "rgba(15, 23, 42, 0.95)",
+                  backdropFilter: "blur(16px)",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  color: "#ffffff",
+                  zIndex: 1000,
+                  flexWrap: "wrap",
+                  gap: "12px",
+                }
                 : {
-                    padding: "16px 22px",
-                    borderBottom: "1px solid #f1f5f9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    backgroundColor: "#ffffff",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                  }
+                  padding: "16px 22px",
+                  borderBottom: "1px solid #f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  backgroundColor: "#ffffff",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                }
             }
           >
             {/* Title & Live Status */}
@@ -860,32 +860,32 @@ export default function Dashboard() {
             style={
               isTvMode
                 ? {
-                    padding: "8px 24px",
-                    backgroundColor: "rgba(15, 23, 42, 0.95)",
-                    backdropFilter: "blur(16px)",
-                    borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-around",
-                    flexWrap: "wrap",
-                    gap: "14px",
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    color: "#e2e8f0",
-                  }
+                  padding: "8px 24px",
+                  backgroundColor: "rgba(15, 23, 42, 0.95)",
+                  backdropFilter: "blur(16px)",
+                  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-around",
+                  flexWrap: "wrap",
+                  gap: "14px",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  color: "#e2e8f0",
+                }
                 : {
-                    padding: "10px 22px",
-                    backgroundColor: "#ffffff",
-                    borderTop: "1px solid #f1f5f9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-around",
-                    flexWrap: "wrap",
-                    gap: "12px",
-                    fontSize: "11.5px",
-                    fontWeight: "800",
-                    color: "#475569",
-                  }
+                  padding: "10px 22px",
+                  backgroundColor: "#ffffff",
+                  borderTop: "1px solid #f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-around",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                  fontSize: "11.5px",
+                  fontWeight: "800",
+                  color: "#475569",
+                }
             }
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -909,9 +909,10 @@ export default function Dashboard() {
 
         {/* 4. UNIFIED & CLEAN 3-PANEL COMMAND WORKBENCH */}
         <div
+          className="dashboard-command-workbench"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
             gap: "20px",
             alignItems: "stretch",
           }}
@@ -1303,7 +1304,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     className="dashboard-quick-cmd-btn"
-                    onClick={() => navigate("/report")}
+                    onClick={() => navigate("/reports")}
                     style={{
                       padding: "8px",
                       borderRadius: "7px",
