@@ -229,15 +229,54 @@ export default function Calamities() {
 
           {/* RIGHT PANEL - Map */}
           <div style={{ flex: 1, borderRadius: '16px', overflow: 'hidden', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-            <MapContainer 
-              key={isDark ? 'cal-map-dark' : 'cal-map-light'}
-              center={COMMAND_CENTER}
-              zoom={12} 
-              style={{ width: '100%', height: '100%' }}
-              scrollWheelZoom={true}
-              maxBounds={MAP_BOUNDS}
-            >
-              <LayersControl position="bottomleft">
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              
+              {/* BEAUTIFUL FLOATING MAP LEGEND */}
+              <div style={{
+                position: 'absolute',
+                bottom: '30px',
+                right: '10px',
+                zIndex: 1000,
+                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                padding: '16px',
+                borderRadius: '12px',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                width: '280px',
+                backdropFilter: 'blur(4px)'
+              }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 'bold', borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                  Hazard Color Coding
+                </h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ width: '20px', height: '20px', backgroundColor: '#3b82f6', opacity: 0.8, border: '2px solid #2563eb', borderRadius: '4px', flexShrink: 0 }}></div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>High Flood & Storm Surge</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Coastal and river-basin barangays (Poblacion, Tabok, Kauswagan)</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ width: '20px', height: '20px', backgroundColor: '#f59e0b', opacity: 0.8, border: '2px solid #d97706', borderRadius: '4px', flexShrink: 0 }}></div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>Rain-Induced Landslides</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Eastern mountainous slopes (Umagos, Gaston, Banglay)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <MapContainer 
+                key={isDark ? 'cal-map-dark' : 'cal-map-light'}
+                center={COMMAND_CENTER}
+                zoom={13} 
+                style={{ width: '100%', height: '100%' }}
+                scrollWheelZoom={true}
+                maxBounds={MAP_BOUNDS}
+              >
+                <LayersControl position="bottomleft">
                 <LayersControl.BaseLayer checked={isDark} name="Dark Tactical View">
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -299,6 +338,7 @@ export default function Calamities() {
                 );
               })}
             </MapContainer>
+            </div>
           </div>
         </div>
       </main>
