@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import CustomDropdown from "../components/CustomDropdown";
+import { useTheme } from "../themes/ThemeContext";
 import {
   Download,
   Loader,
@@ -69,6 +70,8 @@ const INCIDENT_CATEGORIES = [
 ];
 
 export default function Report() {
+  const { isDark } = useTheme();
+  const [activePreset, setActivePreset] = useState("30days");
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -100,6 +103,7 @@ export default function Report() {
 
   // Quick Preset Handlers
   const applyDatePreset = (preset) => {
+    setActivePreset(preset);
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
     setEndDate(todayStr);
@@ -469,7 +473,7 @@ export default function Report() {
       const { ctx } = chart;
       ctx.save();
       ctx.globalCompositeOperation = "destination-over";
-      ctx.fillStyle = options.color || "#ffffff";
+      ctx.fillStyle = options.color || (isDark ? "#131c2e" : "#ffffff");
       ctx.fillRect(0, 0, chart.width, chart.height);
       ctx.restore();
     },
@@ -515,7 +519,7 @@ export default function Report() {
 
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 38px", minWidth: 0, overflowY: "auto" }}>
@@ -532,15 +536,25 @@ export default function Report() {
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-              <span className="live-status-pulse" style={{ width: "11px", height: "11px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
-              <span style={{ fontSize: "11.5px", fontWeight: "900", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.06em", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 9px", borderRadius: "6px" }}>
+              <span className="live-status-pulse" style={{ width: "11px", height: "11px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d", display: "inline-block" }} />
+              <span style={{
+                fontSize: "11.5px",
+                fontWeight: "900",
+                color: isDark ? "#4ade80" : "#15803d",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                padding: "3px 9px",
+                borderRadius: "6px"
+              }}>
                 Lagonglong MDRRMO Intelligence & Audit
               </span>
             </div>
-            <h1 style={{ fontSize: "clamp(24px, 3.2vw, 32px)", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+            <h1 style={{ fontSize: "clamp(24px, 3.2vw, 32px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
               Operations Analytics & Reporting Center
             </h1>
-            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px", fontWeight: "500" }}>
+            <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px", fontWeight: "500" }}>
               Aggregate real-time emergency telemetry, audit response efficacy, analyze geographic hotspots, and generate executive dossiers.
             </p>
           </div>
@@ -577,9 +591,10 @@ export default function Report() {
           style={{
             padding: "24px",
             marginBottom: "28px",
-            borderTop: "4px solid #15803d",
-            backgroundColor: "#ffffff",
-            boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.06)",
+            borderTop: isDark ? "4px solid #4ade80" : "4px solid #15803d",
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+            boxShadow: isDark ? "0 4px 20px -2px rgba(0, 0, 0, 0.5)" : "0 4px 20px -2px rgba(15, 23, 42, 0.06)",
           }}
         >
           {/* Top Quick-Preset Buttons & Source Selector */}
@@ -591,13 +606,13 @@ export default function Report() {
               flexWrap: "wrap",
               gap: "14px",
               paddingBottom: "18px",
-              borderBottom: "1px solid #f1f5f9",
+              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
               marginBottom: "18px",
             }}
           >
             {/* Quick Range Presets */}
             <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", marginRight: "4px", letterSpacing: "0.04em" }}>
+              <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", marginRight: "4px", letterSpacing: "0.04em" }}>
                 Range Presets:
               </span>
               {[
@@ -606,36 +621,48 @@ export default function Report() {
                 { id: "30days", label: "Last 30 Days" },
                 { id: "thisMonth", label: "This Month" },
                 { id: "ytd", label: "Year-to-Date" },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => applyDatePreset(p.id)}
-                  style={{
-                    padding: "5px 11px",
-                    borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
-                    backgroundColor: "#f8fafc",
-                    color: "#334155",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
+              ].map((p) => {
+                const isSelected = activePreset === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyDatePreset(p.id)}
+                    style={{
+                      padding: "6px 13px",
+                      borderRadius: "8px",
+                      border: isSelected
+                        ? (isDark ? "1px solid #4ade80" : "1px solid #15803d")
+                        : (isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0"),
+                      backgroundColor: isSelected
+                        ? (isDark ? "rgba(34, 197, 94, 0.22)" : "#e7f5eb")
+                        : (isDark ? "#172338" : "#f8fafc"),
+                      color: isSelected
+                        ? (isDark ? "#4ade80" : "#15803d")
+                        : (isDark ? "#cbd5e1" : "#475569"),
+                      fontSize: "12px",
+                      fontWeight: isSelected ? "800" : "700",
+                      cursor: "pointer",
+                      boxShadow: isSelected
+                        ? (isDark ? "0 2px 8px rgba(34, 197, 94, 0.2)" : "0 2px 6px rgba(21, 128, 61, 0.12)")
+                        : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Source Segmented Toggle */}
             <div
               style={{
                 display: "inline-flex",
-                backgroundColor: "#f1f5f9",
+                backgroundColor: isDark ? "#172338" : "#f1f5f9",
                 borderRadius: "10px",
                 padding: "3px",
-                border: "1px solid #e2e8f0",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
               }}
             >
               <button
@@ -648,12 +675,13 @@ export default function Report() {
                   padding: "6px 14px",
                   borderRadius: "8px",
                   border: "none",
-                  backgroundColor: reportSource === "incident" ? "#ffffff" : "transparent",
-                  color: reportSource === "incident" ? "#15803d" : "#64748b",
+                  backgroundColor: reportSource === "incident" ? (isDark ? "#1e293b" : "#ffffff") : "transparent",
+                  color: reportSource === "incident" ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b"),
                   fontWeight: "800",
                   fontSize: "12.5px",
                   cursor: "pointer",
-                  boxShadow: reportSource === "incident" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                  boxShadow: reportSource === "incident" ? (isDark ? "0 2px 6px rgba(0,0,0,0.4)" : "0 2px 6px rgba(0,0,0,0.06)") : "none",
+                  transition: "all 0.15s ease",
                 }}
               >
                 <FileText size={14} /> Incident Reports
@@ -668,12 +696,13 @@ export default function Report() {
                   padding: "6px 14px",
                   borderRadius: "8px",
                   border: "none",
-                  backgroundColor: reportSource === "sos" ? "#ffffff" : "transparent",
-                  color: reportSource === "sos" ? "#dc2626" : "#64748b",
+                  backgroundColor: reportSource === "sos" ? (isDark ? "#1e293b" : "#ffffff") : "transparent",
+                  color: reportSource === "sos" ? (isDark ? "#f87171" : "#dc2626") : (isDark ? "#94a3b8" : "#64748b"),
                   fontWeight: "800",
                   fontSize: "12.5px",
                   cursor: "pointer",
-                  boxShadow: reportSource === "sos" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                  boxShadow: reportSource === "sos" ? (isDark ? "0 2px 6px rgba(0,0,0,0.4)" : "0 2px 6px rgba(0,0,0,0.06)") : "none",
+                  transition: "all 0.15s ease",
                 }}
               >
                 <Radio size={14} /> Emergency SOS Alerts
@@ -691,20 +720,23 @@ export default function Report() {
             }}
           >
             <div>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                <Calendar size={13} color="#15803d" /> Start Date
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: isDark ? "#cbd5e1" : "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                <Calendar size={13} color={isDark ? "#4ade80" : "#15803d"} /> Start Date
               </label>
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setActivePreset(null);
+                }}
                 style={{
                   width: "100%",
                   padding: "10px 14px",
                   borderRadius: "10px",
-                  border: "1px solid #cbd5e1",
-                  backgroundColor: "#ffffff",
-                  color: "#0f172a",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                  backgroundColor: isDark ? "#172338" : "#ffffff",
+                  color: isDark ? "#f8fafc" : "#0f172a",
                   fontSize: "13.5px",
                   fontWeight: "700",
                   outline: "none",
@@ -714,20 +746,23 @@ export default function Report() {
             </div>
 
             <div>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                <Calendar size={13} color="#15803d" /> End Date
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: isDark ? "#cbd5e1" : "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                <Calendar size={13} color={isDark ? "#4ade80" : "#15803d"} /> End Date
               </label>
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setActivePreset(null);
+                }}
                 style={{
                   width: "100%",
                   padding: "10px 14px",
                   borderRadius: "10px",
-                  border: "1px solid #cbd5e1",
-                  backgroundColor: "#ffffff",
-                  color: "#0f172a",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                  backgroundColor: isDark ? "#172338" : "#ffffff",
+                  color: isDark ? "#f8fafc" : "#0f172a",
                   fontSize: "13.5px",
                   fontWeight: "700",
                   outline: "none",
@@ -738,8 +773,8 @@ export default function Report() {
 
             {reportSource === "incident" && (
               <div>
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                  <Filter size={13} color="#15803d" /> Classification
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: isDark ? "#cbd5e1" : "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                  <Filter size={13} color={isDark ? "#4ade80" : "#15803d"} /> Classification
                 </label>
                 <CustomDropdown
                   minWidth="100%"
@@ -773,6 +808,7 @@ export default function Report() {
                   justifyContent: "center",
                   gap: "8px",
                   boxShadow: "0 4px 14px rgba(21, 128, 61, 0.25)",
+                  transition: "all 0.15s ease",
                 }}
               >
                 {isLoading ? <Loader className="animate-spin" size={16} /> : <BarChart3 size={16} />}
@@ -783,14 +819,14 @@ export default function Report() {
 
           {/* Compilation Progress Bar if Loading */}
           {isLoading && (
-            <div style={{ marginTop: "18px", paddingTop: "14px", borderTop: "1px solid #f1f5f9" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "12px", color: "#64748b" }}>
-                <span style={{ fontWeight: "700", color: "#15803d", display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ marginTop: "18px", paddingTop: "14px", borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
+                <span style={{ fontWeight: "700", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "6px" }}>
                   <Loader className="animate-spin" size={12} /> {loadingStep}
                 </span>
-                <span style={{ fontWeight: "800", color: "#0f172a" }}>{loadingProgress}%</span>
+                <span style={{ fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>{loadingProgress}%</span>
               </div>
-              <div style={{ width: "100%", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+              <div style={{ width: "100%", height: "6px", backgroundColor: isDark ? "#1e293b" : "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
                 <div
                   style={{
                     width: `${loadingProgress}%`,
@@ -811,9 +847,9 @@ export default function Report() {
             style={{
               padding: "48px 32px",
               textAlign: "center",
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
               borderRadius: "20px",
-              border: "1px dashed #cbd5e1",
+              border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1",
             }}
           >
             <div
@@ -821,9 +857,9 @@ export default function Report() {
                 width: "64px",
                 height: "64px",
                 borderRadius: "20px",
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                color: "#15803d",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                color: isDark ? "#4ade80" : "#15803d",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -832,10 +868,10 @@ export default function Report() {
             >
               <Activity size={30} />
             </div>
-            <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#0f172a", margin: "0 0 8px" }}>
+            <h2 style={{ fontSize: "20px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", margin: "0 0 8px" }}>
               Ready to Compile Municipal Telemetry
             </h2>
-            <p style={{ maxWidth: "560px", margin: "0 auto 24px", color: "#64748b", fontSize: "14px", lineHeight: "1.6" }}>
+            <p style={{ maxWidth: "560px", margin: "0 auto 24px", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px", lineHeight: "1.6" }}>
               Select a date range preset above and click <strong>Compile Analytics</strong> to generate interactive telemetry charts, emergency resolution rates, hotspot analysis, and printable audit dossiers.
             </p>
             <div style={{ display: "inline-flex", gap: "10px" }}>
@@ -878,19 +914,19 @@ export default function Report() {
                   padding: "22px 24px",
                   position: "relative",
                   overflow: "hidden",
-                  borderLeft: "6px solid #0f172a",
+                  borderLeft: isDark ? "6px solid #4ade80" : "6px solid #0f172a",
                 }}
               >
-                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Layers size={14} color="#0f172a" /> Total Operations Logged
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Layers size={14} color={isDark ? "#4ade80" : "#0f172a"} /> Total Operations Logged
                 </span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
-                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
                     {reports.length}
                   </h2>
-                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b" }}>cases</span>
+                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b" }}>cases</span>
                 </div>
-                <div style={{ marginTop: "12px", fontSize: "12px", color: "#15803d", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
+                <div style={{ marginTop: "12px", fontSize: "12px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
                   <TrendingUp size={13} /> {startDate} to {endDate}
                 </div>
               </div>
@@ -901,23 +937,23 @@ export default function Report() {
                 style={{
                   padding: "22px 24px",
                   borderLeft: "6px solid #15803d",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: isDark ? "#131c2e" : "#ffffff",
                 }}
               >
-                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <CheckCircle2 size={14} color="#15803d" /> Resolved Efficiency
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <CheckCircle2 size={14} color={isDark ? "#4ade80" : "#15803d"} /> Resolved Efficiency
                 </span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
-                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: "#15803d", margin: 0, letterSpacing: "-0.03em" }}>
+                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: isDark ? "#4ade80" : "#15803d", margin: 0, letterSpacing: "-0.03em" }}>
                     {resolutionRate}%
                   </h2>
-                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#166534" }}>
+                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: isDark ? "#86efac" : "#166534" }}>
                     ({analytics.statuses.resolved} resolved)
                   </span>
                 </div>
                 {/* Visual mini-bar */}
-                <div style={{ width: "100%", height: "5px", backgroundColor: "#f0fdf4", borderRadius: "999px", marginTop: "12px", overflow: "hidden" }}>
-                  <div style={{ width: `${resolutionRate}%`, height: "100%", backgroundColor: "#15803d" }} />
+                <div style={{ width: "100%", height: "5px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4", borderRadius: "999px", marginTop: "12px", overflow: "hidden" }}>
+                  <div style={{ width: `${resolutionRate}%`, height: "100%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
                 </div>
               </div>
 
@@ -927,19 +963,19 @@ export default function Report() {
                 style={{
                   padding: "22px 24px",
                   borderLeft: "6px solid #f59e0b",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: isDark ? "#131c2e" : "#ffffff",
                 }}
               >
-                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#d97706", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Activity size={14} color="#d97706" /> Active Field Units
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#fbbf24" : "#d97706", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Activity size={14} color={isDark ? "#fbbf24" : "#d97706"} /> Active Field Units
                 </span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
-                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: "#d97706", margin: 0, letterSpacing: "-0.03em" }}>
+                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: isDark ? "#fbbf24" : "#d97706", margin: 0, letterSpacing: "-0.03em" }}>
                     {analytics.statuses.ongoing}
                   </h2>
-                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#b45309" }}>en route / scene</span>
+                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: isDark ? "#fde68a" : "#b45309" }}>en route / scene</span>
                 </div>
-                <div style={{ marginTop: "12px", fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                <div style={{ marginTop: "12px", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                   {analytics.statuses.pending} awaiting assignment
                 </div>
               </div>
@@ -950,18 +986,18 @@ export default function Report() {
                 style={{
                   padding: "22px 24px",
                   borderLeft: "6px solid #dc2626",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: isDark ? "#131c2e" : "#ffffff",
                 }}
               >
-                <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#b91c1c", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <ShieldAlert size={14} color="#dc2626" /> Primary Incident Driver
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#f87171" : "#b91c1c", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <ShieldAlert size={14} color={isDark ? "#f87171" : "#dc2626"} /> Primary Incident Driver
                 </span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
-                  <h2 style={{ fontSize: "28px", fontWeight: "900", color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "-0.02em" }}>
+                  <h2 style={{ fontSize: "28px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "-0.02em" }}>
                     {primaryIncidentType.name}
                   </h2>
                 </div>
-                <div style={{ marginTop: "12px", fontSize: "12px", color: "#b91c1c", fontWeight: "800" }}>
+                <div style={{ marginTop: "12px", fontSize: "12px", color: isDark ? "#fca5a5" : "#b91c1c", fontWeight: "800" }}>
                   {primaryIncidentType.count} cases ({primaryIncidentType.pct}% of volume)
                 </div>
               </div>
@@ -973,10 +1009,10 @@ export default function Report() {
               <div className="premium-table-card" style={{ padding: "26px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "900", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <BarChart3 size={18} color="#15803d" /> Incident Classification Breakdown
+                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <BarChart3 size={18} color={isDark ? "#4ade80" : "#15803d"} /> Incident Classification Breakdown
                     </h3>
-                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                    <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                       Volume distribution across emergency categories
                     </span>
                   </div>
@@ -990,16 +1026,16 @@ export default function Report() {
                       maintainAspectRatio: false,
                       plugins: {
                         legend: { display: false },
-                        customCanvasBackgroundColor: { color: "#ffffff" },
+                        customCanvasBackgroundColor: { color: isDark ? "#131c2e" : "#ffffff" },
                       },
                       scales: {
                         x: {
-                          ticks: { color: "#475569", font: { weight: "700", size: 11 } },
+                          ticks: { color: isDark ? "#94a3b8" : "#475569", font: { weight: "700", size: 11 } },
                           grid: { display: false },
                         },
                         y: {
-                          ticks: { color: "#64748b", font: { weight: "600" }, precision: 0 },
-                          grid: { color: "#f1f5f9" },
+                          ticks: { color: isDark ? "#94a3b8" : "#64748b", font: { weight: "600" }, precision: 0 },
+                          grid: { color: isDark ? "rgba(255, 255, 255, 0.08)" : "#f1f5f9" },
                         },
                       },
                     }}
@@ -1012,10 +1048,10 @@ export default function Report() {
               <div className="premium-table-card" style={{ padding: "26px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "900", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <PieChart size={18} color="#0284c7" /> Operational Status Distribution
+                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <PieChart size={18} color={isDark ? "#38bdf8" : "#0284c7"} /> Operational Status Distribution
                     </h3>
-                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                    <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                       Case resolution & operational queue lifecycle
                     </span>
                   </div>
@@ -1031,9 +1067,9 @@ export default function Report() {
                       plugins: {
                         legend: {
                           position: "bottom",
-                          labels: { color: "#334155", font: { weight: "700", size: 11.5 }, boxWidth: 12, padding: 14 },
+                          labels: { color: isDark ? "#f8fafc" : "#334155", font: { weight: "700", size: 11.5 }, boxWidth: 12, padding: 14 },
                         },
-                        customCanvasBackgroundColor: { color: "#ffffff" },
+                        customCanvasBackgroundColor: { color: isDark ? "#131c2e" : "#ffffff" },
                       },
                     }}
                     plugins={[customCanvasBackgroundColor]}
@@ -1046,17 +1082,17 @@ export default function Report() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "24px" }}>
               {/* Geographic Hotspots */}
               <div className="premium-table-card" style={{ padding: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <MapPin size={17} color="#dc2626" /> Top Incident Hotspots (Barangays)
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <MapPin size={17} color={isDark ? "#f87171" : "#dc2626"} /> Top Incident Hotspots (Barangays)
                   </h3>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#dc2626", backgroundColor: "#fef2f2", padding: "2px 7px", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#f87171" : "#dc2626", backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2", padding: "2px 7px", borderRadius: "6px" }}>
                     {analytics.topAreas.length} Areas Identified
                   </span>
                 </div>
 
                 {analytics.topAreas.length === 0 ? (
-                  <p style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>No location data recorded.</p>
+                  <p style={{ color: isDark ? "#64748b" : "#94a3b8", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>No location data recorded.</p>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {analytics.topAreas.map(([areaName, count], idx) => {
@@ -1064,18 +1100,18 @@ export default function Report() {
                       return (
                         <div key={areaName}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", fontSize: "13px" }}>
-                            <span style={{ fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                              <span style={{ width: "20px", height: "20px", borderRadius: "6px", backgroundColor: idx === 0 ? "#dc2626" : "#f1f5f9", color: idx === 0 ? "#fff" : "#475569", fontSize: "11px", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: "900" }}>
+                            <span style={{ fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ width: "20px", height: "20px", borderRadius: "6px", backgroundColor: idx === 0 ? "#dc2626" : (isDark ? "#1e293b" : "#f1f5f9"), color: idx === 0 ? "#fff" : (isDark ? "#cbd5e1" : "#475569"), fontSize: "11px", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: "900" }}>
                                 {idx + 1}
                               </span>
                               {areaName}
                             </span>
-                            <span style={{ fontWeight: "800", color: "#0f172a" }}>
-                              {count} <span style={{ color: "#64748b", fontWeight: "600", fontSize: "11.5px" }}>({pct}%)</span>
+                            <span style={{ fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
+                              {count} <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600", fontSize: "11.5px" }}>({pct}%)</span>
                             </span>
                           </div>
-                          <div style={{ width: "100%", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
-                            <div style={{ width: `${pct}%`, height: "100%", background: idx === 0 ? "linear-gradient(90deg, #dc2626 0%, #f87171 100%)" : "#94a3b8" }} />
+                          <div style={{ width: "100%", height: "6px", backgroundColor: isDark ? "#1e293b" : "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: idx === 0 ? "linear-gradient(90deg, #dc2626 0%, #f87171 100%)" : (isDark ? "#475569" : "#94a3b8") }} />
                           </div>
                         </div>
                       );
@@ -1086,17 +1122,17 @@ export default function Report() {
 
               {/* Top Responders Leaderboard */}
               <div className="premium-table-card" style={{ padding: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Users size={17} color="#15803d" /> Top Deployed Response Units
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Users size={17} color={isDark ? "#4ade80" : "#15803d"} /> Top Deployed Response Units
                   </h3>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", padding: "2px 7px", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4", padding: "2px 7px", borderRadius: "6px" }}>
                     Multi-Agency Telemetry
                   </span>
                 </div>
 
                 {analytics.topResponders.length === 0 ? (
-                  <p style={{ color: "#94a3b8", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>No unit dispatch logs in selected range.</p>
+                  <p style={{ color: isDark ? "#64748b" : "#94a3b8", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>No unit dispatch logs in selected range.</p>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {analytics.topResponders.map(([responderName, count], idx) => (
@@ -1108,19 +1144,19 @@ export default function Report() {
                           alignItems: "center",
                           padding: "10px 14px",
                           borderRadius: "10px",
-                          backgroundColor: "#f8fafc",
-                          border: "1px solid #e2e8f0",
+                          backgroundColor: isDark ? "#172338" : "#f8fafc",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#15803d", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11.5px", fontWeight: "900" }}>
+                          <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: isDark ? "#166534" : "#15803d", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11.5px", fontWeight: "900" }}>
                             {idx + 1}
                           </div>
-                          <span style={{ fontSize: "13px", fontWeight: "700", color: "#0f172a" }}>
+                          <span style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a" }}>
                             {responderName}
                           </span>
                         </div>
-                        <span style={{ fontSize: "12px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "6px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "6px" }}>
                           {count} Dispatches
                         </span>
                       </div>
@@ -1141,14 +1177,14 @@ export default function Report() {
                   gap: "14px",
                   marginBottom: "18px",
                   paddingBottom: "14px",
-                  borderBottom: "1px solid #f1f5f9",
+                  borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
                 }}
               >
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "900", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <FileText size={19} color="#15803d" /> Incident Telemetry Log Records
+                  <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <FileText size={19} color={isDark ? "#4ade80" : "#15803d"} /> Incident Telemetry Log Records
                   </h3>
-                  <span style={{ fontSize: "12.5px", color: "#64748b", fontWeight: "600" }}>
+                  <span style={{ fontSize: "12.5px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                     Showing {filteredReports.length} of {reports.length} compiled operation entries
                   </span>
                 </div>
@@ -1170,22 +1206,22 @@ export default function Report() {
                 <table className="premium-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "10px 0 0 0" }}>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "10px 0 0 0" }}>
                         Classification
                       </th>
-                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
                         Date & Time
                       </th>
-                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
                         Resolved Incident Location
                       </th>
-                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
                         Reporter Citizen
                       </th>
-                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
                         Assigned Units
                       </th>
-                      <th style={{ textAlign: "center", padding: "12px 14px", backgroundColor: "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "0 10px 0 0" }}>
+                      <th style={{ textAlign: "center", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "0 10px 0 0" }}>
                         Status
                       </th>
                     </tr>
@@ -1208,7 +1244,7 @@ export default function Report() {
                       }
 
                       return (
-                        <tr key={r.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <tr key={r.id} style={{ borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #f1f5f9" }}>
                           <td style={{ padding: "12px 14px" }}>
                             <span
                               style={{
@@ -1216,16 +1252,16 @@ export default function Report() {
                                 fontWeight: "800",
                                 padding: "3px 8px",
                                 borderRadius: "6px",
-                                backgroundColor: "#f8fafc",
-                                color: "#0f172a",
-                                border: "1px solid #cbd5e1",
+                                backgroundColor: isDark ? "#1e293b" : "#f8fafc",
+                                color: isDark ? "#f8fafc" : "#0f172a",
+                                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
                                 textTransform: "uppercase",
                               }}
                             >
                               {rawType}
                             </span>
                           </td>
-                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>
+                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>
                             {new Date(r.created).toLocaleDateString([], {
                               month: "short",
                               day: "numeric",
@@ -1233,16 +1269,16 @@ export default function Report() {
                               minute: "2-digit",
                             })}
                           </td>
-                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: "#0f172a", fontWeight: "700", maxWidth: "260px" }}>
+                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "700", maxWidth: "260px" }}>
                             <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                              <MapPin size={13} color="#15803d" style={{ flexShrink: 0, marginTop: "2px" }} />
+                              <MapPin size={13} color={isDark ? "#4ade80" : "#15803d"} style={{ flexShrink: 0, marginTop: "2px" }} />
                               <span>{r.resolvedLocation}</span>
                             </div>
                           </td>
-                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: "#334155", fontWeight: "600" }}>
+                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: isDark ? "#cbd5e1" : "#334155", fontWeight: "600" }}>
                             {reporterName}
                           </td>
-                          <td style={{ padding: "12px 14px", fontSize: "12px", color: "#64748b" }}>
+                          <td style={{ padding: "12px 14px", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                             {assignedUnits}
                           </td>
                           <td style={{ padding: "12px 14px", textAlign: "center" }}>
@@ -1252,9 +1288,21 @@ export default function Report() {
                                 fontWeight: "800",
                                 padding: "2px 8px",
                                 borderRadius: "6px",
-                                backgroundColor: r.status === "resolved" ? "#f0fdf4" : r.status === "ongoing" ? "#fffbeb" : "#fef2f2",
-                                color: r.status === "resolved" ? "#15803d" : r.status === "ongoing" ? "#b45309" : "#b91c1c",
-                                border: r.status === "resolved" ? "1px solid #bbf7d0" : r.status === "ongoing" ? "1px solid #fde68a" : "1px solid #fecaca",
+                                backgroundColor: r.status === "resolved"
+                                  ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
+                                  : r.status === "ongoing"
+                                  ? (isDark ? "rgba(245, 158, 11, 0.2)" : "#fffbeb")
+                                  : (isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2"),
+                                color: r.status === "resolved"
+                                  ? (isDark ? "#4ade80" : "#15803d")
+                                  : r.status === "ongoing"
+                                  ? (isDark ? "#fbbf24" : "#b45309")
+                                  : (isDark ? "#f87171" : "#b91c1c"),
+                                border: r.status === "resolved"
+                                  ? (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0")
+                                  : r.status === "ongoing"
+                                  ? (isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fde68a")
+                                  : (isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca"),
                                 textTransform: "uppercase",
                               }}
                             >

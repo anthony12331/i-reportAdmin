@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useMessageBox } from "../components/MessageBox";
+import { useTheme } from "../themes/ThemeContext";
 
 const getInitials = (admin) => {
   const first = admin.first_name ? admin.first_name.trim().charAt(0).toUpperCase() : "";
@@ -42,6 +43,7 @@ const getAvatarStyle = (name) => {
 };
 
 export default function RBACManager() {
+  const { isDark } = useTheme();
   const [admins, setAdmins] = useState([]);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -135,19 +137,19 @@ export default function RBACManager() {
   });
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* Header */}
         <header style={{ marginBottom: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
-            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
               Role-Based Access Control (RBAC)
             </h1>
           </div>
-          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+          <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
             Configure granular administrative privileges and module access rules.
           </p>
         </header>
@@ -158,8 +160,8 @@ export default function RBACManager() {
           <div className="premium-table-card" style={{ padding: "18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <UserCheck size={18} color="#15803d" />
-                <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: 0 }}>
+                <UserCheck size={18} color={isDark ? "#4ade80" : "#15803d"} />
+                <h2 style={{ fontSize: "15px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", margin: 0 }}>
                   Admin Accounts ({admins.length})
                 </h2>
               </div>
@@ -187,12 +189,12 @@ export default function RBACManager() {
             </div>
 
             {fetching ? (
-              <div style={{ padding: "30px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", color: "#15803d" }}>
+              <div style={{ padding: "30px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", color: isDark ? "#4ade80" : "#15803d" }}>
                 <Loader className="animate-spin" size={20} />
                 <span style={{ fontSize: "13px" }}>Loading accounts...</span>
               </div>
             ) : filteredAdmins.length === 0 ? (
-              <div style={{ padding: "30px 10px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+              <div style={{ padding: "30px 10px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px" }}>
                 No administrator accounts found.
               </div>
             ) : (
@@ -214,8 +216,12 @@ export default function RBACManager() {
                       style={{
                         padding: "12px 14px",
                         borderRadius: "12px",
-                        border: isSelected ? "2px solid #15803d" : "1px solid #e2e8f0",
-                        backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
+                        border: isSelected
+                          ? (isDark ? "2px solid #4ade80" : "2px solid #15803d")
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                        backgroundColor: isSelected
+                          ? (isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4")
+                          : (isDark ? "#172338" : "#ffffff"),
                         cursor: "pointer",
                         transition: "all 0.18s ease",
                         display: "flex",
@@ -238,23 +244,44 @@ export default function RBACManager() {
                           {initials}
                         </div>
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <span style={{ display: "block", fontWeight: "700", color: isSelected ? "#14532d" : "#0f172a", fontSize: "13.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <span style={{
+                            display: "block",
+                            fontWeight: "700",
+                            color: isSelected
+                              ? (isDark ? "#4ade80" : "#14532d")
+                              : (isDark ? "#f8fafc" : "#0f172a"),
+                            fontSize: "13.5px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          }}>
                             {fullName}
                           </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             <Mail size={11} /> {admin.email}
                           </span>
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "4px", borderTop: "1px solid #f1f5f9", fontSize: "11.5px" }}>
-                        <span style={{ color: "#64748b", fontWeight: "600" }}>{admin.position || "Regular Admin"}</span>
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingTop: "4px",
+                        borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #f1f5f9",
+                        fontSize: "11.5px"
+                      }}>
+                        <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>{admin.position || "Regular Admin"}</span>
                         <span
                           style={{
                             padding: "2px 8px",
                             borderRadius: "10px",
-                            backgroundColor: isSelected ? "#15803d" : "#f1f5f9",
-                            color: isSelected ? "#ffffff" : "#475569",
+                            backgroundColor: isSelected
+                              ? (isDark ? "#15803d" : "#15803d")
+                              : (isDark ? "#1e293b" : "#f1f5f9"),
+                            color: isSelected
+                              ? "#ffffff"
+                              : (isDark ? "#cbd5e1" : "#475569"),
                             fontWeight: "700",
                           }}
                         >
@@ -273,7 +300,16 @@ export default function RBACManager() {
             {selectedAdmin ? (
               <div>
                 {/* Admin Header Details */}
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: "20px", borderBottom: "1px solid #f1f5f9", marginBottom: "22px", flexWrap: "wrap", gap: "16px" }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  paddingBottom: "20px",
+                  borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                  marginBottom: "22px",
+                  flexWrap: "wrap",
+                  gap: "16px"
+                }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                     <div
                       className="premium-avatar"
@@ -288,14 +324,14 @@ export default function RBACManager() {
                       {getInitials(selectedAdmin)}
                     </div>
                     <div>
-                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.05em" }}>Target Account</span>
-                      <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: "2px 0 0 0" }}>
+                      <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", letterSpacing: "0.05em" }}>Target Account</span>
+                      <h2 style={{ fontSize: "18px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", margin: "2px 0 0 0" }}>
                         {selectedAdmin.first_name || selectedAdmin.last_name
                           ? `${selectedAdmin.first_name || ""} ${selectedAdmin.last_name || ""}`.trim()
                           : "Administrator"}
                       </h2>
-                      <p style={{ margin: "2px 0 0 0", color: "#64748b", fontSize: "13px" }}>
-                        {selectedAdmin.email} • ID: <code style={{ color: "#15803d", fontWeight: "600" }}>{selectedAdmin.id}</code>
+                      <p style={{ margin: "2px 0 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px" }}>
+                        {selectedAdmin.email} • ID: <code style={{ color: isDark ? "#4ade80" : "#15803d", fontWeight: "600", backgroundColor: isDark ? "rgba(34, 197, 94, 0.12)" : "transparent", padding: "2px 6px", borderRadius: "4px" }}>{selectedAdmin.id}</code>
                       </p>
                     </div>
                   </div>
@@ -310,9 +346,9 @@ export default function RBACManager() {
                         gap: "6px",
                         padding: "7px 12px",
                         borderRadius: "8px",
-                        border: "1px solid #bbf7d0",
-                        backgroundColor: "#f0fdf4",
-                        color: "#15803d",
+                        border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                        backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                        color: isDark ? "#4ade80" : "#15803d",
                         fontSize: "12.5px",
                         fontWeight: "700",
                         cursor: "pointer",
@@ -329,9 +365,9 @@ export default function RBACManager() {
                         gap: "6px",
                         padding: "7px 12px",
                         borderRadius: "8px",
-                        border: "1px solid #fecaca",
-                        backgroundColor: "#fef2f2",
-                        color: "#b91c1c",
+                        border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
+                        backgroundColor: isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2",
+                        color: isDark ? "#f87171" : "#b91c1c",
                         fontSize: "12.5px",
                         fontWeight: "700",
                         cursor: "pointer",
@@ -344,8 +380,8 @@ export default function RBACManager() {
 
                 {/* Modules Grid */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-                  <Layers size={17} color="#15803d" />
-                  <h3 style={{ fontSize: "15px", fontWeight: "700", color: "#0f172a", margin: 0 }}>
+                  <Layers size={17} color={isDark ? "#4ade80" : "#15803d"} />
+                  <h3 style={{ fontSize: "15px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", margin: 0 }}>
                     Authorizable System Modules
                   </h3>
                 </div>
@@ -364,8 +400,12 @@ export default function RBACManager() {
                           justifyContent: "space-between",
                           padding: "16px 18px",
                           borderRadius: "12px",
-                          border: hasAccess ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
-                          backgroundColor: hasAccess ? "#f0fdf4" : "#ffffff",
+                          border: hasAccess
+                            ? (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0")
+                            : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                          backgroundColor: hasAccess
+                            ? (isDark ? "rgba(34, 197, 94, 0.12)" : "#f0fdf4")
+                            : (isDark ? "#172338" : "#ffffff"),
                           cursor: "pointer",
                           transition: "all 0.15s ease",
                         }}
@@ -384,10 +424,15 @@ export default function RBACManager() {
                             }}
                           />
                           <div>
-                            <span style={{ display: "block", fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
+                            <span style={{
+                              display: "block",
+                              fontSize: "14px",
+                              fontWeight: "700",
+                              color: isDark ? "#f8fafc" : "#0f172a"
+                            }}>
                               {module.label}
                             </span>
-                            <span style={{ fontSize: "12.5px", color: "#64748b" }}>
+                            <span style={{ fontSize: "12.5px", color: isDark ? "#cbd5e1" : "#64748b" }}>
                               {module.description}
                             </span>
                           </div>
@@ -431,16 +476,24 @@ export default function RBACManager() {
                   </button>
 
                   {hasChanges && !loading && (
-                    <span style={{ fontSize: "12.5px", color: "#d97706", fontWeight: "600", backgroundColor: "#fffbeb", padding: "6px 12px", borderRadius: "8px", border: "1px solid #fde68a" }}>
+                    <span style={{
+                      fontSize: "12.5px",
+                      color: isDark ? "#fbbf24" : "#d97706",
+                      fontWeight: "600",
+                      backgroundColor: isDark ? "rgba(245, 158, 11, 0.2)" : "#fffbeb",
+                      padding: "6px 12px",
+                      borderRadius: "8px",
+                      border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fde68a"
+                    }}>
                       ● Unsaved permission changes
                     </span>
                   )}
                 </div>
               </div>
             ) : (
-              <div style={{ padding: "60px 20px", textAlign: "center", color: "#64748b" }}>
-                <Lock size={36} color="#94a3b8" style={{ marginBottom: "12px" }} />
-                <h3 style={{ margin: "0 0 6px 0", color: "#1e293b", fontSize: "16px" }}>No Administrator Selected</h3>
+              <div style={{ padding: "60px 20px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b" }}>
+                <Lock size={36} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginBottom: "12px" }} />
+                <h3 style={{ margin: "0 0 6px 0", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "16px" }}>No Administrator Selected</h3>
                 <p style={{ margin: 0, fontSize: "13.5px" }}>Select an administrator account from the left panel to configure module access.</p>
               </div>
             )}

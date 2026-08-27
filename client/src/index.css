@@ -1789,13 +1789,41 @@ html.dark .previewModalCard,
 html.dark .detailsModal,
 html.dark .reviewModal,
 html.dark .detailWindow,
-html.dark .messageBoxDialog,
 html.dark .lightboxModalCard,
 html.dark div[style*="promptBox"] {
   background-color: #131c2e !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
   color: #f8fafc !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75) !important;
+}
+
+html.dark .messageBoxOverlay {
+  background-color: rgba(3, 7, 18, 0.82) !important;
+}
+
+html.dark .messageBoxDialog {
+  background-color: #131c2e !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8) !important;
+}
+
+html.dark .messageBoxCloseBtn {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .messageBoxSecondaryBtn {
+  background-color: #172338 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .messageBoxSecondaryBtn:hover {
+  background-color: #1e293b !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #f8fafc !important;
 }
 
 html.dark .modalHead,
@@ -2872,9 +2900,25 @@ html.dark .verify-textarea {
   color: #f8fafc !important;
 }
 
-html.dark .verify-textarea:focus {
+html.dark .pending-citizen-card {
+  background-color: #172338 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .pending-citizen-card:hover {
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  background-color: #1a2942 !important;
+}
+
+html.dark .pending-citizen-card.selected {
+  background-color: rgba(34, 197, 94, 0.15) !important;
   border-color: #22c55e !important;
-  outline: none !important;
+  box-shadow: 0 4px 20px -2px rgba(34, 197, 94, 0.25) !important;
+}
+
+html.dark .pending-citizen-card.selected strong,
+html.dark .pending-citizen-card.selected span:first-child {
+  color: #4ade80 !important;
 }
 
 html.dark .verify-btn-clarify {
@@ -2896,6 +2940,7 @@ html.dark .verify-btn-reject {
 html.dark .verify-btn-reject:hover {
   background-color: rgba(239, 68, 68, 0.25) !important;
 }
+
 
 
 

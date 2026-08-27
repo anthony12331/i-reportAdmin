@@ -1,216 +1,161 @@
-export const ongoingBackupStyles = {
-  container: {
-    display: "flex",
-    minHeight: "100vh",
-    background: "#f8fafc",
-    color: "#0f172a",
-    fontFamily: "Inter, Arial, sans-serif",
-  },
-  main: {
-    flex: 1,
-    padding: "24px 24px 40px",
-    marginLeft: "216px",
-  },
-  header: {
-    marginBottom: "20px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    borderBottom: "1px solid #e2e8f0",
-    paddingBottom: "14px",
-  },
-  title: {
-    fontSize: "20px",
-    fontWeight: "600",
-    color: "#0f172a",
-    margin: "0 0 4px 0",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    letterSpacing: "-0.02em",
-  },
-  subtitle: {
-    fontSize: "13px",
-    color: "#64748b",
-    margin: 0,
-    fontWeight: "400",
-  },
-  cardGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
-    gap: "16px",
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: "8px",
-    border: "1px solid #e2e8f0",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    position: "relative",
-    overflow: "hidden",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-  },
-  cardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: "12px",
-  },
-  requesterName: {
-    fontSize: "15px",
-    fontWeight: "600",
-    color: "#0f172a",
-    margin: "0 0 2px 0",
-  },
-  metaText: {
-    fontSize: "12px",
-    color: "#64748b",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    marginBottom: "6px",
-    lineHeight: 1.4,
-  },
-  statusBadge: (status) => {
-    let bg = "#f1f5f9";
-    let color = "#475569";
-    let border = "#e2e8f0";
+// src/themes/ongoingBackupStyles.js
 
-    switch (status) {
-      case "assigned":
-        bg = "#eff6ff"; color = "#1d4ed8"; border = "#bfdbfe";
-        break;
-      case "accepted":
-        bg = "#faf5ff"; color = "#6d28d9"; border = "#e9d5ff";
-        break;
-      case "en_route":
-        bg = "#fffbeb"; color = "#b45309"; border = "#fef3c7";
-        break;
-      case "at_scene":
-        bg = "#f0fdf4"; color = "#15803d"; border = "#dcfce7";
-        break;
-      case "completed":
-        bg = "#f0fdf4"; color = "#15803d"; border = "#dcfce7";
-        break;
-      default:
-        break;
-    }
+export function getOngoingBackupStyles(isDark = false) {
+  const glassPanel = {
+    backgroundColor: isDark ? "#131c2e" : "#ffffff",
+    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+    boxShadow: isDark
+      ? "0 4px 20px -2px rgba(0, 0, 0, 0.5)"
+      : "0 1px 2px rgba(0, 0, 0, 0.03)",
+    borderRadius: "16px",
+  };
 
-    return {
-      padding: "3px 8px",
-      borderRadius: "4px",
-      backgroundColor: bg,
-      color: color,
-      fontSize: "10px",
-      fontWeight: "600",
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-      border: `1px solid ${border}`,
-    };
-  },
-  responderBox: {
-    backgroundColor: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    padding: "12px",
-    borderRadius: "6px",
-    marginTop: "12px",
-    borderLeft: "3px solid #15803d",
-  },
-  resolveBtn: {
-    width: "100%",
-    padding: "10px 14px",
-    background: "#15803d",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "6px",
-    fontWeight: "600",
-    fontSize: "13px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "6px",
-    transition: "background-color 0.15s ease",
-    marginTop: "16px",
-  },
-  emptyState: {
-    gridColumn: "1 / -1",
-    textAlign: "center",
-    padding: "60px 20px",
-    backgroundColor: "#ffffff",
-    borderRadius: "8px",
-    border: "1px dashed #cbd5e1",
-  },
-  emptyIcon: {
-    color: "#15803d",
-    marginBottom: "12px",
-  },
-  emptyText: {
-    color: "#64748b",
-    fontSize: "14px",
-    margin: 0,
-    fontWeight: "500",
-  },
-  miniMapContainer: {
-    position: "relative",
-    width: "100%",
-    height: "110px",
-    borderRadius: "6px",
-    overflow: "hidden",
-    marginTop: "8px",
-    marginBottom: "12px",
-    cursor: "pointer",
-    border: "1px solid #e2e8f0",
-    backgroundColor: "#f8fafc",
-  },
-  mapHoverTag: {
-    position: "absolute",
-    bottom: "6px",
-    right: "6px",
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    color: "#15803d",
-    padding: "3px 6px",
-    borderRadius: "4px",
-    fontSize: "10px",
-    fontWeight: "600",
-    pointerEvents: "none",
-    border: "1px solid #e2e8f0",
-  },
-  modalBackdrop: {
-    position: "fixed",
-    top: 0, left: 0, width: "100vw", height: "100vh",
-    backgroundColor: "rgba(15, 23, 42, 0.45)",
-    backdropFilter: "blur(4px)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 9999,
-  },
-  modalWindow: {
-    width: "750px",
-    maxWidth: "95vw",
-    backgroundColor: "#ffffff",
-    borderRadius: "8px",
-    overflow: "hidden",
-    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
-    border: "1px solid #e2e8f0",
-  },
-  modalHead: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "14px 18px",
-    backgroundColor: "#ffffff",
-    borderBottom: "1px solid #e2e8f0",
-  },
-  closeBtn: {
-    background: "none",
-    border: "1px solid #e2e8f0",
-    color: "#475569",
-    cursor: "pointer",
-    padding: "6px",
-    display: "flex",
-    borderRadius: "6px",
-  },
-};
+  return {
+    container: {
+      display: "flex",
+      minHeight: "100vh",
+      background: isDark ? "#090d16" : "#f8fafc",
+      color: isDark ? "#f8fafc" : "#0f172a",
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    },
+    main: {
+      flex: 1,
+      padding: "32px 36px",
+      marginLeft: "216px",
+      minWidth: 0,
+      overflowY: "auto",
+    },
+    header: {
+      marginBottom: "28px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      flexWrap: "wrap",
+      gap: "16px",
+      borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+      paddingBottom: "14px",
+    },
+    title: {
+      fontSize: "clamp(22px, 3vw, 28px)",
+      fontWeight: "800",
+      color: isDark ? "#f8fafc" : "#14532d",
+      margin: "0 0 4px 0",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      letterSpacing: "-0.02em",
+    },
+    subtitle: {
+      fontSize: "14px",
+      color: isDark ? "#94a3b8" : "#64748b",
+      margin: 0,
+      fontWeight: "400",
+    },
+    refreshBtn: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "7px 14px",
+      borderRadius: "10px",
+      border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+      backgroundColor: isDark ? "#172338" : "#ffffff",
+      color: isDark ? "#cbd5e1" : "#475569",
+      fontSize: "12.5px",
+      fontWeight: "700",
+      cursor: "pointer",
+    },
+    cardGrid: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))",
+      gap: "22px",
+    },
+    card: {
+      ...glassPanel,
+      padding: "22px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "14px",
+      borderTop: "4px solid #15803d",
+    },
+    requesterName: {
+      fontSize: "15.5px",
+      fontWeight: "800",
+      color: isDark ? "#f8fafc" : "#0f172a",
+      margin: "0 0 2px 0",
+    },
+    statusBadge: (status) => {
+      let bg = isDark ? "rgba(100, 116, 139, 0.18)" : "#f1f5f9";
+      let color = isDark ? "#94a3b8" : "#475569";
+      let border = isDark ? "1px solid rgba(100, 116, 139, 0.35)" : "1px solid #e2e8f0";
+
+      switch (status) {
+        case "assigned":
+          bg = isDark ? "rgba(59, 130, 246, 0.18)" : "#eff6ff";
+          color = isDark ? "#60a5fa" : "#1d4ed8";
+          border = isDark ? "1px solid rgba(59, 130, 246, 0.35)" : "1px solid #bfdbfe";
+          break;
+        case "accepted":
+          bg = isDark ? "rgba(168, 85, 247, 0.18)" : "#faf5ff";
+          color = isDark ? "#c084fc" : "#6d28d9";
+          border = isDark ? "1px solid rgba(168, 85, 247, 0.35)" : "1px solid #e9d5ff";
+          break;
+        case "en_route":
+          bg = isDark ? "rgba(245, 158, 11, 0.18)" : "#fffbeb";
+          color = isDark ? "#fbbf24" : "#b45309";
+          border = isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fef3c7";
+          break;
+        case "at_scene":
+        case "completed":
+          bg = isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4";
+          color = isDark ? "#4ade80" : "#15803d";
+          border = isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #dcfce7";
+          break;
+        default:
+          break;
+      }
+
+      return {
+        padding: "3px 8px",
+        borderRadius: "8px",
+        backgroundColor: bg,
+        color: color,
+        fontSize: "11px",
+        fontWeight: "800",
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+        border: border,
+      };
+    },
+    metaText: {
+      fontSize: "12px",
+      color: isDark ? "#94a3b8" : "#64748b",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      marginBottom: "6px",
+      lineHeight: 1.4,
+    },
+    responderBox: {
+      backgroundColor: isDark ? "#172338" : "#f8fafc",
+      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+      padding: "12px",
+      borderRadius: "10px",
+      marginTop: "12px",
+      borderLeft: "3px solid #15803d",
+    },
+    emptyState: {
+      padding: "70px 24px",
+      textAlign: "center",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      background: isDark ? "#131c2e" : "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+      borderRadius: "16px",
+      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+    },
+  };
+}
+
+export const ongoingBackupStyles = getOngoingBackupStyles(false);
+

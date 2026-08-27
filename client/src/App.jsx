@@ -30,6 +30,7 @@ const Calamities             = lazy(() => import("./pages/Calamities"));
 // Components
 import { MessageBoxProvider } from "./components/MessageBox";
 import ProtectedRoute from "./components/ProtectedRoute";
+import NetworkStatusDetector from "./components/NetworkStatusDetector";
 
 // Utils
 import { addAuditLog } from "./utils/auditLog";
@@ -645,6 +646,8 @@ function App() {
           </div>
         ))}
       </div>
+
+      <NetworkStatusDetector />
 
       <MessageBoxProvider>
         <Router>

@@ -582,16 +582,16 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         <MapFlyToListener reports={validReports} sos={validSos} />
         
         <LayersControl position="bottomleft">
-          <LayersControl.BaseLayer checked={isDark} name="Dark Tactical View">
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; OpenStreetMap &copy; CARTO'
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer checked={!isDark} name="Satellite View">
+          <LayersControl.BaseLayer checked name="Satellite View">
             <TileLayer
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               attribution='&copy; Esri &copy; Earthstar Geographics'
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Dark Tactical View">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; OpenStreetMap &copy; CARTO'
             />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="Standard View">

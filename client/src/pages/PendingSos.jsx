@@ -6,6 +6,7 @@ const LiveVideoPlayer = lazy(() => import("../components/LiveVideoPlayer"));
 import { getReadableAddress } from "../utils/utils";
 import SosRoutingTracker from "../components/SosRoutingTracker";
 import CustomDropdown from "../components/CustomDropdown";
+import { useTheme } from "../themes/ThemeContext";
 import {
   MapPin,
   User,
@@ -36,37 +37,86 @@ import {
 import { getResponderOptionLabel } from "../utils/responderOptions";
 import { useMessageBox } from "../components/MessageBox";
 
-const renderDepartmentBadge = (dept) => {
+const renderDepartmentBadge = (dept, isDark = false) => {
   const d = (dept || "").toLowerCase();
   if (d.includes("fire")) {
     return (
-      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <span style={{
+        fontSize: "10.5px",
+        fontWeight: "800",
+        color: isDark ? "#f87171" : "#b91c1c",
+        backgroundColor: isDark ? "rgba(239, 68, 68, 0.18)" : "#fef2f2",
+        border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
+        padding: "2px 7px",
+        borderRadius: "6px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "3px",
+        flexShrink: 0
+      }}>
         <Flame size={10} /> BFP
       </span>
     );
   }
   if (d.includes("police")) {
     return (
-      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#6d28d9", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <span style={{
+        fontSize: "10.5px",
+        fontWeight: "800",
+        color: isDark ? "#c084fc" : "#6d28d9",
+        backgroundColor: isDark ? "rgba(168, 85, 247, 0.18)" : "#f5f3ff",
+        border: isDark ? "1px solid rgba(168, 85, 247, 0.35)" : "1px solid #ddd6fe",
+        padding: "2px 7px",
+        borderRadius: "6px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "3px",
+        flexShrink: 0
+      }}>
         <Shield size={10} /> PNP
       </span>
     );
   }
   if (d.includes("ambulance") || d.includes("ems") || d.includes("medical")) {
     return (
-      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#0369a1", backgroundColor: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <span style={{
+        fontSize: "10.5px",
+        fontWeight: "800",
+        color: isDark ? "#38bdf8" : "#0369a1",
+        backgroundColor: isDark ? "rgba(56, 189, 248, 0.18)" : "#f0f9ff",
+        border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid #bae6fd",
+        padding: "2px 7px",
+        borderRadius: "6px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "3px",
+        flexShrink: 0
+      }}>
         <Ambulance size={10} /> EMS
       </span>
     );
   }
   return (
-    <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+    <span style={{
+      fontSize: "10.5px",
+      fontWeight: "800",
+      color: isDark ? "#4ade80" : "#15803d",
+      backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+      border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+      padding: "2px 7px",
+      borderRadius: "6px",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "3px",
+      flexShrink: 0
+    }}>
       <Activity size={10} /> MDRRMO
     </span>
   );
 };
 
 export default function PendingSos() {
+  const { isDark } = useTheme();
   const [sosSignals, setSosSignals] = useState([]);
   const [dispatches, setDispatches] = useState([]);
   const [addresses, setAddresses] = useState({});
@@ -301,7 +351,7 @@ export default function PendingSos() {
   }, [fetchSosSignals, fetchAvailableResponders]);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
@@ -310,11 +360,11 @@ export default function PendingSos() {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
               <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ef4444", display: "inline-block" }} />
-              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
                 Live SOS Distress Feeds
               </h1>
             </div>
-            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+            <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
               Real-time emergency distress telemetry, citizen live camera feeds, and priority responder dispatch routing.
             </p>
           </div>
@@ -327,14 +377,20 @@ export default function PendingSos() {
                 gap: "8px",
                 padding: "8px 16px",
                 borderRadius: "10px",
-                backgroundColor: sosSignals.length > 0 ? "#fef2f2" : "#f0fdf4",
-                border: sosSignals.length > 0 ? "1px solid #fecaca" : "1px solid #bbf7d0",
-                color: sosSignals.length > 0 ? "#b91c1c" : "#15803d",
+                backgroundColor: sosSignals.length > 0
+                  ? (isDark ? "rgba(239, 68, 68, 0.18)" : "#fef2f2")
+                  : (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4"),
+                border: sosSignals.length > 0
+                  ? (isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca")
+                  : (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0"),
+                color: sosSignals.length > 0
+                  ? (isDark ? "#f87171" : "#b91c1c")
+                  : (isDark ? "#4ade80" : "#15803d"),
                 fontSize: "13px",
                 fontWeight: "800",
               }}
             >
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: sosSignals.length > 0 ? "#dc2626" : "#16a34a" }} />
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: sosSignals.length > 0 ? "#ef4444" : "#22c55e" }} />
               <span>{sosSignals.length} Active SOS Signals</span>
             </span>
 
@@ -348,9 +404,9 @@ export default function PendingSos() {
                 gap: "6px",
                 padding: "7px 14px",
                 borderRadius: "10px",
-                border: "1px solid #e2e8f0",
-                backgroundColor: "#ffffff",
-                color: "#475569",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                color: isDark ? "#cbd5e1" : "#475569",
                 fontSize: "12.5px",
                 fontWeight: "700",
                 cursor: "pointer",
@@ -373,7 +429,8 @@ export default function PendingSos() {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              background: "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+              background: isDark ? "#131c2e" : "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
             }}
           >
             <div
@@ -381,29 +438,29 @@ export default function PendingSos() {
                 width: "72px",
                 height: "72px",
                 borderRadius: "24px",
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#15803d",
+                color: isDark ? "#4ade80" : "#15803d",
                 marginBottom: "18px",
-                boxShadow: "0 10px 25px -5px rgba(21, 128, 61, 0.15)",
+                boxShadow: isDark ? "0 10px 25px -5px rgba(0, 0, 0, 0.4)" : "0 10px 25px -5px rgba(21, 128, 61, 0.15)",
               }}
             >
               <CheckCircle size={36} />
             </div>
-            <h3 style={{ color: "#0f172a", fontSize: "20px", fontWeight: "800", margin: "0 0 8px 0" }}>
+            <h3 style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "20px", fontWeight: "800", margin: "0 0 8px 0" }}>
               No Active SOS Distress Signals
             </h3>
-            <p style={{ margin: 0, fontSize: "14.5px", color: "#64748b", maxWidth: "440px", lineHeight: "1.5" }}>
+            <p style={{ margin: 0, fontSize: "14.5px", color: isDark ? "#94a3b8" : "#64748b", maxWidth: "440px", lineHeight: "1.5" }}>
               All resident emergency distress beacons have been handled and dispatched. New emergency alarms will trigger instantly.
             </p>
           </div>
         )}
 
         {loading && sosSignals.length === 0 && (
-          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#15803d" }}>
+          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: isDark ? "#4ade80" : "#15803d" }}>
             <Loader className="animate-spin" size={32} />
             <span style={{ fontWeight: "700", fontSize: "15px" }}>Loading live SOS alerts...</span>
           </div>
@@ -434,6 +491,8 @@ export default function PendingSos() {
                   gap: "16px",
                   borderTop: "4px solid #ef4444",
                   position: "relative",
+                  backgroundColor: isDark ? "#131c2e" : "#ffffff",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                 }}
               >
                 {/* Header Banner */}
@@ -444,9 +503,9 @@ export default function PendingSos() {
                         width: "36px",
                         height: "36px",
                         borderRadius: "10px",
-                        backgroundColor: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        color: "#b91c1c",
+                        backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                        border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
+                        color: isDark ? "#f87171" : "#b91c1c",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -454,13 +513,13 @@ export default function PendingSos() {
                       }}
                       className="urgent-status-pulse"
                     >
-                      <Radio size={18} color="#dc2626" />
+                      <Radio size={18} color={isDark ? "#f87171" : "#dc2626"} />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#b91c1c", textTransform: "uppercase" }}>
+                      <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f87171" : "#b91c1c", textTransform: "uppercase" }}>
                         CRITICAL SOS DISTRESS
                       </h3>
-                      <span style={{ fontSize: "12px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                      <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
                         <Clock size={12} /> Broadcasted at {new Date(sos.created).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
@@ -472,9 +531,15 @@ export default function PendingSos() {
                       fontWeight: "800",
                       padding: "3px 8px",
                       borderRadius: "10px",
-                      backgroundColor: activeSosDispatches.length > 0 ? "#f0fdf4" : "#fef2f2",
-                      color: activeSosDispatches.length > 0 ? "#15803d" : "#b91c1c",
-                      border: activeSosDispatches.length > 0 ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                      backgroundColor: activeSosDispatches.length > 0
+                        ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
+                        : (isDark ? "rgba(239, 68, 68, 0.18)" : "#fef2f2"),
+                      color: activeSosDispatches.length > 0
+                        ? (isDark ? "#4ade80" : "#15803d")
+                        : (isDark ? "#f87171" : "#b91c1c"),
+                      border: activeSosDispatches.length > 0
+                        ? (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0")
+                        : (isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca"),
                       textTransform: "uppercase",
                     }}
                   >
@@ -490,8 +555,8 @@ export default function PendingSos() {
                     gap: "12px",
                     padding: "12px 14px",
                     borderRadius: "12px",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #f1f5f9",
+                    backgroundColor: isDark ? "#172338" : "#ffffff",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                   }}
                 >
@@ -500,8 +565,8 @@ export default function PendingSos() {
                       width: "36px",
                       height: "36px",
                       borderRadius: "10px",
-                      backgroundColor: "#fef2f2",
-                      color: "#b91c1c",
+                      backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                      color: isDark ? "#f87171" : "#b91c1c",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -523,14 +588,14 @@ export default function PendingSos() {
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <strong style={{ fontSize: "13.5px", color: "#0f172a" }}>
+                      <strong style={{ fontSize: "13.5px", color: isDark ? "#f8fafc" : "#0f172a" }}>
                         {sos.expand?.user?.first_name || "Resident"} {sos.expand?.user?.last_name || ""}
                       </strong>
-                      <span style={{ fontSize: "11px", fontWeight: "700", color: "#15803d", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "3px" }}>
                         <ShieldCheck size={12} /> Verified Resident
                       </span>
                     </div>
-                    <span style={{ fontSize: "11.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <span style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
                       <Phone size={11} /> {sos.expand?.user?.contact_number || "No contact"} • Brgy. {sos.expand?.user?.baranggay || "Lagonglong"}
                     </span>
                   </div>
@@ -544,14 +609,14 @@ export default function PendingSos() {
                     justifyContent: "space-between",
                     padding: "10px 14px",
                     borderRadius: "10px",
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #e2e8f0",
+                    backgroundColor: isDark ? "#172338" : "#f8fafc",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                     fontSize: "12.5px",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-                    <MapPin size={15} color="#15803d" style={{ flexShrink: 0 }} />
-                    <span style={{ color: "#334155", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <MapPin size={15} color={isDark ? "#4ade80" : "#15803d"} style={{ flexShrink: 0 }} />
+                    <span style={{ color: isDark ? "#cbd5e1" : "#334155", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {addresses[sos.id] || "Acquiring GPS Telemetry..."}
                     </span>
                   </div>
@@ -569,7 +634,7 @@ export default function PendingSos() {
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#15803d",
+                        color: isDark ? "#4ade80" : "#15803d",
                         fontWeight: "700",
                         fontSize: "11.5px",
                         cursor: "pointer",
@@ -599,10 +664,10 @@ export default function PendingSos() {
                       borderRadius: "12px",
                       overflow: "hidden",
                       position: "relative",
-                      border: "1px solid #e2e8f0",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                       cursor: "pointer",
                       boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                      backgroundColor: "#f1f5f9",
+                      backgroundColor: isDark ? "#0f172a" : "#f1f5f9",
                     }}
                   >
                     <iframe
@@ -621,7 +686,7 @@ export default function PendingSos() {
                         position: "absolute",
                         bottom: "8px",
                         right: "8px",
-                        backgroundColor: "rgba(15, 23, 42, 0.75)",
+                        backgroundColor: "rgba(15, 23, 42, 0.85)",
                         color: "#ffffff",
                         fontSize: "11px",
                         fontWeight: "700",
@@ -647,7 +712,7 @@ export default function PendingSos() {
                       handleToggleVideo(sos.id);
                     }}
                     style={{
-                      backgroundColor: activeVideoId === sos.id ? "#334155" : "#dc2626",
+                      backgroundColor: activeVideoId === sos.id ? (isDark ? "#334155" : "#334155") : "#dc2626",
                       color: "#ffffff",
                       padding: "9px 14px",
                       borderRadius: "10px",
@@ -679,8 +744,8 @@ export default function PendingSos() {
 
                 {/* Deployed Units List */}
                 {activeSosDispatches.length > 0 && (
-                  <div style={{ backgroundColor: "#f8fafc", padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                    <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+                  <div style={{ backgroundColor: isDark ? "#172338" : "#f8fafc", padding: "12px", borderRadius: "12px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                    <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
                       Deployed Response Units ({activeSosDispatches.length}):
                     </span>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -694,16 +759,16 @@ export default function PendingSos() {
                               justifyContent: "space-between",
                               alignItems: "center",
                               fontSize: "12px",
-                              backgroundColor: "#ffffff",
-                              border: "1px solid #e2e8f0",
+                              backgroundColor: isDark ? "#131c2e" : "#ffffff",
+                              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                               padding: "6px 8px",
                               borderRadius: "6px",
                             }}
                           >
-                            <span style={{ color: "#0f172a", fontWeight: "700" }}>
+                            <span style={{ color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "700" }}>
                               {r ? `${r.first_name} ${r.last_name} (${r.department})` : d.department}
                             </span>
-                            <span style={{ color: "#15803d", textTransform: "uppercase", fontSize: "10.5px", fontWeight: "800" }}>
+                            <span style={{ color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", fontSize: "10.5px", fontWeight: "800" }}>
                               {d.status}
                             </span>
                           </div>
@@ -714,9 +779,9 @@ export default function PendingSos() {
                 )}
 
                 {/* Standby Responders Multi-Selector */}
-                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
+                <div style={{ borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", paddingTop: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                    <label style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                    <label style={{ fontSize: "12px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
                       Dispatch Standby Responders
                     </label>
                     <CustomDropdown
@@ -734,9 +799,9 @@ export default function PendingSos() {
                     />
                   </div>
 
-                  <div style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: "#f8fafc", padding: "6px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px" }}>
+                  <div style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: isDark ? "#0f172a" : "#f8fafc", padding: "6px", borderRadius: "10px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", marginBottom: "12px" }}>
                     {respondersLoading ? (
-                      <span style={{ fontSize: "11.5px", color: "#15803d", padding: "6px", textAlign: "center" }}>Loading standby units...</span>
+                      <span style={{ fontSize: "11.5px", color: isDark ? "#4ade80" : "#15803d", padding: "6px", textAlign: "center" }}>Loading standby units...</span>
                     ) : availableResponders.length === 0 ? (
                       <span style={{ fontSize: "11.5px", color: "#94a3b8", padding: "6px", textAlign: "center" }}>No Standby Responders Online</span>
                     ) : (() => {
@@ -769,8 +834,12 @@ export default function PendingSos() {
                               gap: "8px",
                               padding: "6px 9px",
                               borderRadius: "8px",
-                              backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
-                              border: isSelected ? "1.5px solid #15803d" : "1px solid #e2e8f0",
+                              backgroundColor: isSelected
+                                ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
+                                : (isDark ? "#172338" : "#ffffff"),
+                              border: isSelected
+                                ? (isDark ? "1.5px solid #22c55e" : "1.5px solid #15803d")
+                                : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
                               cursor: "pointer",
                               transition: "all 0.15s ease",
                               boxShadow: isSelected ? "0 2px 6px rgba(21, 128, 61, 0.12)" : "0 1px 2px rgba(0,0,0,0.02)",
@@ -783,8 +852,8 @@ export default function PendingSos() {
                                   width: "16px",
                                   height: "16px",
                                   borderRadius: "4px",
-                                  backgroundColor: isSelected ? "#15803d" : "#ffffff",
-                                  border: isSelected ? "none" : "1.5px solid #cbd5e1",
+                                  backgroundColor: isSelected ? (isDark ? "#22c55e" : "#15803d") : (isDark ? "#1e293b" : "#ffffff"),
+                                  border: isSelected ? "none" : (isDark ? "1.5px solid rgba(255, 255, 255, 0.2)" : "1.5px solid #cbd5e1"),
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -811,7 +880,9 @@ export default function PendingSos() {
                                 style={{
                                   fontSize: "12px",
                                   fontWeight: isSelected ? "800" : "700",
-                                  color: isSelected ? "#14532d" : "#0f172a",
+                                  color: isSelected
+                                    ? (isDark ? "#4ade80" : "#14532d")
+                                    : (isDark ? "#cbd5e1" : "#0f172a"),
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
@@ -822,7 +893,7 @@ export default function PendingSos() {
                             </div>
 
                             {/* Department Badge */}
-                            {renderDepartmentBadge(r.department)}
+                            {renderDepartmentBadge(r.department, isDark)}
                           </div>
                         );
                       });
@@ -844,8 +915,10 @@ export default function PendingSos() {
                         padding: "10px 14px",
                         borderRadius: "10px",
                         border: "none",
-                        background: selectedIds.length > 0 ? "linear-gradient(135deg, #15803d 0%, #166534 100%)" : "#cbd5e1",
-                        color: "#ffffff",
+                        background: selectedIds.length > 0
+                          ? "linear-gradient(135deg, #15803d 0%, #166534 100%)"
+                          : (isDark ? "#1e293b" : "#cbd5e1"),
+                        color: selectedIds.length > 0 ? "#ffffff" : (isDark ? "#64748b" : "#ffffff"),
                         fontSize: "13px",
                         fontWeight: "800",
                         cursor: selectedIds.length > 0 ? "pointer" : "not-allowed",
@@ -889,9 +962,9 @@ export default function PendingSos() {
                         gap: "4px",
                         padding: "10px 12px",
                         borderRadius: "10px",
-                        border: "1px solid #cbd5e1",
-                        backgroundColor: "#ffffff",
-                        color: "#475569",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                        backgroundColor: isDark ? "#172338" : "#ffffff",
+                        color: isDark ? "#cbd5e1" : "#475569",
                         fontSize: "12.5px",
                         fontWeight: "700",
                         cursor: "pointer",
@@ -914,7 +987,7 @@ export default function PendingSos() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backgroundColor: "rgba(3, 7, 18, 0.82)",
             backdropFilter: "blur(10px)",
             zIndex: 99999,
             display: "flex",
@@ -927,24 +1000,43 @@ export default function PendingSos() {
           <div
             className="lightboxModalCard"
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
               borderRadius: "20px",
               width: "100%",
               maxWidth: "760px",
               overflow: "hidden",
-              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              boxShadow: isDark ? "0 25px 60px -15px rgba(0, 0, 0, 0.8)" : "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                <MapPin size={17} color="#15803d" /> {selectedMap.address}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "16px 22px",
+              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+              backgroundColor: isDark ? "#131c2e" : "#f8fafc"
+            }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                <MapPin size={17} color={isDark ? "#4ade80" : "#15803d"} /> {selectedMap.address}
               </h3>
               <button
                 type="button"
                 className="animatedCloseButton"
                 onClick={() => setSelectedMap(null)}
-                style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                  backgroundColor: isDark ? "#1e293b" : "#fff",
+                  color: isDark ? "#cbd5e1" : "#64748b",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
               >
                 <X size={16} />
               </button>
@@ -970,7 +1062,7 @@ export default function PendingSos() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backgroundColor: "rgba(3, 7, 18, 0.82)",
             backdropFilter: "blur(10px)",
             zIndex: 9999,
             display: "flex",
@@ -983,27 +1075,44 @@ export default function PendingSos() {
           <div
             className="lightboxModalCard"
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
               borderRadius: "20px",
               width: "100%",
               maxWidth: "680px",
               maxHeight: "90vh",
               overflowY: "auto",
               padding: "26px",
-              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              boxShadow: isDark ? "0 25px 60px -15px rgba(0, 0, 0, 0.8)" : "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "16px", borderBottom: "1px solid #f1f5f9", marginBottom: "20px" }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingBottom: "16px",
+              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+              marginBottom: "20px"
+            }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: "#fef2f2", color: "#b91c1c", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                  color: isDark ? "#f87171" : "#b91c1c",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
                   <Radio size={20} />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>
+                  <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
                     SOS Beacon #{selectedSos.id}
                   </h2>
-                  <span style={{ fontSize: "12px", color: "#64748b" }}>
+                  <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                     Signal active since {new Date(selectedSos.created).toLocaleString()}
                   </span>
                 </div>
@@ -1013,32 +1122,56 @@ export default function PendingSos() {
                 type="button"
                 className="animatedCloseButton"
                 onClick={() => setSelectedSos(null)}
-                style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                  backgroundColor: isDark ? "#1e293b" : "#fff",
+                  color: isDark ? "#cbd5e1" : "#64748b",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
               >
                 <X size={17} />
               </button>
             </div>
 
             {/* Resident Full Data */}
-            <div style={{ backgroundColor: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0", marginBottom: "18px" }}>
-              <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+            <div style={{
+              backgroundColor: isDark ? "#172338" : "#f8fafc",
+              padding: "16px",
+              borderRadius: "14px",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+              marginBottom: "18px"
+            }}>
+              <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
                 Citizen Profile
               </h4>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
-                <div><span style={{ color: "#64748b" }}>Name:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.first_name} {selectedSos.expand?.user?.last_name}</strong></div>
-                <div><span style={{ color: "#64748b" }}>Phone:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.contact_number || "N/A"}</strong></div>
-                <div><span style={{ color: "#64748b" }}>Email:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.email || "N/A"}</strong></div>
-                <div><span style={{ color: "#64748b" }}>Barangay:</span> <strong style={{ color: "#0f172a" }}>{selectedSos.expand?.user?.baranggay || "Lagonglong"}</strong></div>
+                <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Name:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{selectedSos.expand?.user?.first_name} {selectedSos.expand?.user?.last_name}</strong></div>
+                <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Phone:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{selectedSos.expand?.user?.contact_number || "N/A"}</strong></div>
+                <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Email:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{selectedSos.expand?.user?.email || "N/A"}</strong></div>
+                <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Barangay:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{selectedSos.expand?.user?.baranggay || "Lagonglong"}</strong></div>
               </div>
             </div>
 
             {/* Location & Routing Tracker */}
             {selectedSos.latitude && (
               <div style={{ marginBottom: "20px" }}>
-                <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
                   Live Field Telemetry
                 </h4>
-                <div style={{ padding: "12px", borderRadius: "12px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#14532d", fontSize: "13px" }}>
+                <div style={{
+                  padding: "12px",
+                  borderRadius: "12px",
+                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.12)" : "#f0fdf4",
+                  border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0",
+                  color: isDark ? "#4ade80" : "#14532d",
+                  fontSize: "13px"
+                }}>
                   <strong>Coordinates:</strong> {selectedSos.latitude}, {selectedSos.longitude} <br />
                   <strong>Address:</strong> {addresses[selectedSos.id] || "Acquiring telemetry..."}
                 </div>
@@ -1049,7 +1182,16 @@ export default function PendingSos() {
               <button
                 type="button"
                 onClick={() => setSelectedSos(null)}
-                style={{ padding: "10px 18px", borderRadius: "10px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: "10px",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                  background: isDark ? "#172338" : "#fff",
+                  color: isDark ? "#cbd5e1" : "#475569",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  cursor: "pointer"
+                }}
               >
                 Close Inspector
               </button>

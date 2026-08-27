@@ -3,6 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { Loader, Search, UserPlus, Shield, ShieldCheck, ShieldAlert, UserX, UserCheck, ArrowUpRight, X } from "lucide-react";
 import { useMessageBox } from "../components/MessageBox";
+import { useTheme } from "../themes/ThemeContext";
 
 const getInitials = (admin) => {
   const first = admin.first_name ? admin.first_name.trim().charAt(0).toUpperCase() : "";
@@ -29,6 +30,7 @@ const getAvatarStyle = (name) => {
 };
 
 export default function ManageAdmins() {
+  const { isDark } = useTheme();
   const [admins, setAdmins] = useState([]);
   const [superAdmins, setSuperAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -179,15 +181,15 @@ export default function ManageAdmins() {
   const filteredAdmins = filterList(admins);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* Header */}
         <header style={{ marginBottom: "28px" }}>
-          <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+          <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
             Admin Management Console
           </h1>
-          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+          <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
             Manage privileged administrator and super administrator credentials.
           </p>
         </header>
@@ -229,16 +231,16 @@ export default function ManageAdmins() {
 
         {/* Super Admins Card */}
         <div className="premium-table-card" style={{ marginBottom: "28px" }}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ padding: "16px 20px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
-              <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", margin: 0 }}>Super Administrators</h2>
+              <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
+              <h2 style={{ fontSize: "16px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", margin: 0 }}>Super Administrators</h2>
             </div>
-            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>{filteredSuperAdmins.length} Super Admins</span>
+            <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>{filteredSuperAdmins.length} Super Admins</span>
           </div>
 
           {loading ? (
-            <div style={{ padding: "40px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: "#15803d" }}>
+            <div style={{ padding: "40px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: isDark ? "#4ade80" : "#15803d" }}>
               <Loader className="animate-spin" size={24} />
               <span>Loading super admins...</span>
             </div>
@@ -274,7 +276,18 @@ export default function ManageAdmins() {
                           </div>
                         </td>
                         <td>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "12px", backgroundColor: "#fef3c7", color: "#92400e", fontSize: "12px", fontWeight: "700" }}>
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "4px 10px",
+                            borderRadius: "12px",
+                            backgroundColor: isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7",
+                            color: isDark ? "#fbbf24" : "#92400e",
+                            border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "none",
+                            fontSize: "12px",
+                            fontWeight: "700"
+                          }}>
                             <Shield size={13} /> Super Admin
                           </span>
                         </td>
@@ -289,9 +302,15 @@ export default function ManageAdmins() {
                               type="button"
                               className="premium-action-btn"
                               style={{
-                                color: admin.suspended ? "#15803d" : "#ef4444",
-                                borderColor: admin.suspended ? "#bbf7d0" : "#fecaca",
-                                backgroundColor: admin.suspended ? "#f0fdf4" : "#fef2f2",
+                                color: admin.suspended
+                                  ? (isDark ? "#4ade80" : "#15803d")
+                                  : (isDark ? "#f87171" : "#ef4444"),
+                                borderColor: admin.suspended
+                                  ? (isDark ? "rgba(34, 197, 94, 0.35)" : "#bbf7d0")
+                                  : (isDark ? "rgba(239, 68, 68, 0.35)" : "#fecaca"),
+                                backgroundColor: admin.suspended
+                                  ? (isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4")
+                                  : (isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2"),
                               }}
                               onClick={() => handleToggleSuspend(admin, "super_admins")}
                             >
@@ -306,7 +325,7 @@ export default function ManageAdmins() {
                   })}
                   {filteredSuperAdmins.length === 0 && (
                     <tr>
-                      <td colSpan="4" style={{ textAlign: "center", padding: "28px", color: "#64748b" }}>
+                      <td colSpan="4" style={{ textAlign: "center", padding: "28px", color: isDark ? "#94a3b8" : "#64748b" }}>
                         No super administrators found.
                       </td>
                     </tr>
@@ -319,16 +338,16 @@ export default function ManageAdmins() {
 
         {/* Standard Admins Card */}
         <div className="premium-table-card">
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ padding: "16px 20px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#3b82f6" }} />
-              <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", margin: 0 }}>Standard Administrators</h2>
+              <h2 style={{ fontSize: "16px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", margin: 0 }}>Standard Administrators</h2>
             </div>
-            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>{filteredAdmins.length} Admins</span>
+            <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>{filteredAdmins.length} Admins</span>
           </div>
 
           {loading ? (
-            <div style={{ padding: "40px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: "#15803d" }}>
+            <div style={{ padding: "40px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: isDark ? "#4ade80" : "#15803d" }}>
               <Loader className="animate-spin" size={24} />
               <span>Loading administrators...</span>
             </div>
@@ -363,7 +382,18 @@ export default function ManageAdmins() {
                           </div>
                         </td>
                         <td>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "12px", backgroundColor: "#eff6ff", color: "#1d4ed8", fontSize: "12px", fontWeight: "700" }}>
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "4px 10px",
+                            borderRadius: "12px",
+                            backgroundColor: isDark ? "rgba(59, 130, 246, 0.2)" : "#eff6ff",
+                            color: isDark ? "#60a5fa" : "#1d4ed8",
+                            border: isDark ? "1px solid rgba(59, 130, 246, 0.35)" : "none",
+                            fontSize: "12px",
+                            fontWeight: "700"
+                          }}>
                             <ShieldCheck size={13} /> Admin
                           </span>
                         </td>
@@ -378,7 +408,11 @@ export default function ManageAdmins() {
                               type="button"
                               className="premium-action-btn"
                               onClick={() => handlePromote(admin)}
-                              style={{ color: "#d97706", borderColor: "#fde68a", backgroundColor: "#fffbeb" }}
+                              style={{
+                                color: isDark ? "#fbbf24" : "#d97706",
+                                borderColor: isDark ? "rgba(245, 158, 11, 0.35)" : "#fde68a",
+                                backgroundColor: isDark ? "rgba(245, 158, 11, 0.16)" : "#fffbeb"
+                              }}
                             >
                               Promote to Super
                             </button>
@@ -386,9 +420,15 @@ export default function ManageAdmins() {
                               type="button"
                               className="premium-action-btn"
                               style={{
-                                color: admin.suspended ? "#15803d" : "#ef4444",
-                                borderColor: admin.suspended ? "#bbf7d0" : "#fecaca",
-                                backgroundColor: admin.suspended ? "#f0fdf4" : "#fef2f2",
+                                color: admin.suspended
+                                  ? (isDark ? "#4ade80" : "#15803d")
+                                  : (isDark ? "#f87171" : "#ef4444"),
+                                borderColor: admin.suspended
+                                  ? (isDark ? "rgba(34, 197, 94, 0.35)" : "#bbf7d0")
+                                  : (isDark ? "rgba(239, 68, 68, 0.35)" : "#fecaca"),
+                                backgroundColor: admin.suspended
+                                  ? (isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4")
+                                  : (isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2"),
                               }}
                               onClick={() => handleToggleSuspend(admin, "admins")}
                             >
@@ -401,7 +441,7 @@ export default function ManageAdmins() {
                   })}
                   {filteredAdmins.length === 0 && (
                     <tr>
-                      <td colSpan="4" style={{ textAlign: "center", padding: "28px", color: "#64748b" }}>
+                      <td colSpan="4" style={{ textAlign: "center", padding: "28px", color: isDark ? "#94a3b8" : "#64748b" }}>
                         No standard administrators found.
                       </td>
                     </tr>
@@ -419,7 +459,7 @@ export default function ManageAdmins() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backgroundColor: "rgba(3, 7, 18, 0.82)",
             backdropFilter: "blur(8px)",
             zIndex: 9999,
             display: "flex",
@@ -430,28 +470,50 @@ export default function ManageAdmins() {
           onClick={() => setShowCreateModal(false)}
         >
           <div
+            className="modalWindow"
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
               borderRadius: "18px",
               width: "100%",
               maxWidth: "480px",
               padding: "28px 24px",
-              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              boxShadow: isDark ? "0 25px 60px -15px rgba(0, 0, 0, 0.8)" : "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", color: "#15803d" }}>
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: isDark ? "#4ade80" : "#15803d"
+                }}>
                   <UserPlus size={20} />
                 </div>
-                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: "#0f172a" }}>Create New Admin</h3>
+                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a" }}>Create New Admin</h3>
               </div>
               <button
                 type="button"
                 className="animatedCloseButton"
                 onClick={() => setShowCreateModal(false)}
-                style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                  background: isDark ? "#1e293b" : "#fff",
+                  color: isDark ? "#cbd5e1" : "#64748b",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
               >
                 <X size={16} />
               </button>
@@ -460,39 +522,77 @@ export default function ManageAdmins() {
             <form onSubmit={handleCreateAdmin}>
               <div style={{ display: "flex", gap: "12px", marginBottom: "14px" }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: "600", color: "#475569", marginBottom: "6px" }}>First Name</label>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: "600", color: isDark ? "#cbd5e1" : "#475569", marginBottom: "6px" }}>First Name</label>
                   <input
                     type="text"
                     required
                     value={newFirstName}
                     onChange={(e) => setNewFirstName(e.target.value)}
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", boxSizing: "border-box" }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                      backgroundColor: isDark ? "#172338" : "#ffffff",
+                      color: isDark ? "#f8fafc" : "#0f172a",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                      outline: "none"
+                    }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: "600", color: "#475569", marginBottom: "6px" }}>Last Name</label>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: "600", color: isDark ? "#cbd5e1" : "#475569", marginBottom: "6px" }}>Last Name</label>
                   <input
                     type="text"
                     required
                     value={newLastName}
                     onChange={(e) => setNewLastName(e.target.value)}
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", boxSizing: "border-box" }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                      backgroundColor: isDark ? "#172338" : "#ffffff",
+                      color: isDark ? "#f8fafc" : "#0f172a",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                      outline: "none"
+                    }}
                   />
                 </div>
               </div>
 
               <div style={{ marginBottom: "18px" }}>
-                <label style={{ display: "block", fontSize: "12.5px", fontWeight: "600", color: "#475569", marginBottom: "6px" }}>Email Address</label>
+                <label style={{ display: "block", fontSize: "12.5px", fontWeight: "600", color: isDark ? "#cbd5e1" : "#475569", marginBottom: "6px" }}>Email Address</label>
                 <input
                   type="email"
                   required
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", boxSizing: "border-box" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                    backgroundColor: isDark ? "#172338" : "#ffffff",
+                    color: isDark ? "#f8fafc" : "#0f172a",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                    outline: "none"
+                  }}
                 />
               </div>
 
-              <div style={{ padding: "12px", borderRadius: "8px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", marginBottom: "20px", fontSize: "12.5px", color: "#166534" }}>
+              <div style={{
+                padding: "12px",
+                borderRadius: "8px",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.12)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0",
+                marginBottom: "20px",
+                fontSize: "12.5px",
+                color: isDark ? "#86efac" : "#166534"
+              }}>
                 Temporary initial password will automatically be set to <strong>12345678</strong>.
               </div>
 
@@ -500,14 +600,33 @@ export default function ManageAdmins() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  style={{ padding: "9px 16px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+                  style={{
+                    padding: "9px 16px",
+                    borderRadius: "8px",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                    background: isDark ? "#172338" : "#fff",
+                    color: isDark ? "#cbd5e1" : "#475569",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: "pointer"
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  style={{ padding: "9px 18px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg, #15803d 0%, #166534 100%)", color: "#fff", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+                  style={{
+                    padding: "9px 18px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
+                    color: "#fff",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(21, 128, 61, 0.25)"
+                  }}
                 >
                   {isCreating ? "Creating..." : "Confirm & Create"}
                 </button>

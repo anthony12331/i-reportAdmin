@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
+import { useTheme } from "../themes/ThemeContext";
 import { addAuditLog } from "../utils/auditLog";
 import { buildVerifiedUsersFilter } from "./verified-users/verifiedUsersUtils";
-import { verifiedUserStyle as styles } from "../themes/verifiedUserStyle";
+import { getVerifiedUserStyles } from "../themes/verifiedUserStyle";
 import {
   SuspendPromptModal,
   SuspendedUsersModal,
@@ -55,7 +56,7 @@ const getAvatarStyle = (name) => {
   return palettes[index];
 };
 
-function RegistrationDatePicker({ value, onChange }) {
+function RegistrationDatePicker({ value, onChange, styles }) {
   const selectedDate = value ? new Date(`${value}T00:00:00`) : null;
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(selectedDate || new Date());
@@ -104,7 +105,7 @@ function RegistrationDatePicker({ value, onChange }) {
   );
 }
 
-function FilterDropdown({ label, value, options, onChange }) {
+function FilterDropdown({ label, value, options, onChange, styles }) {
   const [open, setOpen] = useState(false);
   const selectedLabel = options.find((option) => option.value === value)?.label || label;
 
@@ -129,6 +130,8 @@ function FilterDropdown({ label, value, options, onChange }) {
 
 export default function VerifiedUsers() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
+  const styles = useMemo(() => getVerifiedUserStyles(isDark), [isDark]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -406,12 +409,12 @@ export default function VerifiedUsers() {
         {/* Header */}
         <header style={{ marginBottom: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
-            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
               Registered Users Management
             </h1>
           </div>
-          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+          <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
             Monitor and manage verified civilian resident records, contact info, and account statuses.
           </p>
         </header>
@@ -481,9 +484,9 @@ export default function VerifiedUsers() {
                 {suspendedUsers.length > 0 && (
                   <span
                     style={{
-                      backgroundColor: "#fef2f2",
-                      color: "#b91c1c",
-                      border: "1px solid #fecaca",
+                      backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                      color: isDark ? "#f87171" : "#b91c1c",
+                      border: isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fecaca",
                       fontSize: "11px",
                       fontWeight: "800",
                       borderRadius: "10px",
@@ -508,8 +511,8 @@ export default function VerifiedUsers() {
                 gap: "10px",
                 padding: "14px 16px",
                 marginBottom: "18px",
-                backgroundColor: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                backgroundColor: isDark ? "#172338" : "#f8fafc",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                 borderRadius: "12px",
               }}
             >
@@ -517,6 +520,7 @@ export default function VerifiedUsers() {
                 label="All Barangays"
                 value={filters.barangay}
                 options={barangayOptions}
+                styles={styles}
                 onChange={(barangay) => {
                   setPage(1);
                   setFilters((current) => ({ ...current, barangay }));
@@ -526,6 +530,7 @@ export default function VerifiedUsers() {
                 label="All Municipalities"
                 value={filters.municipality}
                 options={municipalityOptions}
+                styles={styles}
                 onChange={(municipality) => {
                   setPage(1);
                   setFilters((current) => ({ ...current, municipality }));
@@ -533,6 +538,7 @@ export default function VerifiedUsers() {
               />
               <RegistrationDatePicker
                 value={filters.registrationDate}
+                styles={styles}
                 onChange={(registrationDate) => {
                   setPage(1);
                   setFilters((current) => ({ ...current, registrationDate }));
@@ -541,6 +547,7 @@ export default function VerifiedUsers() {
               <FilterDropdown
                 label="Verified"
                 value={filters.status}
+                styles={styles}
                 options={[
                   { value: "verified", label: "Verified" },
                   { value: "suspended", label: "Suspended" },
@@ -559,13 +566,14 @@ export default function VerifiedUsers() {
                   alignItems: "center",
                   gap: "6px",
                   padding: "9px 14px",
-                  border: "1px solid #e2e8f0",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
                   borderRadius: "8px",
-                  backgroundColor: "#ffffff",
-                  color: "#64748b",
+                  backgroundColor: isDark ? "#1e293b" : "#ffffff",
+                  color: isDark ? "#cbd5e1" : "#64748b",
                   cursor: "pointer",
                   fontSize: "12px",
                   fontWeight: "700",
+                  transition: "all 0.15s ease",
                 }}
                 onClick={() => {
                   setSearchTerm("");
@@ -594,20 +602,20 @@ export default function VerifiedUsers() {
             </div>
           ) : loading && users.length === 0 ? (
             <div style={styles.loadingContainer}>
-              <Loader className="animate-spin" size={42} color="#15803d" />
+              <Loader className="animate-spin" size={42} color={isDark ? "#4ade80" : "#15803d"} />
               <span>Loading verified citizen records...</span>
             </div>
           ) : users.length === 0 ? (
             <div style={styles.emptyContainer}>
               <ShieldCheck
                 size={56}
-                color="#64748b"
-                style={{ marginBottom: "16px", opacity: 0.8 }}
+                color={isDark ? "#4ade80" : "#64748b"}
+                style={{ marginBottom: "16px", opacity: 0.9 }}
               />
-              <h3 style={{ color: "#111827", margin: "0 0 8px 0" }}>
+              <h3 style={{ color: isDark ? "#f8fafc" : "#111827", margin: "0 0 8px 0" }}>
                 No Verified Citizens Found
               </h3>
-              <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>
+              <p style={{ margin: 0, fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b" }}>
                 No verified citizen records match your search or filter criteria. Try clearing your filters or using different keywords.
               </p>
             </div>
@@ -672,21 +680,21 @@ export default function VerifiedUsers() {
                           </td>
                           <td>
                             <div>
-                              <span style={{ fontWeight: 600, color: "#1e293b", display: "block" }}>
+                              <span style={{ fontWeight: 600, color: isDark ? "#f8fafc" : "#1e293b", display: "block" }}>
                                 Resident
                               </span>
-                              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                              <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                                 {user.baranggay || "Lagonglong"}
                               </span>
                             </div>
                           </td>
                           <td>
-                            <span style={{ color: "#334155", fontWeight: 500 }}>
+                            <span style={{ color: isDark ? "#cbd5e1" : "#334155", fontWeight: 500 }}>
                               {user.contact_number || user.contactNumber || "—"}
                             </span>
                           </td>
                           <td>
-                            <span style={{ color: "#64748b", fontSize: "13px" }}>
+                            <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px" }}>
                               {formatRegisteredDate(user.date_time)}
                             </span>
                           </td>

@@ -29,6 +29,7 @@ import {
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
+import { useTheme } from "../themes/ThemeContext";
 import { getReadableAddress } from "../utils/utils";
 
 const getFileUrl = (record, field) =>
@@ -46,7 +47,7 @@ const formatDate = (value) => {
       });
 };
 
-const DetailRow = ({ label, value, fullWidth = false }) => (
+const DetailRow = ({ label, value, fullWidth = false, isDark = false }) => (
   <div
     style={{
       display: "flex",
@@ -54,8 +55,8 @@ const DetailRow = ({ label, value, fullWidth = false }) => (
       gap: "4px",
       padding: "10px 14px",
       borderRadius: "10px",
-      backgroundColor: "#f8fafc",
-      border: "1px solid #e2e8f0",
+      backgroundColor: isDark ? "#172338" : "#f8fafc",
+      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
       minWidth: 0,
       gridColumn: fullWidth ? "1 / -1" : "auto",
     }}
@@ -63,7 +64,7 @@ const DetailRow = ({ label, value, fullWidth = false }) => (
     <span
       style={{
         fontSize: "11px",
-        color: "#64748b",
+        color: isDark ? "#94a3b8" : "#64748b",
         fontWeight: "700",
         textTransform: "uppercase",
         letterSpacing: "0.03em",
@@ -74,7 +75,7 @@ const DetailRow = ({ label, value, fullWidth = false }) => (
     <strong
       style={{
         fontSize: "13.5px",
-        color: "#0f172a",
+        color: isDark ? "#f8fafc" : "#0f172a",
         fontWeight: "700",
         wordBreak: "break-word",
         overflowWrap: "anywhere",
@@ -89,6 +90,7 @@ const DetailRow = ({ label, value, fullWidth = false }) => (
 export default function VerifiedUserDetails() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { alert: showAlert, confirm } = useMessageBox();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -209,10 +211,10 @@ export default function VerifiedUserDetails() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc" }}>
+      <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc" }}>
         <Sidebar />
         <main style={{ flex: 1, marginLeft: "216px", padding: "40px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", color: "#15803d" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", color: isDark ? "#4ade80" : "#15803d" }}>
             <Loader className="animate-spin" size={36} />
             <span style={{ fontSize: "15px", fontWeight: "700" }}>Loading Resident Profile #{userId}...</span>
           </div>
@@ -229,7 +231,7 @@ export default function VerifiedUserDetails() {
   const isSuspended = user.status === "suspended";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
@@ -244,12 +246,13 @@ export default function VerifiedUserDetails() {
               gap: "8px",
               padding: "8px 16px",
               borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              backgroundColor: "#ffffff",
-              color: "#334155",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              backgroundColor: isDark ? "#172338" : "#ffffff",
+              color: isDark ? "#f8fafc" : "#334155",
               fontSize: "13px",
               fontWeight: "700",
               cursor: "pointer",
+              transition: "all 0.15s ease",
             }}
           >
             <ArrowLeft size={16} /> Return to Verified Users
@@ -277,9 +280,9 @@ export default function VerifiedUserDetails() {
                 width: "68px",
                 height: "68px",
                 borderRadius: "20px",
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                color: "#15803d",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                color: isDark ? "#4ade80" : "#15803d",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -299,14 +302,22 @@ export default function VerifiedUserDetails() {
 
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                <h1 style={{ margin: 0, fontSize: "22px", fontWeight: "900", color: "#0f172a" }}>
+                <h1 style={{ margin: 0, fontSize: "22px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a" }}>
                   {fullName || "Verified Citizen"}
                 </h1>
-                <span style={{ fontSize: "12px", color: "#15803d", fontWeight: "800", backgroundColor: "#f0fdf4", padding: "2px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
+                <span style={{
+                  fontSize: "12px",
+                  color: isDark ? "#4ade80" : "#15803d",
+                  fontWeight: "800",
+                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                  padding: "2px 8px",
+                  borderRadius: "6px",
+                  border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0"
+                }}>
                   Citizen ID #{user.user_id || "N/A"}
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#64748b", fontSize: "13px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px", flexWrap: "wrap" }}>
                 <span>Brgy. {user.baranggay || "Lagonglong"}</span>
                 <span>•</span>
                 <span>Submitted: {formatDate(user.date_time || user.created)}</span>
@@ -322,9 +333,9 @@ export default function VerifiedUserDetails() {
                 gap: "7px",
                 padding: "8px 16px",
                 borderRadius: "10px",
-                backgroundColor: isSuspended ? "#fef2f2" : "#f0fdf4",
-                color: isSuspended ? "#b91c1c" : "#15803d",
-                border: isSuspended ? "1px solid #fecaca" : "1px solid #bbf7d0",
+                backgroundColor: isSuspended ? (isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2") : (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4"),
+                color: isSuspended ? (isDark ? "#f87171" : "#b91c1c") : (isDark ? "#4ade80" : "#15803d"),
+                border: isSuspended ? (isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fecaca") : (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0"),
                 fontSize: "13px",
                 fontWeight: "800",
                 letterSpacing: "0.02em",
@@ -343,11 +354,11 @@ export default function VerifiedUserDetails() {
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Side-by-Side Information Comparison Card */}
             <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "18px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <ShieldCheck size={18} color="#15803d" /> Identity Verification Comparison
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "18px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <ShieldCheck size={18} color={isDark ? "#4ade80" : "#15803d"} /> Identity Verification Comparison
                 </h3>
-                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                   Submitted Form Data vs ID Proof
                 </span>
               </div>
@@ -355,28 +366,28 @@ export default function VerifiedUserDetails() {
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(260px, 0.95fr)", gap: "20px" }}>
                 {/* Form Data Column with 2-column Grid */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", display: "block", letterSpacing: "0.04em" }}>
+                  <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", display: "block", letterSpacing: "0.04em" }}>
                     Registered Form Data
                   </span>
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px" }}>
-                    <DetailRow label="First Name" value={user.first_name} />
-                    <DetailRow label="Middle Name" value={user.middle_name || "None"} />
-                    <DetailRow label="Last Name" value={user.last_name} />
-                    {user.extension && <DetailRow label="Extension" value={user.extension} />}
-                    <DetailRow label="Birthdate" value={formatDate(user.birthdate)} />
-                    <DetailRow label="Contact Phone" value={user.contact_number} />
-                    <DetailRow label="Email" value={user.email} fullWidth />
-                    <DetailRow label="Street Address" value={user.street_address} />
-                    <DetailRow label="Barangay" value={user.baranggay} />
-                    <DetailRow label="Municipality" value={user.municipality} />
-                    <DetailRow label="Province" value={user.province} />
+                    <DetailRow label="First Name" value={user.first_name} isDark={isDark} />
+                    <DetailRow label="Middle Name" value={user.middle_name || "None"} isDark={isDark} />
+                    <DetailRow label="Last Name" value={user.last_name} isDark={isDark} />
+                    {user.extension && <DetailRow label="Extension" value={user.extension} isDark={isDark} />}
+                    <DetailRow label="Birthdate" value={formatDate(user.birthdate)} isDark={isDark} />
+                    <DetailRow label="Contact Phone" value={user.contact_number} isDark={isDark} />
+                    <DetailRow label="Email" value={user.email} fullWidth isDark={isDark} />
+                    <DetailRow label="Street Address" value={user.street_address} isDark={isDark} />
+                    <DetailRow label="Barangay" value={user.baranggay} isDark={isDark} />
+                    <DetailRow label="Municipality" value={user.municipality} isDark={isDark} />
+                    <DetailRow label="Province" value={user.province} isDark={isDark} />
                   </div>
                 </div>
 
                 {/* Uploaded ID Card Column */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", display: "block", letterSpacing: "0.04em" }}>
+                  <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", display: "block", letterSpacing: "0.04em" }}>
                     Uploaded Proof of ID
                   </span>
 
@@ -388,7 +399,7 @@ export default function VerifiedUserDetails() {
                         borderRadius: "14px",
                         overflow: "hidden",
                         backgroundColor: "#070b14",
-                        border: "1px solid #e2e8f0",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
                         position: "relative",
                         cursor: "zoom-in",
                         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
@@ -403,7 +414,7 @@ export default function VerifiedUserDetails() {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ height: "380px", borderRadius: "14px", border: "1px dashed #cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: "13px" }}>
+                    <div style={{ height: "380px", borderRadius: "14px", border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#64748b" : "#94a3b8", fontSize: "13px" }}>
                       No ID proof uploaded.
                     </div>
                   )}
@@ -413,22 +424,22 @@ export default function VerifiedUserDetails() {
 
             {/* Resident Incident Report History Card */}
             <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <History size={18} color="#15803d" /> Incident Submissions by this Resident
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <History size={18} color={isDark ? "#4ade80" : "#15803d"} /> Incident Submissions by this Resident
                 </h3>
-                <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>
+                <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b" }}>
                   {incidentReports.length} report(s) found
                 </span>
               </div>
 
               {incidentsLoading ? (
-                <div style={{ padding: "30px", textAlign: "center", color: "#15803d", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <div style={{ padding: "30px", textAlign: "center", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                   <Loader className="animate-spin" size={18} />
                   <span>Loading incident reports...</span>
                 </div>
               ) : incidentReports.length === 0 ? (
-                <div style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13.5px" }}>
+                <div style={{ padding: "30px", textAlign: "center", color: isDark ? "#64748b" : "#94a3b8", fontSize: "13.5px" }}>
                   No past incident submissions logged for this resident.
                 </div>
               ) : (
@@ -447,9 +458,9 @@ export default function VerifiedUserDetails() {
                       {incidentReports.map((report) => (
                         <tr key={report.id}>
                           <td>
-                            <strong style={{ color: "#0f172a", textTransform: "uppercase" }}>{report.type || "Incident"}</strong>
+                            <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>{report.type || "Incident"}</strong>
                           </td>
-                          <td>{formatDate(report.created)}</td>
+                          <td style={{ color: isDark ? "#cbd5e1" : "#334155" }}>{formatDate(report.created)}</td>
                           <td>
                             <span
                               style={{
@@ -457,9 +468,15 @@ export default function VerifiedUserDetails() {
                                 fontWeight: "800",
                                 padding: "2px 8px",
                                 borderRadius: "6px",
-                                backgroundColor: report.status === "resolved" ? "#f0fdf4" : "#fff7ed",
-                                color: report.status === "resolved" ? "#15803d" : "#c2410c",
-                                border: report.status === "resolved" ? "1px solid #bbf7d0" : "1px solid #fed7aa",
+                                backgroundColor: report.status === "resolved"
+                                  ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
+                                  : (isDark ? "rgba(249, 115, 22, 0.2)" : "#fff7ed"),
+                                color: report.status === "resolved"
+                                  ? (isDark ? "#4ade80" : "#15803d")
+                                  : (isDark ? "#fb923c" : "#c2410c"),
+                                border: report.status === "resolved"
+                                  ? (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0")
+                                  : (isDark ? "1px solid rgba(249, 115, 22, 0.35)" : "1px solid #fed7aa"),
                                 textTransform: "uppercase",
                               }}
                             >
@@ -468,11 +485,11 @@ export default function VerifiedUserDetails() {
                           </td>
                           <td>
                             <div style={{ maxWidth: "260px" }}>
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", fontSize: "12.5px", color: "#0f172a", fontWeight: "700" }}>
-                                <MapPin size={14} color="#15803d" style={{ flexShrink: 0, marginTop: "2px" }} />
+                              <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", fontSize: "12.5px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "700" }}>
+                                <MapPin size={14} color={isDark ? "#4ade80" : "#15803d"} style={{ flexShrink: 0, marginTop: "2px" }} />
                                 <span>{addresses[report.id] || "Resolving real address..."}</span>
                               </div>
-                              <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace", marginLeft: "20px", marginTop: "2px" }}>
+                              <div style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", fontFamily: "monospace", marginLeft: "20px", marginTop: "2px" }}>
                                 {report.latitude && report.longitude
                                   ? `GPS: ${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`
                                   : "GPS Unavailable"}
@@ -496,19 +513,20 @@ export default function VerifiedUserDetails() {
                                   gap: "5px",
                                   padding: "5px 10px",
                                   borderRadius: "8px",
-                                  border: "1px solid #cbd5e1",
-                                  backgroundColor: "#ffffff",
-                                  color: "#15803d",
+                                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                                  backgroundColor: isDark ? "#172338" : "#ffffff",
+                                  color: isDark ? "#4ade80" : "#15803d",
                                   fontSize: "11.5px",
                                   fontWeight: "700",
                                   cursor: "pointer",
                                   boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                                  transition: "all 0.15s ease",
                                 }}
                               >
                                 <ExternalLink size={12} /> View Map
                               </button>
                             ) : (
-                              <span style={{ color: "#94a3b8", fontSize: "11px" }}>N/A</span>
+                              <span style={{ color: isDark ? "#64748b" : "#94a3b8", fontSize: "11px" }}>N/A</span>
                             )}
                           </td>
                         </tr>
@@ -524,24 +542,24 @@ export default function VerifiedUserDetails() {
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Quick Contact Dossier Card */}
             <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Phone size={18} color="#15803d" /> Contact & Connectivity
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Phone size={18} color={isDark ? "#4ade80" : "#15803d"} /> Contact & Connectivity
                 </h3>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ color: "#64748b", fontSize: "12.5px", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "8px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "12.5px", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
                     <Phone size={14} /> Phone Number:
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <strong style={{ color: "#0f172a", fontSize: "13px" }}>{user.contact_number || "No contact"}</strong>
+                    <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13px" }}>{user.contact_number || "No contact"}</strong>
                     {user.contact_number && (
                       <button
                         type="button"
                         onClick={() => copyPhoneNumber(user.contact_number)}
-                        style={{ background: "none", border: "none", color: "#15803d", cursor: "pointer", fontSize: "11.5px", fontWeight: "800", padding: "2px 6px" }}
+                        style={{ background: "none", border: "none", color: isDark ? "#4ade80" : "#15803d", cursor: "pointer", fontSize: "11.5px", fontWeight: "800", padding: "2px 6px" }}
                       >
                         {copiedPhone ? <Check size={13} /> : "Copy"}
                       </button>
@@ -549,23 +567,23 @@ export default function VerifiedUserDetails() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ color: "#64748b", fontSize: "12.5px", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "8px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "12.5px", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
                     <Mail size={14} /> Email Address:
                   </span>
-                  <strong style={{ color: "#0f172a", fontSize: "13px" }}>{user.email || "No email"}</strong>
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13px" }}>{user.email || "No email"}</strong>
                 </div>
               </div>
             </div>
 
             {/* Suspension / Review Notes Card */}
             {isSuspended ? (
-              <div className="premium-table-card" style={{ padding: "24px", border: "1px solid #fecaca", backgroundColor: "#fff" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #fee2e2", marginBottom: "16px" }}>
-                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#b91c1c", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <ShieldAlert size={18} color="#b91c1c" /> Account Suspended
+              <div className="premium-table-card" style={{ padding: "24px", border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca", backgroundColor: isDark ? "#131c2e" : "#fff" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid #fee2e2", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f87171" : "#b91c1c", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <ShieldAlert size={18} color={isDark ? "#f87171" : "#b91c1c"} /> Account Suspended
                   </h3>
-                  <span style={{ fontSize: "11px", fontWeight: "800", padding: "2px 8px", borderRadius: "6px", backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", padding: "2px 8px", borderRadius: "6px", backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2", color: isDark ? "#f87171" : "#b91c1c", border: isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fecaca" }}>
                     SUSPENDED
                   </span>
                 </div>
@@ -574,9 +592,9 @@ export default function VerifiedUserDetails() {
                   style={{
                     padding: "12px 14px",
                     borderRadius: "10px",
-                    backgroundColor: "#fef2f2",
-                    border: "1px solid #fee2e2",
-                    color: "#991b1b",
+                    backgroundColor: isDark ? "rgba(239, 68, 68, 0.15)" : "#fef2f2",
+                    border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid #fee2e2",
+                    color: isDark ? "#fca5a5" : "#991b1b",
                     fontSize: "13px",
                     lineHeight: "1.5",
                     marginBottom: "16px",
@@ -586,7 +604,7 @@ export default function VerifiedUserDetails() {
                   <span>{user.suspension_reason || user.description || "Administrative suspension by system operator."}</span>
                 </div>
 
-                <p style={{ margin: "0 0 14px 0", color: "#64748b", fontSize: "12.5px" }}>
+                <p style={{ margin: "0 0 14px 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "12.5px" }}>
                   Restoring this resident will reactivate their verified citizen privileges across the municipality portal.
                 </p>
 
@@ -609,6 +627,7 @@ export default function VerifiedUserDetails() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: "6px",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   <Check size={16} /> Restore Resident Verification
@@ -616,13 +635,13 @@ export default function VerifiedUserDetails() {
               </div>
             ) : (
               <div className="premium-table-card" style={{ padding: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <ShieldAlert size={18} color="#b91c1c" /> Suspend Resident Verification
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <ShieldAlert size={18} color={isDark ? "#f87171" : "#b91c1c"} /> Suspend Resident Verification
                   </h3>
                 </div>
 
-                <p style={{ margin: "0 0 10px 0", color: "#64748b", fontSize: "13px" }}>
+                <p style={{ margin: "0 0 10px 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px" }}>
                   If you need to suspend this resident's verification, select or write the justification reason below:
                 </p>
 
@@ -647,13 +666,19 @@ export default function VerifiedUserDetails() {
                       style={{
                         padding: "5px 10px",
                         borderRadius: "8px",
-                        border: reason === chip ? "1px solid #dc2626" : "1px solid #e2e8f0",
-                        backgroundColor: reason === chip ? "#fef2f2" : "#ffffff",
-                        color: reason === chip ? "#b91c1c" : "#475569",
+                        border: reason === chip
+                          ? "1px solid #dc2626"
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+                        backgroundColor: reason === chip
+                          ? (isDark ? "rgba(239, 68, 68, 0.25)" : "#fef2f2")
+                          : (isDark ? "#172338" : "#ffffff"),
+                        color: reason === chip
+                          ? (isDark ? "#f87171" : "#b91c1c")
+                          : (isDark ? "#cbd5e1" : "#475569"),
                         fontSize: "11.5px",
                         fontWeight: "700",
                         cursor: "pointer",
-                        transition: "all 0.15s ease",
+                        transition: "all 0.12s ease",
                       }}
                     >
                       {chip}
@@ -670,7 +695,9 @@ export default function VerifiedUserDetails() {
                     minHeight: "85px",
                     padding: "12px",
                     borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                    backgroundColor: isDark ? "#172338" : "#ffffff",
+                    color: isDark ? "#f8fafc" : "#0f172a",
                     fontSize: "13px",
                     fontFamily: "inherit",
                     outline: "none",
@@ -688,12 +715,13 @@ export default function VerifiedUserDetails() {
                     padding: "10px",
                     borderRadius: "10px",
                     border: "none",
-                    backgroundColor: reason.trim() ? "#dc2626" : "#cbd5e1",
+                    backgroundColor: reason.trim() ? "#dc2626" : (isDark ? "#334155" : "#cbd5e1"),
                     color: "#ffffff",
                     fontSize: "13px",
                     fontWeight: "800",
                     cursor: reason.trim() ? "pointer" : "not-allowed",
-                    boxShadow: reason.trim() ? "0 4px 12px rgba(220, 38, 38, 0.25)" : "none",
+                    boxShadow: reason.trim() ? "0 4px 12px rgba(220, 38, 38, 0.3)" : "none",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   Suspend Resident with Notes
@@ -711,7 +739,7 @@ export default function VerifiedUserDetails() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backgroundColor: "rgba(15, 23, 42, 0.8)",
             backdropFilter: "blur(10px)",
             zIndex: 99999,
             display: "flex",
@@ -724,24 +752,25 @@ export default function VerifiedUserDetails() {
           <div
             className="lightboxModalCard"
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
               borderRadius: "20px",
               width: "100%",
               maxWidth: "780px",
               overflow: "hidden",
-              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.7)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                <MapPin size={17} color="#15803d" /> {selectedMap.address}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", backgroundColor: isDark ? "#0f172a" : "#f8fafc" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                <MapPin size={17} color={isDark ? "#4ade80" : "#15803d"} /> {selectedMap.address}
               </h3>
               <button
                 type="button"
                 className="animatedCloseButton"
                 onClick={() => setSelectedMap(null)}
-                style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{ width: "34px", height: "34px", borderRadius: "50%", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#1e293b" : "#fff", color: isDark ? "#f8fafc" : "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
                 <X size={16} />
               </button>
@@ -786,10 +815,11 @@ export default function VerifiedUserDetails() {
               position: "relative",
               width: "100%",
               maxWidth: "840px",
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
               borderRadius: "22px",
               overflow: "hidden",
-              boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.7)",
+              boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.8)",
               display: "flex",
               flexDirection: "column",
             }}
@@ -801,35 +831,35 @@ export default function VerifiedUserDetails() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "14px 22px",
-                borderBottom: "1px solid #e2e8f0",
-                backgroundColor: "#f8fafc",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+                backgroundColor: isDark ? "#0f172a" : "#f8fafc",
                 flexWrap: "wrap",
                 gap: "10px",
               }}
             >
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
                 <ImageIcon size={17} /> {previewImage.label}
               </span>
 
               {/* Zoom & Action Controls */}
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "2px" }}>
+                <div style={{ display: "flex", alignItems: "center", backgroundColor: isDark ? "#172338" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", borderRadius: "8px", padding: "2px" }}>
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
                     title="Zoom out"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: "#475569" }}
+                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
                   >
                     <ZoomOut size={15} />
                   </button>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#0f172a", minWidth: "42px", textAlign: "center" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", minWidth: "42px", textAlign: "center" }}>
                     {Math.round(zoomLevel * 100)}%
                   </span>
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
                     title="Zoom in"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: "#475569" }}
+                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
                   >
                     <ZoomIn size={15} />
                   </button>
@@ -841,9 +871,9 @@ export default function VerifiedUserDetails() {
                   style={{
                     padding: "6px 10px",
                     borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
-                    backgroundColor: "#ffffff",
-                    color: "#475569",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                    backgroundColor: isDark ? "#172338" : "#ffffff",
+                    color: isDark ? "#cbd5e1" : "#475569",
                     fontSize: "12px",
                     fontWeight: "700",
                     cursor: "pointer",
@@ -879,7 +909,7 @@ export default function VerifiedUserDetails() {
                     setPreviewImage(null);
                     setZoomLevel(1);
                   }}
-                  style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ width: "34px", height: "34px", borderRadius: "50%", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#1e293b" : "#fff", color: isDark ? "#f8fafc" : "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   <X size={17} />
                 </button>

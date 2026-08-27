@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
+import { useTheme } from "../themes/ThemeContext";
 
 // ...
 
@@ -177,6 +178,7 @@ export function useMessageBox() {
 }
 
 function MessageDialog({ dialog, onClose }) {
+  const { isDark } = useTheme();
   const tone = getDialogTone(dialog.message, dialog.variant, dialog.tone);
   const Icon = tone.icon;
   const isConfirm = dialog.variant === "confirm";
@@ -201,7 +203,13 @@ function MessageDialog({ dialog, onClose }) {
     >
       <div
         className="messageBoxDialog"
-        style={{ ...styles.dialog, borderTopColor: tone.accent }}
+        style={{
+          ...styles.dialog,
+          borderTopColor: tone.accent,
+          backgroundColor: isDark ? "#131c2e" : "#ffffff",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
+          borderTop: `5px solid ${tone.accent}`,
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="message-box-title"
@@ -211,7 +219,7 @@ function MessageDialog({ dialog, onClose }) {
           <div
             style={{
               ...styles.iconWrap,
-              backgroundColor: `${tone.accent}18`,
+              backgroundColor: isDark ? `${tone.accent}25` : `${tone.accent}18`,
               color: tone.accent,
             }}
           >
@@ -220,7 +228,12 @@ function MessageDialog({ dialog, onClose }) {
           <button
             type="button"
             className="messageBoxCloseBtn animatedCloseButton"
-            style={styles.closeBtn}
+            style={{
+              ...styles.closeBtn,
+              backgroundColor: isDark ? "#1e293b" : "#f9fafb",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "#e5e7eb",
+              color: isDark ? "#cbd5e1" : "#4b5563",
+            }}
             onClick={() => onClose(isConfirm ? false : true)}
             aria-label="Close message"
           >
@@ -228,17 +241,24 @@ function MessageDialog({ dialog, onClose }) {
           </button>
         </div>
 
-        <h2 id="message-box-title" style={styles.title}>
+        <h2 id="message-box-title" style={{ ...styles.title, color: isDark ? "#f8fafc" : "#111827" }}>
           {dialog.title || tone.title}
         </h2>
-        <p style={styles.message}>{String(dialog.message || "")}</p>
+        <p style={{ ...styles.message, color: isDark ? "#94a3b8" : "#4b5563" }}>
+          {String(dialog.message || "")}
+        </p>
 
         <div style={styles.actions}>
           {isConfirm && (
             <button
               type="button"
               className="messageBoxSecondaryBtn"
-              style={styles.secondaryBtn}
+              style={{
+                ...styles.secondaryBtn,
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "#d1d5db",
+                color: isDark ? "#cbd5e1" : "#374151",
+              }}
               onClick={() => onClose(false)}
             >
               {dialog.secondaryLabel || "Cancel"}
