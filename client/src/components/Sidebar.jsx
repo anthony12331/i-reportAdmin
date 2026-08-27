@@ -14,8 +14,12 @@ import {
   BarChart3,
   History,
   KeyRound,
+  ClipboardList,
+  Shield,
+  Menu,
 } from "lucide-react";
 import { useMessageBox } from "./MessageBox";
+import { ThemeSwitch } from "../themes/ThemeContext";
 
 const ONGOING_STATUSES = ["ongoing", "accepted", "en_route", "at_scene", "dispatched"];
 
@@ -28,6 +32,40 @@ export default function Sidebar({
   const location = useLocation();
   const admin = pb.authStore.model;
   const { confirm } = useMessageBox();
+
+  const [isHidden, setIsHidden] = useState(() => {
+    try {
+      return localStorage.getItem("sidebar_hidden") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (isHidden) {
+      document.documentElement.classList.add("sidebar-hidden");
+      try {
+        localStorage.setItem("sidebar_hidden", "true");
+      } catch {}
+    } else {
+      document.documentElement.classList.remove("sidebar-hidden");
+      try {
+        localStorage.setItem("sidebar_hidden", "false");
+      } catch {}
+    }
+
+    // Trigger resize events so Leaflet map canvas updates smoothly
+    window.dispatchEvent(new Event("resize"));
+    const t1 = setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
+    const t2 = setTimeout(() => window.dispatchEvent(new Event("resize")), 200);
+    const t3 = setTimeout(() => window.dispatchEvent(new Event("resize")), 320);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [isHidden]);
 
   const [liveCounts, setLiveCounts] = useState({
     pendingIncidents: 0,
@@ -81,7 +119,7 @@ export default function Sidebar({
       try {
         const [reports, users, sos, allDispatches, backups] = await Promise.all([
           pb.collection("incident_reports").getFullList({ filter: 'status != "resolved" && status != "false_alarm"', fields: "id,status", requestKey: null }),
-          pb.collection("users").getFullList({ filter: 'status = "pending"', fields: "id,status", requestKey: null }),
+          pb.collection("users").getFullList({ fields: "id,status", requestKey: null }),
           pb.collection("sos_tracking").getFullList({ filter: 'status != "resolved"', fields: "id,status,dispatch_status", requestKey: null }),
           pb.collection("dispatches").getFullList({ filter: 'status != "resolved"', fields: "incident_id,sos_id,status", requestKey: null }),
           pb.collection("backup_requests").getFullList({ filter: 'dispatch_status != "completed" && dispatch_status != "declined"', fields: "id,dispatch_status", requestKey: null })
@@ -96,7 +134,10 @@ export default function Sidebar({
         setLiveCounts({
           pendingIncidents: reports.filter((r) => r.status === "new" || r.status === "pending").length,
           ongoingIncidents: reports.filter((r) => ONGOING_STATUSES.includes(r.status?.toLowerCase()) || activeIncidentIds.has(r.id)).length,
-          pendingUsers: users.filter((u) => u.status === "pending").length,
+          pendingUsers: users.filter((u) => {
+            const s = (u.status || "").toLowerCase().trim();
+            return s === "pending" || s === "" || (s !== "verified" && s !== "suspended" && s !== "rejected");
+          }).length,
           pendingSos: sos.filter((s) => s.status?.toLowerCase() !== "resolved" || activeSosIds.has(s.id)).length,
           pendingBackups: backups.filter((b) => b.dispatch_status === "pending").length,
           ongoingBackups: backups.filter((b) => b.dispatch_status !== "pending" && b.dispatch_status !== "completed" && b.dispatch_status !== "declined").length,
@@ -146,15 +187,15 @@ export default function Sidebar({
   };
 
   const handleLogout = async () => {
-    const shouldLogout = await confirm("Are you sure you want to logout?", {
-      title: "Confirm Logout",
-      primaryLabel: "Yes",
-      secondaryLabel: "No",
+    const shouldLogout = await confirm("Are you sure you want to log out of the admin dashboard?", {
+      title: "Log Out",
+      primaryLabel: "Logout",
+      secondaryLabel: "Cancel",
+      tone: "app",
     });
 
     if (!shouldLogout) return;
     
-    // Unsubscribe from realtime events before logging out to prevent 403 errors
     try {
       pb.realtime.unsubscribe();
     } catch (err) {
@@ -165,46 +206,83 @@ export default function Sidebar({
     navigate("/");
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
+
+  const adminName = (`${admin?.first_name || ""} ${admin?.last_name || ""}`.trim()) || (admin?.email ? admin.email.split("@")[0] : "Administrator");
+  const adminInitial = adminName.charAt(0).toUpperCase();
 
   return (
-    <aside style={styles.sidebar}>
-      <div style={styles.brandBox}>
-        <img
-          src="/icon.ico"
-          alt="Lagonglong Emergency logo"
-          style={styles.brandLogo}
-        />
-        <h2 style={{ margin: 0, fontSize: "20px", lineHeight: "1.2" }}>
-          Lagonglong
-          <br />
-          Emergency
-        </h2>
-        <div style={styles.onlineBadge}>● System Online</div>
-      </div>
+    <>
+      {/* 3 Landscape Lines Floating Button to restore sidebar when hidden */}
+      {isHidden && (
+        <button
+          type="button"
+          className="sidebar-floating-toggle-btn"
+          onClick={() => setIsHidden(false)}
+          title="Open Navigation Menu"
+          aria-label="Open Navigation Menu"
+        >
+          <Menu size={20} strokeWidth={2.5} />
+        </button>
+      )}
 
+      <aside className="sidebar-container" style={styles.sidebar}>
+        {/* Brand Header */}
+        <div style={styles.brandBox}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+              <img
+                src="/icon.ico"
+                alt="Lagonglong Emergency logo"
+                style={styles.brandLogo}
+              />
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#0f172a", lineHeight: "1.2" }}>
+                  Lagonglong
+                </h2>
+                <span style={{ fontSize: "11px", color: "#15803d", fontWeight: "600", letterSpacing: "0.01em" }}>
+                  Emergency Command
+                </span>
+              </div>
+            </div>
+
+            {/* 3 Landscape Lines Button inside sidebar to collapse */}
+            <button
+              type="button"
+              className="sidebar-hamburger-btn"
+              onClick={() => setIsHidden(true)}
+              title="Collapse Sidebar"
+              aria-label="Collapse Sidebar"
+            >
+              <Menu size={18} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+
+      {/* Navigation */}
       <nav ref={navRef} className="sidebarNavNoScroll" style={styles.nav}>
-        <p style={styles.sectionTitle}>MAIN</p>
+        <p style={styles.sectionTitle}>Main</p>
         <div
           style={isActive("/dashboard") ? styles.navItemActive : styles.navItem}
           onClick={() => navigate("/dashboard")}
         >
           <div style={styles.navLinkGroup}>
-            <LayoutDashboard size={18} />
-            <span>Dashboard Overview</span>
+            <LayoutDashboard size={17} color={isActive("/dashboard") ? "#15803d" : "#64748b"} />
+            <span>Dashboard</span>
           </div>
         </div>
 
         {hasAccess("incidents") && (
           <>
-            <p style={styles.sectionTitle}>INCIDENT MANAGEMENT</p>
+            <p style={styles.sectionTitle}>Incidents</p>
 
             <div
               style={isActive("/pending-incidents") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/pending-incidents")}
             >
               <div style={styles.navLinkGroup}>
-                <AlertTriangle size={18} />
+                <AlertTriangle size={17} color={isActive("/pending-incidents") ? "#15803d" : "#64748b"} />
                 <span>Pending Reports</span>
               </div>
               {counts.pendingIncidents > 0 && (
@@ -217,7 +295,7 @@ export default function Sidebar({
               onClick={() => navigate("/ongoing-incidents")}
             >
               <div style={styles.navLinkGroup}>
-                <Activity size={18} />
+                <Activity size={17} color={isActive("/ongoing-incidents") ? "#15803d" : "#64748b"} />
                 <span>Ongoing Incidents</span>
               </div>
               {counts.ongoingIncidents > 0 && (
@@ -226,21 +304,32 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/resolved-incidents") ? styles.navItemActive : styles.navItem}
+              style={location.pathname === "/resolved-incidents" ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/resolved-incidents")}
             >
               <div style={styles.navLinkGroup}>
-                <CheckCircle2 size={18} />
+                <CheckCircle2 size={17} color={location.pathname === "/resolved-incidents" ? "#15803d" : "#64748b"} />
                 <span>Resolved Incidents</span>
               </div>
             </div>
+            {location.pathname.startsWith("/resolved-incidents/") && (
+              <div
+                style={styles.subNavItemActive}
+                onClick={() => navigate("/resolved-incidents")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <ClipboardList size={15} />
+                  <span>Incident Details</span>
+                </div>
+              </div>
+            )}
 
             <div
               style={isActive("/request-backup") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/request-backup")}
             >
               <div style={styles.navLinkGroup}>
-                <ShieldCheck size={18} />
+                <ShieldCheck size={17} color={isActive("/request-backup") ? "#15803d" : "#64748b"} />
                 <span>Request Backup</span>
               </div>
               {counts.pendingBackups > 0 && <span style={styles.badgeRed}>{counts.pendingBackups}</span>}
@@ -251,28 +340,46 @@ export default function Sidebar({
               onClick={() => navigate("/ongoing-backup")}
             >
               <div style={styles.navLinkGroup}>
-                <Activity size={18} />
+                <Activity size={17} color={isActive("/ongoing-backup") ? "#15803d" : "#64748b"} />
                 <span>Ongoing Backup</span>
               </div>
               {counts.ongoingBackups > 0 && <span style={styles.badgeOrange}>{counts.ongoingBackups}</span>}
             </div>
-
           </>
         )}
 
         {hasAccess("sos") && (
           <>
-            <p style={styles.sectionTitle}>SOS MANAGEMENT</p>
+            <p style={styles.sectionTitle}>SOS Alerts</p>
             <div
               style={isActive("/pending-sos") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/pending-sos")}
             >
               <div style={styles.navLinkGroup}>
-                <Radio
-                  size={18}
-                  className={counts.pendingSos > 0 ? "animate-pulse" : ""}
-                />
-                <span style={counts.pendingSos > 0 ? { color: "#f87171", fontWeight: "bold" } : {}}>
+                <div
+                  style={{
+                    width: "24px",
+                    height: "24px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    ...(counts.pendingSos > 0
+                      ? {
+                          backgroundColor: "#fef2f2",
+                          border: "1px solid #fecaca",
+                        }
+                      : {}),
+                  }}
+                  className={counts.pendingSos > 0 ? "urgent-status-pulse" : ""}
+                >
+                  <Radio
+                    size={14}
+                    color={counts.pendingSos > 0 ? "#dc2626" : isActive("/pending-sos") ? "#15803d" : "#64748b"}
+                  />
+                </div>
+                <span style={counts.pendingSos > 0 ? { color: "#dc2626", fontWeight: "800" } : {}}>
                   Live SOS Alerts
                 </span>
               </div>
@@ -285,41 +392,52 @@ export default function Sidebar({
 
         {hasAccess("users") && (
           <>
-            <p style={styles.sectionTitle}>USER MANAGEMENT</p>
+            <p style={styles.sectionTitle}>User Registry</p>
             <div
               style={isActive("/pending-users") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/pending-users")}
             >
               <div style={styles.navLinkGroup}>
-                <Users size={18} />
+                <Users size={17} color={isActive("/pending-users") ? "#15803d" : "#64748b"} />
                 <span>Pending Verification</span>
               </div>
               {counts.pendingUsers > 0 && (
-                <span style={styles.badgeBlue}>{counts.pendingUsers}</span>
+                <span style={styles.badgeGreen}>{counts.pendingUsers}</span>
               )}
             </div>
 
             <div
-              style={isActive("/verified-users") ? styles.navItemActive : styles.navItem}
+              style={location.pathname === "/verified-users" ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/verified-users")}
             >
               <div style={styles.navLinkGroup}>
-                <ShieldCheck size={18} />
+                <ShieldCheck size={17} color={location.pathname === "/verified-users" ? "#15803d" : "#64748b"} />
                 <span>Verified Users</span>
               </div>
             </div>
+            {location.pathname.startsWith("/verified-users/") && (
+              <div
+                style={styles.subNavItemActive}
+                onClick={() => navigate("/verified-users")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <ClipboardList size={15} />
+                  <span>User Details</span>
+                </div>
+              </div>
+            )}
           </>
         )}
 
         {hasAccess("reports") && (
           <>
-            <p style={styles.sectionTitle}>DATA & ANALYTICS</p>
+            <p style={styles.sectionTitle}>Analytics</p>
             <div
               style={isActive("/reports") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/reports")}
             >
               <div style={styles.navLinkGroup}>
-                <BarChart3 size={18} />
+                <BarChart3 size={17} color={isActive("/reports") ? "#15803d" : "#64748b"} />
                 <span>Generate Reports</span>
               </div>
             </div>
@@ -328,13 +446,13 @@ export default function Sidebar({
 
         {hasAccess("pins") && (
           <>
-            <p style={styles.sectionTitle}>ACCESS CONTROL</p>
+            <p style={styles.sectionTitle}>Access</p>
             <div
               style={isActive("/responder-pins") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/responder-pins")}
             >
               <div style={styles.navLinkGroup}>
-                <KeyRound size={18} />
+                <KeyRound size={17} color={isActive("/responder-pins") ? "#15803d" : "#64748b"} />
                 <span>Responder PINs</span>
               </div>
             </div>
@@ -343,13 +461,13 @@ export default function Sidebar({
 
         {isSuperAdmin && (
           <>
-            <p style={styles.sectionTitle}>SUPER ADMIN</p>
+            <p style={styles.sectionTitle}>Administration</p>
             <div
               style={isActive("/manage-admins") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/manage-admins")}
             >
               <div style={styles.navLinkGroup}>
-                <ShieldCheck size={18} />
+                <Shield size={17} color={isActive("/manage-admins") ? "#15803d" : "#64748b"} />
                 <span>Manage Admins</span>
               </div>
             </div>
@@ -359,54 +477,71 @@ export default function Sidebar({
               onClick={() => navigate("/rbac-settings")}
             >
               <div style={styles.navLinkGroup}>
-                <Settings size={18} />
+                <Settings size={17} color={isActive("/rbac-settings") ? "#15803d" : "#64748b"} />
                 <span>Access Control</span>
               </div>
             </div>
-
-
 
             <div
               style={isActive("/audit-logs") ? styles.navItemActive : styles.navItem}
               onClick={() => navigate("/audit-logs")}
             >
               <div style={styles.navLinkGroup}>
-                <History size={18} />
+                <History size={17} color={isActive("/audit-logs") ? "#15803d" : "#64748b"} />
                 <span>Audit Logs</span>
               </div>
             </div>
           </>
         )}
-
-        <p style={styles.sectionTitle}>SYSTEM</p>
       </nav>
 
-        <div style={styles.logoutSection}>
-          <p
+      {/* Admin Profile & Logout Footer */}
+      <div className="sidebarLogoutSection" style={styles.logoutSection}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+          <div
             style={{
-              fontSize: "12px",
-              color: "#888",
-              marginBottom: "10px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              width: "34px",
+              height: "34px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "13px",
+              fontWeight: "800",
+              flexShrink: 0,
             }}
           >
-            Logged in as: <b>{(`${admin?.first_name || ''} ${admin?.last_name || ''}`.trim()) || "Admin"}</b>
-          </p>
-          <button className="sidebarLogoutBtn" onClick={handleLogout} style={styles.logoutBtn}>
-            <LogOut size={16} /> Logout
-          </button>
+            {adminInitial}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <span className="sidebarAdminName" style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {adminName}
+            </span>
+            <span className="sidebarAdminRole" style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b" }}>
+              {isSuperAdmin ? "Super Admin" : "Officer"}
+            </span>
+          </div>
+          <ThemeSwitch />
         </div>
+
+        <button className="sidebarLogoutBtn" onClick={handleLogout} style={styles.logoutBtn}>
+          <LogOut size={14} /> <span>Log Out</span>
+        </button>
+      </div>
     </aside>
+  </>
   );
 }
+
 
 const styles = {
   sidebar: {
     width: "216px",
     backgroundColor: "#ffffff",
-    borderRight: "1px solid #d7e5da",
-    color: "#111111",
+    borderRight: "1px solid #e2e8f0",
+    color: "#0f172a",
     display: "flex",
     flexDirection: "column",
     position: "fixed",
@@ -415,112 +550,149 @@ const styles = {
     top: 0,
     zIndex: 1000,
     overflow: "hidden",
-    boxShadow: "2px 0 12px rgba(24, 95, 53, 0.04)",
+    boxShadow: "none",
   },
-  brandBox: { padding: "22px 18px 20px", borderBottom: "1px solid #edf3ee" },
+  brandBox: {
+    padding: "16px 14px",
+    borderBottom: "1px solid #f1f5f9",
+    backgroundColor: "#ffffff",
+  },
   brandLogo: {
-    width: "44px",
-    height: "44px",
+    width: "32px",
+    height: "32px",
     display: "block",
-    marginBottom: "12px",
-  },
-  onlineBadge: {
-    fontSize: "9px",
-    color: "#18864b",
-    marginTop: "12px",
-    fontWeight: "600",
-    letterSpacing: "2px",
-    textTransform: "uppercase",
+    borderRadius: "6px",
   },
   nav: {
     flex: 1,
-    padding: "16px 0",
+    padding: "12px 8px",
     display: "flex",
     flexDirection: "column",
+    gap: "1px",
     overflowY: "auto",
   },
   sectionTitle: {
-    padding: "0 18px",
-    fontSize: "9px",
-    color: "#7a9a83",
-    fontWeight: "700",
-    marginTop: "32px",
-    marginBottom: "16px",
+    padding: "14px 10px 4px",
+    fontSize: "11px",
+    color: "#94a3b8",
+    fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: "3px",
+    letterSpacing: "0.05em",
+    margin: 0,
   },
   navItem: {
-    padding: "11px 18px",
+    padding: "8px 10px",
     cursor: "pointer",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    transition: "all 0.4s ease",
-    color: "#53645a",
-    fontSize: "12px",
+    borderRadius: "6px",
+    transition: "background-color 0.15s ease, color 0.15s ease",
+    color: "#475569",
+    fontSize: "13px",
     fontWeight: "500",
-    letterSpacing: "0.5px",
-    borderLeft: "2px solid transparent",
   },
   navItemActive: {
-    padding: "11px 18px",
-    backgroundColor: "#e7f5eb",
-    color: "#18864b",
-    fontWeight: "500",
+    padding: "8px 10px",
+    backgroundColor: "#f0fdf4",
+    color: "#15803d",
+    fontWeight: "600",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    fontSize: "12px",
-    transition: "all 0.4s ease",
-    borderLeft: "3px solid #18864b",
-    letterSpacing: "0.5px",
+    borderRadius: "6px",
+    fontSize: "13px",
+    transition: "background-color 0.15s ease, color 0.15s ease",
+    borderLeft: "2.5px solid #15803d",
   },
-  navLinkGroup: { display: "flex", alignItems: "center", gap: "12px" },
+  subNavItem: {
+    padding: "6px 10px 6px 28px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    borderRadius: "6px",
+    color: "#64748b",
+    fontSize: "12px",
+    fontWeight: "500",
+  },
+  subNavItemActive: {
+    padding: "6px 10px 6px 28px",
+    backgroundColor: "#f0fdf4",
+    color: "#15803d",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    borderRadius: "6px",
+    fontSize: "12px",
+  },
+  navLinkGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+  },
   badgeRed: {
-    backgroundColor: "transparent",
-    color: "#ef4444",
-    fontSize: "10px",
-    padding: "0",
-    fontWeight: "700",
+    backgroundColor: "#fef2f2",
+    color: "#b91c1c",
+    border: "1px solid #fee2e2",
+    fontSize: "11px",
+    minWidth: "18px",
+    height: "18px",
+    padding: "0 5px",
+    borderRadius: "999px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "600",
   },
   badgeOrange: {
-    backgroundColor: "transparent",
-    color: "#18864b",
-    fontSize: "10px",
-    padding: "0",
-    fontWeight: "700",
+    backgroundColor: "#fffbeb",
+    color: "#b45309",
+    border: "1px solid #fef3c7",
+    fontSize: "11px",
+    minWidth: "18px",
+    height: "18px",
+    padding: "0 5px",
+    borderRadius: "999px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "600",
   },
-  badgeBlue: {
-    backgroundColor: "transparent",
-    color: "#18864b",
-    fontSize: "10px",
-    padding: "0",
-    fontWeight: "700",
+  badgeGreen: {
+    backgroundColor: "#f0fdf4",
+    color: "#15803d",
+    border: "1px solid #dcfce7",
+    fontSize: "11px",
+    minWidth: "18px",
+    height: "18px",
+    padding: "0 5px",
+    borderRadius: "999px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "600",
   },
   logoutSection: {
-    padding: "18px",
-    borderTop: "1px solid #edf3ee",
-    backgroundColor: "transparent",
+    padding: "12px 14px 14px",
+    borderTop: "1px solid #f1f5f9",
+    backgroundColor: "#ffffff",
     marginTop: "auto",
   },
   logoutBtn: {
     width: "100%",
-    padding: "11px 16px",
+    padding: "7px 10px",
     backgroundColor: "#ffffff",
-    color: "#18864b",
-    border: "1px solid #b8d7c1",
-    borderRadius: "7px",
+    color: "#64748b",
+    border: "1px solid #e2e8f0",
+    borderRadius: "6px",
     cursor: "pointer",
-    fontWeight: "600",
-    fontSize: "10px",
-    textTransform: "uppercase",
-    letterSpacing: "2px",
+    fontWeight: "500",
+    fontSize: "12px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "12px",
-    transition: "all 0.4s ease",
+    gap: "6px",
+    transition: "all 0.15s ease",
   },
 };
-
-

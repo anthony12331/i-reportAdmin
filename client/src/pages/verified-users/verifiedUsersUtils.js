@@ -76,13 +76,41 @@ function normalizeKey(key) {
   }
 }
 
-export function buildVerifiedUsersFilter(searchTerm = "") {
-  let filterString = 'status = "verified"';
+export function buildVerifiedUsersFilter(searchTerm = "", filters = {}) {
+  const status = filters.status || "verified";
+  let filterString = status === "all" ? "" : `status = "${status}"`;
   const trimmedSearch = searchTerm.trim();
+  const trimmedBarangay = (filters.barangay || "").trim();
+  const trimmedMunicipality = (filters.municipality || "").trim();
+  const registrationDate = filters.registrationDate || "";
 
   if (trimmedSearch) {
     const searchEscaped = trimmedSearch.replace(/"/g, '\\"');
-    filterString += ` && (first_name ~ "${searchEscaped}" || last_name ~ "${searchEscaped}" || user_id ~ "${searchEscaped}")`;
+    const searchParts = [
+      `first_name ~ "${searchEscaped}"`,
+      `last_name ~ "${searchEscaped}"`,
+    ];
+
+    if (/^\d+$/.test(trimmedSearch)) {
+      searchParts.push(`contact_number = ${trimmedSearch}`);
+      searchParts.push(`user_id = ${trimmedSearch}`);
+    }
+
+    filterString += `${filterString ? " && " : ""}(${searchParts.join(" || ")})`;
+  }
+
+  if (trimmedBarangay) {
+    const barangayEscaped = trimmedBarangay.replace(/"/g, '\\"');
+    filterString += `${filterString ? " && " : ""}baranggay ~ "${barangayEscaped}"`;
+  }
+
+  if (trimmedMunicipality) {
+    const municipalityEscaped = trimmedMunicipality.replace(/"/g, '\\"');
+    filterString += `${filterString ? " && " : ""}municipality ~ "${municipalityEscaped}"`;
+  }
+
+  if (registrationDate) {
+    filterString += `${filterString ? " && " : ""}date_time >= "${registrationDate} 00:00:00" && date_time <= "${registrationDate} 23:59:59"`;
   }
 
   return filterString;

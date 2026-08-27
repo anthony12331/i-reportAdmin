@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
-import { ongoingBackupStyles as styles } from "../themes/ongoingBackupStyles";
 import { useMessageBox } from "../components/MessageBox";
 import {
   ShieldAlert,
@@ -13,8 +12,11 @@ import {
   Truck,
   Activity,
   MapPin,
-  Map as MapIcon,
-  X
+  X,
+  Loader,
+  RotateCcw,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 
 export default function OngoingBackup() {
@@ -22,8 +24,8 @@ export default function OngoingBackup() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
-  
-  const { confirm, showAlert } = useMessageBox();
+
+  const { confirm, alert: showAlert } = useMessageBox();
 
   const fetchBackups = async () => {
     setLoading(true);
@@ -36,8 +38,9 @@ export default function OngoingBackup() {
       setBackups(records);
     } catch (err) {
       console.error("Fetch backups error:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -60,159 +63,321 @@ export default function OngoingBackup() {
 
   const handleResolve = async (backupId) => {
     const isConfirmed = await confirm(
-      `Complete Backup?`,
-      `Are you sure you want to mark this backup as completed?`
+      "Mark this backup deployment as completed and return unit to standby?",
+      {
+        title: "Complete Backup Deployment",
+        primaryLabel: "Complete Backup",
+        secondaryLabel: "Cancel",
+      }
     );
 
     if (!isConfirmed) return;
 
     setProcessingId(backupId);
     try {
+      const backup = backups.find((b) => b.id === backupId);
+      if (backup?.assigned_responder) {
+        await pb.collection("responder_accounts").update(backup.assigned_responder, {
+          is_available: true,
+        }).catch(() => {});
+      }
+
       await pb.collection("backup_requests").update(backupId, {
         dispatch_status: "completed",
       });
 
-      showAlert("Backup marked as completed.", "success");
+      await showAlert("Backup deployment marked as completed.", { title: "Backup Completed" });
       setBackups((prev) => prev.filter((b) => b.id !== backupId));
     } catch (error) {
       console.error("Resolve error:", error);
-      showAlert("Failed to complete backup.");
+      await showAlert("Failed to complete backup: " + (error.message || "Unknown error"), { title: "Error" });
+    } finally {
+      setProcessingId(null);
     }
-    setProcessingId(null);
   };
 
   return (
-    <div style={styles.container}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
-      <main style={styles.main}>
-        <header style={styles.header}>
+      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
+        {/* Header */}
+        <header style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <h1 style={styles.title}>
-              <Activity size={28} color="#3b82f6" />
-              Ongoing Backups
-            </h1>
-            <p style={styles.subtitle}>Monitor dispatched backup units that are currently active in the field</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+              <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#f59e0b", display: "inline-block" }} />
+              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+                Active Backup Deployments
+              </h1>
+            </div>
+            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+              Monitor dispatched backup units currently active in the field and complete assignments.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 14px",
+                borderRadius: "20px",
+                backgroundColor: backups.length > 0 ? "#fffbeb" : "#f0fdf4",
+                border: backups.length > 0 ? "1px solid #fde68a" : "1px solid #bbf7d0",
+                color: backups.length > 0 ? "#b45309" : "#15803d",
+                fontSize: "13px",
+                fontWeight: "800",
+              }}
+            >
+              <Activity size={14} />
+              <span>{backups.length} Active Deployments</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={fetchBackups}
+              disabled={loading}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 14px",
+                borderRadius: "10px",
+                border: "1px solid #e2e8f0",
+                backgroundColor: "#ffffff",
+                color: "#475569",
+                fontSize: "12.5px",
+                fontWeight: "700",
+                cursor: "pointer",
+              }}
+            >
+              <RotateCcw size={13} className={loading ? "animate-spin" : ""} />
+              <span>Refresh</span>
+            </button>
           </div>
         </header>
 
-        <div style={styles.cardGrid}>
-          {!loading && backups.length === 0 && (
-            <div style={styles.emptyState}>
-              <CheckCircle size={48} style={styles.emptyIcon} />
-              <p style={styles.emptyText}>No ongoing backups at the moment.</p>
+        {/* Empty State */}
+        {!loading && backups.length === 0 && (
+          <div
+            className="premium-table-card"
+            style={{
+              padding: "70px 24px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+            }}
+          >
+            <div
+              style={{
+                width: "72px",
+                height: "72px",
+                borderRadius: "24px",
+                backgroundColor: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#15803d",
+                marginBottom: "18px",
+                boxShadow: "0 10px 25px -5px rgba(21, 128, 61, 0.15)",
+              }}
+            >
+              <CheckCircle size={36} />
             </div>
-          )}
+            <h3 style={{ color: "#0f172a", fontSize: "20px", fontWeight: "800", margin: "0 0 8px 0" }}>
+              No Active Backup Operations
+            </h3>
+            <p style={{ margin: 0, fontSize: "14.5px", color: "#64748b", maxWidth: "440px", lineHeight: "1.5" }}>
+              All secondary backup dispatches have been resolved and units returned to standby.
+            </p>
+          </div>
+        )}
 
+        {loading && backups.length === 0 && (
+          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#15803d" }}>
+            <Loader className="animate-spin" size={32} />
+            <span style={{ fontWeight: "700", fontSize: "15px" }}>Loading active backup deployments...</span>
+          </div>
+        )}
+
+        {/* Cards Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: "22px" }}>
           {backups.map((backup) => {
             const requester = backup.expand?.requester_id;
             const responder = backup.expand?.assigned_responder;
-            const reqName = requester ? (requester.unit_name || `${requester.first_name} ${requester.last_name}`) : "Unknown Unit";
-            const resName = responder ? (responder.unit_name || `${responder.first_name} ${responder.last_name}`) : "Pending Responder";
-            
+            const reqName = requester ? requester.unit_name || `${requester.first_name} ${requester.last_name}` : "Field Responder";
+            const resName = responder ? responder.unit_name || `${responder.first_name} ${responder.last_name}` : "Assigned Unit";
+
             return (
-              <div key={backup.id} style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <div>
-                    <h3 style={styles.requesterName}>Requested By: {reqName}</h3>
-                    <div style={styles.metaText}>
-                      <User size={14} /> {backup.department || "ANY DEPT"} Backup Requested
+              <div
+                key={backup.id}
+                className="premium-table-card"
+                style={{
+                  padding: "22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                  borderTop: "4px solid #15803d",
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "10px",
+                        backgroundColor: "#f0fdf4",
+                        color: "#15803d",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: "800",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Truck size={18} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: "15.5px", fontWeight: "800", color: "#0f172a" }}>
+                        {resName}
+                      </h3>
+                      <span style={{ fontSize: "12px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Clock size={12} /> Deployed to support {reqName}
+                      </span>
                     </div>
                   </div>
-                  <span style={styles.statusBadge(backup.dispatch_status)}>
-                    {backup.dispatch_status.replace("_", " ")}
+
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      padding: "3px 8px",
+                      borderRadius: "8px",
+                      backgroundColor: "#fff7ed",
+                      color: "#c2410c",
+                      border: "1px solid #fed7aa",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {backup.dispatch_status?.replace("_", " ") || "EN ROUTE"}
                   </span>
                 </div>
 
-                <div style={styles.metaText}>
-                  <Clock size={14} /> 
-                  Requested: {new Date(backup.created).toLocaleString()}
-                </div>
-
-                {requester?.latitude != null && requester?.longitude != null ? (
-                    <>
-                      <div style={styles.metaText}>
-                        <MapPin size={14} color="#3b82f6" /> 
-                        <span>Location: {requester.latitude.toFixed(6)}, {requester.longitude.toFixed(6)}</span>
-                      </div>
-                      <div
-                        style={styles.miniMapContainer}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMap({ lat: requester.latitude, lng: requester.longitude, address: `Backup Request Location (${requester.latitude.toFixed(6)}, ${requester.longitude.toFixed(6)})` });
-                        }}
-                      >
-                        <iframe
-                          title={`Map for backup request ${backup.id}`}
-                          width="100%"
-                          height="100%"
-                          frameBorder="0"
-                          loading="lazy" 
-                          referrerPolicy="no-referrer-when-downgrade" 
-                          src={`https://maps.google.com/maps?q=${requester.latitude},${requester.longitude}&z=15&output=embed`}
-                          style={{ pointerEvents: "none" }}
-                        />
-                        <span style={styles.mapHoverTag}>ENLARGE MAP</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div style={styles.metaText}>
-                      <MapPin size={14} color="#94a3b8" /> 
-                      Location: Unknown
-                    </div>
-                  )}
-
-                {backup.incident_id && (
-                  <div style={styles.metaText}>
-                    <Radio size={14} color="#f97316" /> Incident ID: {backup.incident_id}
-                  </div>
-                )}
-                {backup.sos_id && (
-                  <div style={styles.metaText}>
-                    <Siren size={14} color="#ef4444" /> SOS ID: {backup.sos_id}
+                {/* Reason */}
+                {backup.reason && (
+                  <div style={{ padding: "10px 12px", borderRadius: "10px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", fontSize: "13px", color: "#334155", lineHeight: "1.4" }}>
+                    <strong style={{ color: "#0f172a", display: "block", fontSize: "11.5px", textTransform: "uppercase", marginBottom: "3px" }}>Dispatch Reason:</strong>
+                    {backup.reason}
                   </div>
                 )}
 
-                <div style={styles.responderBox}>
-                  <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', color: '#3b82f6' }}>
-                    <Truck size={16} /> Dispatched Unit
-                  </strong>
-                  <div style={{ color: '#f8fafc', fontSize: '15px' }}>{resName}</div>
-                  <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '2px' }}>
-                    Dept: {responder?.department?.toUpperCase() || 'N/A'}
+                {/* Location */}
+                {requester?.latitude != null && requester?.longitude != null && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: "8px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", fontSize: "12px" }}>
+                    <span style={{ color: "#15803d", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <MapPin size={13} /> Target: {requester.latitude.toFixed(4)}, {requester.longitude.toFixed(4)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMap({ lat: requester.latitude, lng: requester.longitude, address: `Backup Location (${requester.latitude.toFixed(4)}, ${requester.longitude.toFixed(4)})` })}
+                      style={{ background: "none", border: "none", color: "#15803d", fontWeight: "800", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
+                    >
+                      <ExternalLink size={11} /> View Map
+                    </button>
                   </div>
-                </div>
+                )}
 
-                <button
-                  onClick={() => handleResolve(backup.id)}
-                  disabled={processingId === backup.id}
-                  style={styles.resolveBtn}
-                >
-                  <CheckCircle size={16} />
-                  {processingId === backup.id ? "COMPLETING..." : "MARK COMPLETED"}
-                </button>
+                {/* Complete Action Button */}
+                <div style={{ marginTop: "auto", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleResolve(backup.id)}
+                    disabled={processingId === backup.id}
+                    style={{
+                      width: "100%",
+                      padding: "10px 16px",
+                      borderRadius: "10px",
+                      border: "none",
+                      background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
+                      color: "#ffffff",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      boxShadow: "0 4px 12px rgba(21, 128, 61, 0.25)",
+                    }}
+                  >
+                    {processingId === backup.id ? <Loader className="animate-spin" size={15} /> : <CheckCircle2 size={16} />}
+                    <span>{processingId === backup.id ? "Completing..." : "Complete Backup Deployment"}</span>
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       </main>
 
-      {/* MODAL: MAP FULLSCREEN */}
+      {/* MAP MODAL */}
       {selectedMap && (
-        <div style={styles.modalBackdrop} onClick={() => setSelectedMap(null)}>
-          <div style={styles.modalWindow} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHead}>
-              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', fontSize: '16px' }}><MapIcon size={18} color="#38bdf8" /> {selectedMap.address}</h3>
-              <button onClick={() => setSelectedMap(null)} style={styles.closeBtn}><X size={18} /></button>
+        <div
+          className="lightboxModalBackdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(10px)",
+            zIndex: 9999,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "24px",
+          }}
+          onClick={() => setSelectedMap(null)}
+        >
+          <div
+            className="lightboxModalCard"
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "680px",
+              overflow: "hidden",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #f1f5f9" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                <MapPin size={17} color="#15803d" /> {selectedMap.address}
+              </h3>
+              <button
+                type="button"
+                className="animatedCloseButton"
+                onClick={() => setSelectedMap(null)}
+                style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={16} />
+              </button>
             </div>
             <iframe
               title="Full Map"
               width="100%"
-              height="500px"
+              height="420px"
               frameBorder="0"
-              loading="lazy" 
-              referrerPolicy="no-referrer-when-downgrade" 
-              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&output=embed&t=h`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://maps.google.com/maps?q=${selectedMap.lat},${selectedMap.lng}&z=17&t=k&output=embed`}
+              style={{ border: 0 }}
             />
           </div>
         </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { getReadableAddress } from "../utils/utils";
-import { resolvedStyles as ui, getUnitStyles } from "../themes/resolvedStyles"; 
+import { getUnitStyles } from "../themes/resolvedStyles"; 
 import { pendingIncidentsStyles as detailStyles } from "../themes/pendingIncidentsStyles";
 import {
   CheckCircle,
@@ -16,9 +17,95 @@ import {
   X,
   ImageIcon,
   Activity,
+  Loader,
+  AlertTriangle,
+  Flame,
+  Radio,
+  Car,
+  Mountain,
 } from "lucide-react";
 
+const getFileUrl = (record, field) =>
+  record && record[field] ? pb.files.getURL(record, record[field]) : null;
+
+const getUserAvatarUrl = (user) => {
+  if (!user) return null;
+  return getFileUrl(user, "selfie") || getFileUrl(user, "avatar") || getFileUrl(user, "profile_picture") || null;
+};
+
+const getInitials = (user) => {
+  if (!user) return "CT";
+  const first = user.first_name ? user.first_name.trim().charAt(0).toUpperCase() : "";
+  const last = user.last_name ? user.last_name.trim().charAt(0).toUpperCase() : "";
+  return (first + last) || "CT";
+};
+
+const getAvatarStyle = (name) => {
+  const palettes = [
+    { bg: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", color: "#ffffff" },
+    { bg: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)", color: "#ffffff" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < (name || "").length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % palettes.length;
+  return palettes[index];
+};
+
+const getTypeBadge = (type, isSos) => {
+  if (isSos) {
+    return {
+      label: "SOS DISTRESS",
+      icon: <Radio size={13} />,
+      bg: "#fef2f2",
+      color: "#b91c1c",
+      border: "#fecaca",
+    };
+  }
+  switch ((type || "").toLowerCase()) {
+    case "fire":
+      return {
+        label: "FIRE EMERGENCY",
+        icon: <Flame size={13} />,
+        bg: "#fff7ed",
+        color: "#c2410c",
+        border: "#ffedd5",
+      };
+    case "accident":
+      return {
+        label: "ROAD ACCIDENT",
+        icon: <Car size={13} />,
+        bg: "#fefce8",
+        color: "#a16207",
+        border: "#fef9c3",
+      };
+    case "landslide":
+      return {
+        label: "LANDSLIDE",
+        icon: <Mountain size={13} />,
+        bg: "#fef3c7",
+        color: "#92400e",
+        border: "#fde68a",
+      };
+    default:
+      return {
+        label: (type || "INCIDENT").toUpperCase(),
+        icon: <AlertTriangle size={13} />,
+        bg: "#eff6ff",
+        color: "#1d4ed8",
+        border: "#dbeafe",
+      };
+  }
+};
+
 export default function ResolvedIncidents() {
+  const navigate = useNavigate();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState({});
@@ -33,7 +120,7 @@ export default function ResolvedIncidents() {
 
   const perPage = 10;
 
- const fetchIncidents = useCallback(async () => {
+  const fetchIncidents = useCallback(async () => {
     setLoading(true);
 
     const resolveAddressesParallel = async (records) => {
@@ -52,38 +139,73 @@ export default function ResolvedIncidents() {
     };
 
     try {
-      let filterParts = ['status = "resolved"'];
-      if (typeFilter) filterParts.push(`type = "${typeFilter}"`);
+      const incidentFilterParts = ['status = "resolved"'];
+      if (typeFilter && typeFilter !== "sos") incidentFilterParts.push(`type = "${typeFilter}"`);
 
       if (searchTerm.trim() !== "") {
         const s = searchTerm.trim();
-        filterParts.push(`(users.user_id ~ "${s}" || users.first_name ~ "${s}" || users.last_name ~ "${s}" || users.baranggay ~ "${s}")`);
+        incidentFilterParts.push(`(users.user_id ~ "${s}" || users.first_name ~ "${s}" || users.last_name ~ "${s}" || users.baranggay ~ "${s}")`);
       }
 
-      const result = await pb.collection("incident_reports").getList(currentPage, perPage, {
-        filter: filterParts.join(" && "),
-        sort: "-updated",
-        expand: "users",
-        requestKey: null,
-      });
+      const [incidentRecords, sosRecords] = await Promise.all([
+        typeFilter === "sos"
+          ? Promise.resolve([])
+          : pb.collection("incident_reports").getFullList({
+          filter: incidentFilterParts.join(" && "),
+          sort: "-updated",
+          expand: "users",
+          requestKey: null,
+        }),
+        typeFilter && typeFilter !== "sos"
+          ? Promise.resolve([])
+          : pb.collection("sos_tracking").getFullList({
+              filter: 'status = "resolved"',
+              sort: "-updated",
+              expand: "user,assigned_responder",
+              requestKey: null,
+            }),
+      ]);
 
-      const incidentIdsFilter = result.items.map(r => `incident_id="${r.id}"`).join(" || ");
-      if (incidentIdsFilter) {
+      const combinedRecords = [
+        ...incidentRecords.map((record) => ({ ...record, recordType: "incident" })),
+        ...sosRecords.map((record) => ({ ...record, recordType: "sos" })),
+      ]
+        .filter((record) => {
+          if (!searchTerm.trim()) return true;
+          const search = searchTerm.trim().toLowerCase();
+          const reporter = record.expand?.users || record.expand?.user;
+          return [reporter?.user_id, reporter?.first_name, reporter?.last_name, reporter?.baranggay]
+            .some((value) => String(value || "").toLowerCase().includes(search));
+        })
+        .sort((a, b) => new Date(b.updated || b.created) - new Date(a.updated || a.created));
+
+      const totalItemsForPage = combinedRecords.length;
+      const pageStart = (currentPage - 1) * perPage;
+      const pageItems = combinedRecords.slice(pageStart, pageStart + perPage);
+
+      const dispatchFilters = pageItems.map((record) =>
+        `${record.recordType === "sos" ? "sos_id" : "incident_id"}="${record.id}"`
+      );
+      if (dispatchFilters.length > 0) {
         const dispatches = await pb.collection("dispatches").getFullList({
-          filter: incidentIdsFilter,
+          filter: dispatchFilters.join(" || "),
           expand: "responder_id",
           requestKey: null
         });
         
-        result.items.forEach(incident => {
-          incident.dispatches = dispatches.filter(d => d.incident_id === incident.id);
+        pageItems.forEach(incident => {
+          incident.dispatches = dispatches.filter((dispatch) =>
+            incident.recordType === "sos"
+              ? dispatch.sos_id === incident.id
+              : dispatch.incident_id === incident.id
+          );
         });
       }
 
-      setIncidents(result.items);
-      setTotalPages(result.totalPages);
-      setTotalItems(result.totalItems);
-      resolveAddressesParallel(result.items);
+      setIncidents(pageItems);
+      setTotalPages(Math.max(1, Math.ceil(totalItemsForPage / perPage)));
+      setTotalItems(totalItemsForPage);
+      resolveAddressesParallel(pageItems);
     } catch (error) {
       if (!error.isAbort) console.error("Fetch Error:", error);
     } finally {
@@ -100,26 +222,35 @@ export default function ResolvedIncidents() {
     new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
     });
 
   return (
-    <div style={ui.shell}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
-      <main style={ui.main}>
-        <header style={{ marginBottom: "28px" }}>
-          <div style={ui.headerRow}>
-            <div>
-              <h1 style={ui.pageTitle}>Resolved History</h1>
-              <p style={{ ...ui.subtitle, color: "#18864b", display: "flex", alignItems: "center", gap: "6px" }}>
-                <ClipboardList size={18} /> Official Audit Record for Lagonglong
-              </p>
-            </div>
 
-            <div style={ui.searchWrapper}>
-              <Search size={18} color="#477257" style={{ position: "absolute", left: "15px", top: "50%", transform: "translateY(-50%)" }} />
+      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
+        {/* Header */}
+        <header style={{ marginBottom: "28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+              Resolved History
+            </h1>
+          </div>
+          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+            Official incident resolution history and emergency dispatch records for Barangay Lagonglong.
+          </p>
+        </header>
+
+        {/* Premium Table Card */}
+        <div className="premium-table-card">
+          {/* Top Toolbar */}
+          <div className="table-toolbar" style={{ flexWrap: "wrap", gap: "14px" }}>
+            <div className="search-box-premium" style={{ minWidth: "280px" }}>
+              <Search size={18} color="#94a3b8" />
               <input
                 type="text"
                 placeholder="Search Citizen ID, Name, or Barangay..."
@@ -128,165 +259,320 @@ export default function ResolvedIncidents() {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                style={ui.searchInput}
               />
               {searchTerm && (
-                <X size={16} onClick={() => setSearchTerm("")} style={{ position: "absolute", right: "15px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#cbd5e1" }} />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCurrentPage(1);
+                  }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
+                >
+                  <X size={15} />
+                </button>
               )}
+            </div>
+
+            {/* Type Filter Buttons */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+              {[
+                { val: "", label: "All Cases" },
+                { val: "fire", label: "Fire" },
+                { val: "accident", label: "Accident" },
+                { val: "landslide", label: "Landslide" },
+                { val: "sos", label: "SOS Distress" },
+              ].map(({ val, label }) => {
+                const isActive = typeFilter === val;
+                return (
+                  <button
+                    key={val}
+                    type="button"
+                    className={`resolved-filter-tab ${isActive ? "active" : ""}`}
+                    onClick={() => {
+                      setTypeFilter(val);
+                      setCurrentPage(1);
+                    }}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: "20px",
+                      border: isActive ? "1px solid #15803d" : "1px solid #e2e8f0",
+                      backgroundColor: isActive ? "#15803d" : "#ffffff",
+                      color: isActive ? "#ffffff" : "#475569",
+                      fontSize: "12.5px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      boxShadow: isActive ? "0 2px 6px rgba(21, 128, 61, 0.25)" : "none",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div style={ui.filterGroup}>
-            {["", "fire", "accident", "landslide"].map((val) => (
-              <button
-                key={val}
-                onClick={() => {
-                  setTypeFilter(val);
-                  setCurrentPage(1);
-                }}
-                style={ui.pillButton(typeFilter === val)}
-              >
-                {val === "" ? "ALL CASES" : val.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </header>
-
-        <div style={ui.panel}>
-          <table style={ui.table}>
-            <thead>
-              <tr style={{ backgroundColor: "#e7f5eb", borderBottom: "1px solid #d7e5da" }}>
-                <th style={ui.th}>Citizen ID</th>
-                <th style={ui.th}>Full Name</th>
-                <th style={ui.th}>Location / Barangay</th>
-                <th style={ui.th}>Unit Assigned</th>
-                <th style={ui.th}>Resolved Date</th>
-                <th style={ui.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && incidents.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: "80px", textAlign: "center", color: "#18864b", fontWeight: "800" }}>
-                    ⚡ LOADING HISTORY...
-                  </td>
-                </tr>
-              ) : incidents.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: "#477257" }}>
-                    No records found.
-                  </td>
-                </tr>
-              ) : (
-                incidents.map((incident) => {
-                  const reporter = incident.expand?.users;
-
-                  return (
-                    <tr key={incident.id} style={{ borderBottom: "1px solid #edf3ee" }}>
-                      <td style={ui.td}>
-                        <div style={{ fontWeight: "900", color: "#111111", fontSize: "15px", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <IdCard size={16} color="#818cf8" /> {reporter?.user_id || "N/A"}
-                        </div>
-                        <div style={ui.mutedText}>VERIFIED ACCOUNT</div>
-                      </td>
-
-                      <td style={ui.td}>
-                        <div style={{ fontWeight: "700", fontSize: "14px", color: "#111111" }}>
-                          {reporter?.first_name} {reporter?.last_name}
-                        </div>
-                        <div style={ui.mutedText}>Profile Verified</div>
-                      </td>
-
-                      <td style={{ ...ui.td, maxWidth: "280px" }}>
-                        <div style={{ display: "flex", gap: "6px", fontSize: "12px", color: "#477257", fontWeight: "600" }}>
-                          <MapPin size={14} color="#ef4444" style={{ flexShrink: 0 }} />
-                          {addresses[incident.id] || "Resolving..."}
-                        </div>
-                        <div style={{ ...ui.mutedText, marginLeft: "20px" }}>Brgy: {reporter?.baranggay}</div>
-                      </td>
-
-                      <td style={ui.td}>
-                        <div style={{ fontSize: "10px", fontWeight: "900", color: "#477257", textTransform: "uppercase", marginBottom: "4px" }}>
-                          {incident.type}
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                          {incident.dispatches && incident.dispatches.length > 0 ? (
-                            incident.dispatches.map(d => {
-                              const r = d.expand?.responder_id;
-                              const unitStyle = getUnitStyles(r?.department || d.department);
-                              return (
-                                <div key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: unitStyle.color, backgroundColor: unitStyle.bg, padding: "5px 10px", borderRadius: "8px", width: "fit-content" }}>
-                                  <ShieldCheck size={14} /> {r ? `${r.department.toUpperCase()} - ${r.first_name}` : (d.department || '').toUpperCase()} ({d.status})
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "800", color: getUnitStyles("mdrrmo").color, backgroundColor: getUnitStyles("mdrrmo").bg, padding: "5px 10px", borderRadius: "8px", width: "fit-content" }}>
-                              <ShieldCheck size={14} /> MDRRMO HQ
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      <td style={ui.td}>
-                        <div style={{ color: "#111111", fontWeight: "800", fontSize: "13px", display: "flex", alignItems: "center", gap: "5px" }}>
-                          <CheckCircle size={14} color="#10b981" /> {formatDate(incident.updated)}
-                        </div>
-                        <div style={ui.mutedText}>Case: {incident.id}</div>
-                      </td>
-
-                      <td style={ui.td}>
-                        <button
-                          type="button"
-                          style={ui.detailsButton}
-                          onClick={() => setSelectedIncident(incident)}
-                        >
-                          View Details
-                        </button>
-                      </td>
+          {/* Table Content */}
+          {loading && incidents.length === 0 ? (
+            <div style={{ padding: "60px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: "#15803d" }}>
+              <Loader className="animate-spin" size={26} />
+              <span>Loading resolved incident records...</span>
+            </div>
+          ) : incidents.length === 0 ? (
+            <div style={{ padding: "60px 20px", textAlign: "center", color: "#64748b" }}>
+              <CheckCircle size={44} color="#94a3b8" style={{ marginBottom: "12px" }} />
+              <h3 style={{ margin: "0 0 6px 0", color: "#1e293b", fontSize: "16px" }}>No Resolved Cases Found</h3>
+              <p style={{ margin: 0, fontSize: "13.5px" }}>No archived incident history matches your search or filter criteria.</p>
+            </div>
+          ) : (
+            <>
+              <div className="premium-table-wrapper" style={{ overflowX: "auto" }}>
+                <table className="premium-table">
+                  <thead>
+                    <tr>
+                      <th>Citizen Reporter</th>
+                      <th>Incident Type</th>
+                      <th>Location / Barangay</th>
+                      <th>Assigned Units</th>
+                      <th>Resolved Date</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "center" }}>Action</th>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  </thead>
+                  <tbody>
+                    {incidents.map((incident) => {
+                      const reporter = incident.expand?.users || incident.expand?.user;
+                      const isSos = incident.recordType === "sos";
+                      const fullName = `${reporter?.first_name || ""} ${reporter?.last_name || ""}`.trim() || (isSos ? "SOS Citizen" : "Verified Citizen");
+                      const initials = getInitials(reporter);
+                      const avatarStyle = getAvatarStyle(fullName);
+                      const avatarUrl = getUserAvatarUrl(reporter);
+                      const typeBadge = getTypeBadge(incident.type, isSos);
 
-          {/* Pagination */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", backgroundColor: "#e7f5eb", borderTop: "1px solid #d7e5da" }}>
-            <span style={{ fontSize: "13px", color: "#477257", fontWeight: "700" }}>
-              Showing {incidents.length} of {totalItems} total logs (Page {currentPage} of {totalPages})
-            </span>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button
-                disabled={currentPage === 1}
-                onClick={() => {
-                  setCurrentPage((p) => p - 1);
-                  window.scrollTo(0, 0);
-                }}
-                style={{ padding: "9px 16px", borderRadius: "7px", border: "1px solid #b8d7c1", backgroundColor: "#ffffff", color: "#18864b", cursor: "pointer", fontWeight: "800", fontSize: "12px", opacity: currentPage === 1 ? 0.5 : 1 }}
-              >
-                <ChevronLeft size={18} /> PREV
-              </button>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => {
-                  setCurrentPage((p) => p + 1);
-                  window.scrollTo(0, 0);
-                }}
-                style={{ padding: "9px 16px", borderRadius: "7px", border: "1px solid #b8d7c1", backgroundColor: "#ffffff", color: "#18864b", cursor: "pointer", fontWeight: "800", fontSize: "12px", opacity: currentPage === totalPages ? 0.5 : 1 }}
-              >
-                NEXT <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
+                      return (
+                        <tr key={incident.id}>
+                          {/* Citizen Reporter */}
+                          <td>
+                            <div className="premium-user-cell">
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={fullName}
+                                  className="premium-avatar"
+                                  style={{ objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div className="premium-avatar" style={{ background: avatarStyle.bg, color: avatarStyle.color }}>
+                                  {initials}
+                                </div>
+                              )}
+                              <div className="premium-user-info">
+                                <span className="premium-user-name">{fullName}</span>
+                                <span className="premium-user-sub">
+                                  {reporter?.user_id ? `Citizen ID: #${reporter.user_id}` : (reporter?.email || (isSos ? "SOS Distress Alert" : "Citizen"))}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Incident Type */}
+                          <td>
+                            <span
+                              className={`resolved-type-badge type-${(incident.type || (isSos ? "sos" : "default")).toLowerCase()}`}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                padding: "4px 10px",
+                                borderRadius: "12px",
+                                fontSize: "12px",
+                                fontWeight: "700",
+                                backgroundColor: typeBadge.bg,
+                                color: typeBadge.color,
+                                border: `1px solid ${typeBadge.border}`,
+                              }}
+                            >
+                              {typeBadge.icon}
+                              {typeBadge.label}
+                            </span>
+                          </td>
+
+                          {/* Location */}
+                          <td>
+                            <div className="resolved-location-cell" style={{ maxWidth: "260px" }}>
+                              <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", fontSize: "13px", color: "#1e293b", fontWeight: "600" }}>
+                                <MapPin size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                                <span>{addresses[incident.id] || "Resolving GPS telemetry..."}</span>
+                              </div>
+                              <div style={{ fontSize: "12px", color: "#64748b", marginLeft: "21px", marginTop: "2px" }}>
+                                Brgy. {reporter?.baranggay || "Lagonglong"}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Unit Assigned */}
+                          <td>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                              {incident.dispatches && incident.dispatches.length > 0 ? (
+                                incident.dispatches.map((d) => {
+                                  const r = d.expand?.responder_id;
+                                  const unitStyle = getUnitStyles(r?.department || d.department);
+                                  return (
+                                    <span
+                                      key={d.id}
+                                      className="resolved-unit-badge"
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "5px",
+                                        fontSize: "11.5px",
+                                        fontWeight: "700",
+                                        color: unitStyle.color,
+                                        backgroundColor: unitStyle.bg,
+                                        padding: "3px 8px",
+                                        borderRadius: "6px",
+                                        width: "fit-content",
+                                      }}
+                                    >
+                                      <ShieldCheck size={13} /> {r ? `${r.department.toUpperCase()} - ${r.first_name}` : (d.department || "").toUpperCase()}
+                                    </span>
+                                  );
+                                })
+                              ) : isSos && incident.expand?.assigned_responder ? (
+                                <span
+                                  className="resolved-unit-badge"
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                    fontSize: "11.5px",
+                                    fontWeight: "700",
+                                    color: getUnitStyles(incident.expand.assigned_responder.department).color,
+                                    backgroundColor: getUnitStyles(incident.expand.assigned_responder.department).bg,
+                                    padding: "3px 8px",
+                                    borderRadius: "6px",
+                                    width: "fit-content",
+                                  }}
+                                >
+                                  <ShieldCheck size={13} /> {incident.expand.assigned_responder.department.toUpperCase()}
+                                </span>
+                              ) : (
+                                <span
+                                  className="resolved-unit-badge"
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                    fontSize: "11.5px",
+                                    fontWeight: "700",
+                                    color: "#15803d",
+                                    backgroundColor: "#f0fdf4",
+                                    padding: "3px 8px",
+                                    borderRadius: "6px",
+                                    width: "fit-content",
+                                  }}
+                                >
+                                  <ShieldCheck size={13} /> MDRRMO HQ
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Resolved Date */}
+                          <td>
+                            <div className="resolved-date-cell">
+                              <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "13px", display: "block" }}>
+                                {formatDate(incident.updated || incident.created)}
+                              </span>
+                              <span style={{ fontSize: "12px", color: "#64748b" }}>Case #{incident.id}</span>
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td>
+                            <span className="premium-status-pill status-pill-active">
+                              Resolved
+                            </span>
+                          </td>
+
+                          {/* Action */}
+                          <td style={{ textAlign: "center" }}>
+                            <button
+                              type="button"
+                              className="premium-action-btn"
+                              onClick={() => navigate(isSos ? `/resolved-incidents/sos/${incident.id}` : `/resolved-incidents/${incident.id}`)}
+                            >
+                              View Details
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Footer / Pagination */}
+              <div className="premium-table-footer">
+                <div className="premium-pagination-info">
+                  Showing <strong>{(currentPage - 1) * perPage + 1}</strong>–
+                  <strong>{Math.min(currentPage * perPage, totalItems)}</strong> of <strong>{totalItems}</strong> Resolved Cases
+                </div>
+
+                <div className="premium-pagination-controls">
+                  <button
+                    type="button"
+                    className="premium-page-nav-btn"
+                    onClick={() => {
+                      setCurrentPage((p) => Math.max(1, p - 1));
+                      window.scrollTo(0, 0);
+                    }}
+                    disabled={currentPage === 1 || loading}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, index) => index + 1)
+                    .slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))
+                    .map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        className={`premium-page-num-btn ${currentPage === pageNum ? "active" : ""}`}
+                        onClick={() => {
+                          setCurrentPage(pageNum);
+                          window.scrollTo(0, 0);
+                        }}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                  <button
+                    type="button"
+                    className="premium-page-nav-btn"
+                    onClick={() => {
+                      setCurrentPage((p) => Math.min(totalPages, p + 1));
+                      window.scrollTo(0, 0);
+                    }}
+                    disabled={currentPage === totalPages || loading}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
 
+      {/* Detail Modal */}
       {selectedIncident && (
         <div style={detailStyles.detailBackdrop} onClick={() => setSelectedIncident(null)}>
           <div style={detailStyles.detailWindow} onClick={(event) => event.stopPropagation()}>
             <header style={detailStyles.detailHeader}>
-              <button type="button" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
+              <button type="button" className="animatedCloseButton" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
                 <X size={16} /> Back to History
               </button>
               <div style={detailStyles.detailHeaderTitle}>
@@ -302,25 +588,26 @@ export default function ResolvedIncidents() {
                   <h3 style={detailStyles.detailSectionTitle}>Reporter Information</h3>
                   <div style={detailStyles.reporterDetail}>
                     <div style={detailStyles.reporterAvatar}>
-                      {selectedIncident.expand?.users?.selfie ? (
-                        <img
-                          src={pb.files.getURL(
-                            selectedIncident.expand.users,
-                            selectedIncident.expand.users.selfie
-                          )}
-                          alt="Reporter"
-                          style={detailStyles.reporterAvatarImage}
-                        />
-                      ) : (
-                        <ShieldCheck size={20} />
-                      )}
+                      {(() => {
+                        const rep = selectedIncident.expand?.users || selectedIncident.expand?.user;
+                        const repAvatar = getUserAvatarUrl(rep);
+                        return repAvatar ? (
+                          <img
+                            src={repAvatar}
+                            alt="Reporter"
+                            style={detailStyles.reporterAvatarImage}
+                          />
+                        ) : (
+                          <ShieldCheck size={20} />
+                        );
+                      })()}
                     </div>
                     <div style={detailStyles.reporterSummary}>
                       <strong style={detailStyles.reporterName}>
-                        {selectedIncident.expand?.users?.first_name || "Unknown"} {selectedIncident.expand?.users?.last_name || "Resident"}
+                        {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.first_name || "Unknown"} {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.last_name || "Resident"}
                       </strong>
                       <span style={detailStyles.reporterSub}>Verified Resident</span>
-                      <span style={detailStyles.reporterSub}>ID: {selectedIncident.expand?.users?.user_id || "Not available"}</span>
+                      <span style={detailStyles.reporterSub}>ID: {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.user_id || "Not available"}</span>
                     </div>
                   </div>
                   <div style={detailStyles.detailContactRow}>
@@ -332,22 +619,6 @@ export default function ResolvedIncidents() {
                       <span style={detailStyles.detailContactLabel}>Email</span>
                       <strong style={detailStyles.contactValue}>{selectedIncident.expand?.users?.email || "N/A"}</strong>
                     </div>
-                  </div>
-                  <div style={{ ...detailStyles.metadataGrid, marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #edf3ee" }}>
-                    {[
-                      ["Age", selectedIncident.expand?.users?.age],
-                      ["Barangay", selectedIncident.expand?.users?.barangay || selectedIncident.expand?.users?.baranggay],
-                      ["Municipality", selectedIncident.expand?.users?.municipality],
-                      ["Province", selectedIncident.expand?.users?.province],
-                      ["Street Address", selectedIncident.expand?.users?.street_address || selectedIncident.expand?.users?.address],
-                      ["Birthdate", selectedIncident.expand?.users?.birthdate || selectedIncident.expand?.users?.date_of_birth],
-                      ["Position", selectedIncident.expand?.users?.position],
-                    ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
-                      <React.Fragment key={label}>
-                        <span style={detailStyles.metadataLabel}>{label}</span>
-                        <strong style={detailStyles.metadataValue}>{String(value)}</strong>
-                      </React.Fragment>
-                    ))}
                   </div>
                 </section>
 
@@ -405,72 +676,13 @@ export default function ResolvedIncidents() {
                     </p>
                   )}
                 </section>
-
-                <section style={detailStyles.detailPanel}>
-                  <h3 style={detailStyles.detailSectionTitle}>Proof of Incident</h3>
-                  <div style={detailStyles.detailMediaGrid}>
-                    {selectedIncident.incident_image ? (
-                      <button
-                        type="button"
-                        style={detailStyles.detailMediaButton}
-                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`)}
-                      >
-                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
-                        <img
-                          src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_image}`}
-                          alt="Incident evidence"
-                          style={detailStyles.detailMedia}
-                        />
-                      </button>
-                    ) : <div style={detailStyles.detailMediaEmpty}><ImageIcon size={24} /> No photo available</div>}
-                    {selectedIncident.incident_video ? (
-                      <button
-                        type="button"
-                        style={detailStyles.detailMediaButton}
-                        onClick={() => setSelectedImage(`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`)}
-                      >
-                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
-                        <video
-                          src={`${pb.baseUrl}/api/files/${selectedIncident.collectionId}/${selectedIncident.id}/${selectedIncident.incident_video}`}
-                          controls
-                          style={detailStyles.detailMedia}
-                        />
-                      </button>
-                    ) : <div style={detailStyles.detailMediaEmpty}><Activity size={24} /> No video available</div>}
-                  </div>
-                </section>
-
-                {selectedIncident.latitude && (
-                  <section style={detailStyles.detailPanel}>
-                    <div style={detailStyles.detailSectionHeader}>
-                      <h3 style={detailStyles.detailSectionTitle}>Geographic Location</h3>
-                      <button
-                        type="button"
-                        style={detailStyles.detailMapButton}
-                        onClick={() => window.open(`https://www.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}`, "_blank", "noopener,noreferrer")}
-                      >
-                        Open in Maps
-                      </button>
-                    </div>
-                    <div
-                      style={{ ...detailStyles.detailMapPreview, cursor: "zoom-in" }}
-                      onClick={() => setSelectedMap({ lat: selectedIncident.latitude, lng: selectedIncident.longitude, address: addresses[selectedIncident.id] })}
-                    >
-                        <span style={detailStyles.mediaZoomLabel}>Click to enlarge</span>
-                        <iframe
-                            title="Resolved incident location"
-                            src={`https://maps.google.com/maps?q=${selectedIncident.latitude},${selectedIncident.longitude}&z=15&output=embed`}
-                            style={{ ...detailStyles.detailMapFrame, pointerEvents: "none" }}
-                          />
-                    </div>
-                  </section>
-                )}
               </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Map Modal */}
       {selectedMap && (
         <div style={detailStyles.modalBackdrop} onClick={() => setSelectedMap(null)}>
           <div style={detailStyles.modalWindow} onClick={(event) => event.stopPropagation()}>
@@ -478,7 +690,7 @@ export default function ResolvedIncidents() {
               <h3 style={{ margin: 0, color: "#111827", fontSize: "16px" }}>
                 {selectedMap.address || "Resolved Incident Location"}
               </h3>
-              <button type="button" onClick={() => setSelectedMap(null)} style={detailStyles.closeBtn}>
+              <button type="button" className="animatedCloseButton" onClick={() => setSelectedMap(null)} style={detailStyles.closeBtn}>
                 <X size={18} />
               </button>
             </div>
@@ -493,6 +705,7 @@ export default function ResolvedIncidents() {
         </div>
       )}
 
+      {/* Image Modal */}
       {selectedImage && (
         <div style={detailStyles.modalBackdrop} onClick={() => setSelectedImage(null)}>
           <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }} onClick={(event) => event.stopPropagation()}>
@@ -501,7 +714,7 @@ export default function ResolvedIncidents() {
             ) : (
               <img src={selectedImage} alt="Incident media preview" style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "10px" }} />
             )}
-            <button type="button" onClick={() => setSelectedImage(null)} style={detailStyles.closeFloatBtn}>
+            <button type="button" className="animatedCloseButton" onClick={() => setSelectedImage(null)} style={detailStyles.closeFloatBtn}>
               <X size={20} />
             </button>
           </div>
@@ -510,5 +723,3 @@ export default function ResolvedIncidents() {
     </div>
   );
 }
-
-

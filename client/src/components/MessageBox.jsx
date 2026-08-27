@@ -30,16 +30,26 @@ function createUniqueId() {
   return `dialog-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-const getDialogTone = (message, variant) => {
+const getDialogTone = (message, variant, toneOverride) => {
   const text = String(message || "").toLowerCase();
+
+  if (toneOverride === "app") {
+    return {
+      icon: ShieldAlert,
+      accent: "#18864b",
+      title: "Confirm Action",
+      primaryLabel: "Confirm",
+      primaryBg: "#18864b",
+    };
+  }
 
   if (variant === "confirm") {
     return {
       icon: ShieldAlert,
-      accent: "#ef4444",
+      accent: "#18864b",
       title: "Confirm Action",
       primaryLabel: "Confirm",
-      primaryBg: "#d32f2f",
+      primaryBg: "#18864b",
     };
   }
 
@@ -75,10 +85,10 @@ const getDialogTone = (message, variant) => {
 
   return {
     icon: Info,
-    accent: "#3b82f6",
+    accent: "#18864b",
     title: "System Message",
     primaryLabel: "OK",
-    primaryBg: "#1a1c23",
+    primaryBg: "#18864b",
   };
 };
 
@@ -127,6 +137,7 @@ export function MessageBoxProvider({ children }) {
         title: options.title,
         primaryLabel: options.primaryLabel || "Confirm",
         secondaryLabel: options.secondaryLabel || "Cancel",
+        tone: options.tone,
       });
     },
     [openDialog],
@@ -166,7 +177,7 @@ export function useMessageBox() {
 }
 
 function MessageDialog({ dialog, onClose }) {
-  const tone = getDialogTone(dialog.message, dialog.variant);
+  const tone = getDialogTone(dialog.message, dialog.variant, dialog.tone);
   const Icon = tone.icon;
   const isConfirm = dialog.variant === "confirm";
 
@@ -183,11 +194,13 @@ function MessageDialog({ dialog, onClose }) {
 
   return (
     <div
+      className="messageBoxOverlay"
       style={styles.overlay}
       role="presentation"
       onMouseDown={() => isConfirm && onClose(false)}
     >
       <div
+        className="messageBoxDialog"
         style={{ ...styles.dialog, borderTopColor: tone.accent }}
         role="dialog"
         aria-modal="true"
@@ -206,6 +219,7 @@ function MessageDialog({ dialog, onClose }) {
           </div>
           <button
             type="button"
+            className="messageBoxCloseBtn animatedCloseButton"
             style={styles.closeBtn}
             onClick={() => onClose(isConfirm ? false : true)}
             aria-label="Close message"
@@ -223,6 +237,7 @@ function MessageDialog({ dialog, onClose }) {
           {isConfirm && (
             <button
               type="button"
+              className="messageBoxSecondaryBtn"
               style={styles.secondaryBtn}
               onClick={() => onClose(false)}
             >
@@ -231,6 +246,7 @@ function MessageDialog({ dialog, onClose }) {
           )}
           <button
             type="button"
+            className="messageBoxPrimaryBtn"
             style={{ ...styles.primaryBtn, backgroundColor: tone.primaryBg }}
             onClick={() => onClose(true)}
           >
@@ -251,18 +267,20 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     padding: "24px",
-    backgroundColor: "rgba(15, 23, 42, 0.62)",
+    backgroundColor: "rgba(24, 95, 53, 0.42)",
     backdropFilter: "blur(8px)",
+    animation: "messageBoxOverlayIn 180ms ease-out both",
   },
   dialog: {
     width: "100%",
     maxWidth: "430px",
-    borderTop: "5px solid #3b82f6",
+    borderTop: "5px solid #18864b",
     borderRadius: "8px",
     backgroundColor: "#ffffff",
     boxShadow: "0 24px 70px rgba(0, 0, 0, 0.32)",
     padding: "24px",
     fontFamily: "Inter, Arial, sans-serif",
+    animation: "messageBoxDialogIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both",
   },
   header: {
     display: "flex",

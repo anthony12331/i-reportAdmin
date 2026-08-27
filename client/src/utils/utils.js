@@ -87,7 +87,7 @@ const formatLocationLabel = (data, formatLevel = "full") => {
   const region = pickFirstText(addr.region, addr.state_district);
   const zip = pickFirstText(addr.postcode);
 
-  // 🚨 SMART FILTER: For Analytics Charts (Zone + Barangay + Town/City)
+  // SMART FILTER: For Analytics Charts (Zone + Barangay + Town/City)
   if (formatLevel === "barangay") {
     let locationParts = [];
 
@@ -99,7 +99,7 @@ const formatLocationLabel = (data, formatLevel = "full") => {
     return locationParts.length > 0 ? locationParts.join(", ") : "Unknown Area";
   }
 
-  // 🚑 DEFAULT: Full exact street address for the Live Dispatch Dashboard
+  // DEFAULT: Full exact street address for the Live Dispatch Dashboard
   const road = pickFirstText(
     addr.house_number && addr.road
       ? `${addr.house_number} ${addr.road}`

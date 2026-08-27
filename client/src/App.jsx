@@ -1,25 +1,30 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 // Config
 import { pb } from "./config/pocketbase";
 
-// Pages
+// Login is loaded eagerly so first paint is instant
 import Login from "./pages/Login";
-import ManageAdmins from "./pages/ManageAdmins";
-import Dashboard from "./pages/Dashboard";
-import OngoingIncidents from "./pages/OngoingIncidents";
-import ResolvedIncidents from "./pages/ResolvedIncidents";
-import PendingUserRegistration from "./pages/PendingUsers";
-import PendingSos from "./pages/PendingSos";
-import PendingIncidents from "./pages/PendingIncidents";
-import VerifiedUsers from "./pages/VerifiedUsers";
-import RBACManager from "./pages/RBACManager";
-import Report from "./pages/Report";
-import AuditLogs from "./pages/Audit";
-import GenerateResponderPin from "./pages/GenerateResponderPin";
-import RequestBackup from "./pages/RequestBackup";
-import OngoingBackup from "./pages/OngoingBackup";
+
+// All other pages are lazy-loaded — each becomes its own JS chunk.
+// The browser only downloads + parses a page when the user navigates to it.
+const ManageAdmins           = lazy(() => import("./pages/ManageAdmins"));
+const Dashboard              = lazy(() => import("./pages/Dashboard"));
+const OngoingIncidents       = lazy(() => import("./pages/OngoingIncidents"));
+const ResolvedIncidents      = lazy(() => import("./pages/ResolvedIncidents"));
+const ResolvedIncidentDetails= lazy(() => import("./pages/ResolvedIncidentDetails"));
+const PendingUserRegistration= lazy(() => import("./pages/PendingUsers"));
+const PendingSos             = lazy(() => import("./pages/PendingSos"));
+const PendingIncidents       = lazy(() => import("./pages/PendingIncidents"));
+const VerifiedUsers          = lazy(() => import("./pages/VerifiedUsers"));
+const VerifiedUserDetails    = lazy(() => import("./pages/VerifiedUserDetails"));
+const RBACManager            = lazy(() => import("./pages/RBACManager"));
+const Report                 = lazy(() => import("./pages/Report"));
+const AuditLogs              = lazy(() => import("./pages/Audit"));
+const GenerateResponderPin   = lazy(() => import("./pages/GenerateResponderPin"));
+const RequestBackup          = lazy(() => import("./pages/RequestBackup"));
+const OngoingBackup          = lazy(() => import("./pages/OngoingBackup"));
 
 // Components
 import { MessageBoxProvider } from "./components/MessageBox";
@@ -29,6 +34,19 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { addAuditLog } from "./utils/auditLog";
 import { getPriorityLabel } from "./utils/incidentPriority";
 import { getSystemSettings, subscribeToSettings } from "./utils/systemSettings";
+
+// Minimal fallback shown while a lazy page chunk is downloading
+function PageLoader() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", backgroundColor: "#f8fafc" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+        <div style={{ width: "32px", height: "32px", border: "3px solid #e2e8f0", borderTopColor: "#15803d", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+        <span style={{ fontSize: "12px", color: "#94a3b8", fontWeight: "600", letterSpacing: "0.04em" }}>LOADING</span>
+      </div>
+      <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
+    </div>
+  );
+}
 
 const alertedIncidentIds = new Set();
 const alertedSosIds = new Set();
@@ -54,10 +72,7 @@ function App() {
   const alarmSyncVersionRef = useRef(0);
   const isMountedRef = useRef(true);
 
-  // Derived state calculations
-  const alertedIncidentIds = new Set();
-  const alertedSosIds = new Set();
-  const alertedBackupIds = new Set();
+  // Per-render tracking sets (intentionally re-created each render cycle)
 
   useEffect(() => subscribeToSettings(setSettings), []);
 
@@ -623,7 +638,7 @@ function App() {
 
       <div style={styles.alertStack}>
         {incidentAlerts.map((alert) => (
-          <div key={alert.alertKey || alert.id} style={styles.incidentAlert}>
+          <div key={alert.alertKey || alert.id} className="global-incident-alert-toast" style={styles.incidentAlert}>
             <strong>{alert.label}</strong>
             <span>{alert.message}</span>
           </div>
@@ -632,6 +647,7 @@ function App() {
 
       <MessageBoxProvider>
         <Router>
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Login />} />
             <Route
@@ -675,6 +691,14 @@ function App() {
               }
             />
             <Route
+              path="/verified-users/:userId"
+              element={
+                <ProtectedRoute requiredModule="users">
+                  <VerifiedUserDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/pending-incidents"
               element={
                 <ProtectedRoute requiredModule="incidents">
@@ -695,6 +719,22 @@ function App() {
               element={
                 <ProtectedRoute requiredModule="incidents">
                   <ResolvedIncidents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resolved-incidents/sos/:incidentId"
+              element={
+                <ProtectedRoute requiredModule="incidents">
+                  <ResolvedIncidentDetails recordType="sos" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resolved-incidents/:incidentId"
+              element={
+                <ProtectedRoute requiredModule="incidents">
+                  <ResolvedIncidentDetails />
                 </ProtectedRoute>
               }
             />
@@ -747,6 +787,7 @@ function App() {
               }
             />
           </Routes>
+          </Suspense>
         </Router>
       </MessageBoxProvider>
     </div>

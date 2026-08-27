@@ -14,6 +14,7 @@ function VerifiedUserCard({ user, profileImageUrl, onPreview, onManage }) {
       <div style={styles.profileSection}>
         <button
           type="button"
+          className="verifiedUsersButton"
           style={styles.avatarBtnWrapper}
           onClick={handlePreview}
           aria-label={`View profile photo of ${user.first_name}`}
@@ -57,6 +58,7 @@ function VerifiedUserCard({ user, profileImageUrl, onPreview, onManage }) {
 
       <button
         type="button"
+        className="verifiedUsersButton"
         style={styles.viewBtn}
         onClick={() => onManage(user)}
       >

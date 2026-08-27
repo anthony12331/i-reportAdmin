@@ -3,12 +3,12 @@
 const styles = {
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: "9px",
-    padding: "12px 14px",
-    border: "1px solid #d7e5da",
-    boxShadow: "0 8px 24px rgba(24, 95, 53, 0.06)",
+    borderRadius: "8px",
+    padding: "14px 16px",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
     cursor: "pointer",
-    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+    transition: "border-color 0.15s ease, background-color 0.15s ease",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -16,33 +16,32 @@ const styles = {
   cardHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: "5px",
+    alignItems: "center",
+    marginBottom: "8px",
   },
   cardTitle: {
-    fontSize: "9px",
+    fontSize: "11px",
     fontWeight: "600",
-    color: "#477257",
-    letterSpacing: "1px",
+    color: "#64748b",
+    letterSpacing: "0.04em",
     textTransform: "uppercase",
   },
   bigNumber: {
     fontFamily: "Inter, Arial, sans-serif",
-    fontSize: "25px",
-    fontWeight: "800",
-    color: "#111111",
+    fontSize: "24px",
+    fontWeight: "600",
+    color: "#0f172a",
     margin: 0,
-    lineHeight: 1,
+    lineHeight: 1.1,
   },
 };
 
 export default function SummaryCard({ title, val, icon, accent, urgent, onClick }) {
   return (
     <div
-      className="lux-hover"
       style={{
         ...styles.card,
-        border: `1px solid ${urgent ? "rgba(239, 68, 68, 0.3)" : "#d7e5da"}`,
+        border: `1px solid ${urgent ? "#fecaca" : "#e2e8f0"}`,
       }}
       onClick={onClick}
     >
@@ -50,7 +49,7 @@ export default function SummaryCard({ title, val, icon, accent, urgent, onClick 
         <span style={styles.cardTitle}>{title}</span>
         {icon}
       </div>
-      <p style={{ ...styles.bigNumber, color: urgent ? "#ef4444" : "#111111" }}>
+      <p style={{ ...styles.bigNumber, color: urgent ? "#ef4444" : "#0f172a" }}>
         {val}
       </p>
     </div>
