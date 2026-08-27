@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
-import { loginStyles } from "../themes/loginStyles";
+import { getLoginStyles } from "../themes/loginStyles";
+import { useTheme } from "../themes/ThemeContext";
 import { AlertTriangle, Eye, EyeOff, Loader, Mail, Lock, KeyRound } from "lucide-react";
 
 function FloatingInput({
@@ -15,6 +16,8 @@ function FloatingInput({
   rightElement,
   error,
   required = false,
+  styles,
+  isDark = false,
 }) {
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -22,23 +25,23 @@ function FloatingInput({
   const isActive = focused || isFilled;
 
   return (
-    <div style={loginStyles.inputGroup}>
+    <div style={styles.inputGroup}>
       <div
-        style={loginStyles.inputWrapper}
+        style={styles.inputWrapper}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
         {Icon && (
           <div
             style={{
-              ...loginStyles.inputIconLeft,
+              ...styles.inputIconLeft,
               color: error
                 ? "#ef4444"
                 : focused || (isActive && isFilled)
-                  ? "#15803d"
+                  ? (isDark ? "#4ade80" : "#15803d")
                   : hovered
-                    ? "#16a34a"
-                    : "#94a3b8",
+                    ? (isDark ? "#22c55e" : "#16a34a")
+                    : (isDark ? "#64748b" : "#94a3b8"),
               transition: "color 0.2s ease",
             }}
           >
@@ -57,57 +60,69 @@ function FloatingInput({
           }}
           required={required}
           style={{
-            ...loginStyles.inputElement,
+            ...styles.inputElement,
             paddingLeft: Icon ? "42px" : "14px",
             paddingRight: rightElement ? "40px" : "14px",
             borderColor: error
               ? "#ef4444"
               : focused
-                ? "#15803d"
+                ? (isDark ? "#22c55e" : "#15803d")
                 : hovered
-                  ? "#16a34a"
-                  : "#e2e8f0",
+                  ? (isDark ? "#16a34a" : "#16a34a")
+                  : (isDark ? "#334155" : "#e2e8f0"),
             boxShadow: error
-              ? "0 0 0 3px rgba(239, 68, 68, 0.12)"
+              ? "0 0 0 3px rgba(239, 68, 68, 0.15)"
               : focused
-                ? "0 0 0 3.5px rgba(21, 128, 61, 0.12)"
+                ? isDark
+                  ? "0 0 0 3.5px rgba(74, 222, 128, 0.18)"
+                  : "0 0 0 3.5px rgba(21, 128, 61, 0.12)"
                 : hovered
-                  ? "0 2px 8px rgba(21, 128, 61, 0.08)"
+                  ? isDark
+                    ? "0 2px 8px rgba(0, 0, 0, 0.3)"
+                    : "0 2px 8px rgba(21, 128, 61, 0.08)"
                   : "none",
-            backgroundColor: hovered && !focused ? "#fcfdfc" : "#ffffff",
+            backgroundColor: isDark
+              ? focused
+                ? "#1e293b"
+                : hovered
+                  ? "#243247"
+                  : "#1e293b"
+              : hovered && !focused
+                ? "#fcfdfc"
+                : "#ffffff",
           }}
         />
         <label
           htmlFor={id}
           style={{
-            ...loginStyles.floatingLabel,
+            ...styles.floatingLabel,
             left: Icon ? "40px" : "14px",
-            ...(isActive ? loginStyles.floatingLabelActive : {}),
+            ...(isActive ? styles.floatingLabelActive : {}),
             color: error
               ? "#ef4444"
               : focused
-                ? "#15803d"
+                ? (isDark ? "#4ade80" : "#15803d")
                 : isActive
-                  ? "#475569"
+                  ? (isDark ? "#94a3b8" : "#475569")
                   : hovered
-                    ? "#16a34a"
-                    : "#94a3b8",
+                    ? (isDark ? "#cbd5e1" : "#16a34a")
+                    : (isDark ? "#64748b" : "#94a3b8"),
           }}
         >
           {label}
         </label>
         {rightElement && (
-          <div style={loginStyles.inputIconRight}>
+          <div style={styles.inputIconRight}>
             {rightElement}
           </div>
         )}
       </div>
-      {error && <p style={loginStyles.errorText}>{error}</p>}
+      {error && <p style={styles.errorText}>{error}</p>}
     </div>
   );
 }
 
-function PremiumButton({ children, disabled = false, type = "submit", onClick }) {
+function PremiumButton({ children, disabled = false, type = "submit", onClick, styles }) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
@@ -124,22 +139,25 @@ function PremiumButton({ children, disabled = false, type = "submit", onClick })
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       style={{
-        ...loginStyles.button,
+        ...styles.button,
         backgroundColor: hovered ? "#166534" : "#15803d",
         transform: pressed ? "scale(0.98)" : hovered ? "translateY(-1px)" : "scale(1)",
         boxShadow: hovered
-          ? "0 4px 12px rgba(21, 128, 61, 0.25)"
+          ? "0 4px 14px rgba(21, 128, 61, 0.3)"
           : "0 2px 6px rgba(21, 128, 61, 0.2)",
         opacity: disabled ? 0.7 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
-      <span style={loginStyles.buttonText}>{children}</span>
+      <span style={styles.buttonText}>{children}</span>
     </button>
   );
 }
 
 export default function Login() {
+  const { isDark } = useTheme();
+  const styles = useMemo(() => getLoginStyles(isDark), [isDark]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -147,36 +165,24 @@ export default function Login() {
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Preload Dashboard bundle + pre-warm API connection on mount
   useEffect(() => {
-    // Preload next page and components in background for instant navigation
     import("./Dashboard").catch(() => {});
     import("../components/Sidebar").catch(() => {});
 
-    // Pre-warm TCP/TLS connection to the auth API
     try {
       fetch("https://api.ireportsystem.com/express-api/admin-login", {
         method: "OPTIONS",
         mode: "cors",
       }).catch(() => {});
-    } catch {
-      // ignore
-    }
-
-    // Restore saved email from localStorage if Remember Me was enabled
-    try {
       const savedEmail = localStorage.getItem("admin_remember_email");
       if (savedEmail) {
         setEmail(savedEmail);
         setRememberMe(true);
       }
-    } catch {
-      // ignore storage access errors
-    }
+    } catch {}
   }, []);
 
-  // Forgot Password State
-  const [resetStep, setResetStep] = useState(0); // 0 = login, 1 = email, 2 = otp+password
+  const [resetStep, setResetStep] = useState(0); 
   const [resetEmail, setResetEmail] = useState("");
   const [resetEmailError, setResetEmailError] = useState("");
   const [otp, setOtp] = useState("");
@@ -248,7 +254,7 @@ export default function Login() {
       const response = await fetch("https://api.ireportsystem.com/express-api/admin-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail, password }),
+        body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
         priority: "high",
         keepalive: true,
       });
@@ -256,27 +262,34 @@ export default function Login() {
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Authentication failed");
+        showLoginAlert(data.error || "Invalid email or password.");
+        setLoading(false);
+        return;
       }
 
-      // Save auth token and account record to PocketBase client session
-      pb.authStore.save(data.token, data.record);
+      // Save PocketBase authStore session
+      if (data.token && data.record) {
+        pb.authStore.save(data.token, data.record);
+      }
 
-      // Handle Remember Me (save email only, NEVER save password)
-      try {
-        if (rememberMe) {
+      // Handle Remember Me storage
+      if (rememberMe) {
+        try {
           localStorage.setItem("admin_remember_email", trimmedEmail);
-        } else {
+        } catch {}
+      } else {
+        try {
           localStorage.removeItem("admin_remember_email");
-        }
-      } catch {
-        // ignore storage errors
+        } catch {}
       }
 
+      // Instant replace navigation
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      console.warn("Security Block:", err.message);
-      showLoginAlert("Access Denied: Invalid Email or Password.");
+      console.error("Login fetch error:", err);
+      showLoginAlert(
+        "Network connection failed. Please verify your internet connection or server availability."
+      );
     } finally {
       setLoading(false);
     }
@@ -284,34 +297,38 @@ export default function Login() {
 
   const handleRequestOtp = async (e) => {
     if (e) e.preventDefault();
-    const trimmedEmail = resetEmail.trim();
-
-    if (!trimmedEmail) {
+    const trimmed = resetEmail.trim();
+    if (!trimmed) {
       setResetEmailError("Please enter your email.");
       showLoginAlert("Security Alert: Email field cannot be empty.");
       return;
     }
-
-    if (!isValidEmail(trimmedEmail)) {
-      setResetEmailError("Please enter a valid email format (e.g. name@gmail.com).");
+    if (!isValidEmail(trimmed)) {
+      setResetEmailError("Please enter a valid email format.");
       showLoginAlert("Invalid Email: Please enter a valid email format.");
       return;
     }
 
     setResetEmailError("");
     setLoading(true);
+
     try {
       const res = await fetch("https://api.ireportsystem.com/express-api/forgot-password-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail }),
+        body: JSON.stringify({ email: trimmed }),
       });
       const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error);
-      showLoginAlert("If the email exists, an OTP has been sent.");
+      if (!res.ok || !data.ok) {
+        showLoginAlert(data.error || "Failed to send reset OTP.");
+        setLoading(false);
+        return;
+      }
+
+      showLoginAlert("If the email exists, an OTP code has been sent.");
       setResetStep(2);
     } catch (err) {
-      showLoginAlert(err.message || "Failed to request OTP.");
+      showLoginAlert(err.message || "Failed to request password reset.");
     } finally {
       setLoading(false);
     }
@@ -319,18 +336,33 @@ export default function Login() {
 
   const handleResetPassword = async (e) => {
     if (e) e.preventDefault();
-    if (!otp.trim() || !newPassword.trim()) return showLoginAlert("OTP and New Password are required.");
-    if (newPassword.length < 8) return showLoginAlert("Password must be at least 8 characters.");
+    if (!otp.trim()) {
+      showLoginAlert("Please enter the OTP verification code.");
+      return;
+    }
+    if (!newPassword.trim() || newPassword.length < 6) {
+      showLoginAlert("Password must be at least 6 characters long.");
+      return;
+    }
 
     setLoading(true);
+
     try {
       const res = await fetch("https://api.ireportsystem.com/express-api/reset-password-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: resetEmail.trim(), otp: otp.trim(), newPassword }),
+        body: JSON.stringify({
+          email: resetEmail.trim(),
+          otp: otp.trim(),
+          newPassword: newPassword.trim(),
+        }),
       });
       const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error);
+      if (!res.ok || !data.ok) {
+        showLoginAlert(data.error || "Invalid or expired OTP code.");
+        setLoading(false);
+        return;
+      }
 
       showLoginAlert("Password reset successfully! You can now log in.");
       setResetStep(0);
@@ -344,25 +376,25 @@ export default function Login() {
   };
 
   return (
-    <div style={loginStyles.container}>
-      <header style={loginStyles.header}>
-        <img src="/icon.ico" alt="Lagonglong seal" style={loginStyles.headerLogo} />
-        <span style={loginStyles.headerTitle}>Lagonglong Incident System</span>
+    <div style={styles.container}>
+      <header style={styles.header}>
+        <img src="/icon.ico" alt="Lagonglong seal" style={styles.headerLogo} />
+        <span style={styles.headerTitle}>Lagonglong Incident System</span>
       </header>
 
-      <main style={loginStyles.content}>
-        <div style={loginStyles.cardWrapper}>
-          <div style={loginStyles.card}>
-            <div style={loginStyles.brandBox}>
+      <main style={styles.content}>
+        <div style={styles.cardWrapper}>
+          <div style={styles.card}>
+            <div style={styles.brandBox}>
               <img
                 src="/icon.ico"
                 alt="Lagonglong seal"
-                style={loginStyles.brandLogo}
+                style={styles.brandLogo}
               />
-              <h1 style={loginStyles.title}>
+              <h1 style={styles.title}>
                 {resetStep === 0 ? "Admin Login" : resetStep === 1 ? "Forgot Password" : "Reset Password"}
               </h1>
-              <p style={loginStyles.subtitle}>
+              <p style={styles.subtitle}>
                 {resetStep === 0
                   ? "Barangay Lagonglong Incident Reporting System Management"
                   : resetStep === 1
@@ -377,7 +409,7 @@ export default function Login() {
                 noValidate
                 onPointerDownCapture={unlockAlarmAudio}
                 onKeyDownCapture={unlockAlarmAudio}
-                style={loginStyles.form}
+                style={styles.form}
               >
                 <FloatingInput
                   id="email"
@@ -396,6 +428,8 @@ export default function Login() {
                   icon={Mail}
                   error={emailError}
                   required
+                  styles={styles}
+                  isDark={isDark}
                 />
 
                 <FloatingInput
@@ -410,6 +444,8 @@ export default function Login() {
                   icon={Lock}
                   error={passwordError}
                   required
+                  styles={styles}
+                  isDark={isDark}
                   rightElement={
                     <div
                       onClick={() => setShowPassword(!showPassword)}
@@ -421,8 +457,8 @@ export default function Login() {
                   }
                 />
 
-                <div style={loginStyles.optionsRow}>
-                  <label style={loginStyles.rememberLabel}>
+                <div style={styles.optionsRow}>
+                  <label style={styles.rememberLabel}>
                     <input
                       type="checkbox"
                       checked={rememberMe}
@@ -435,7 +471,7 @@ export default function Login() {
                           } catch {}
                         }
                       }}
-                      style={loginStyles.customCheckbox}
+                      style={styles.customCheckbox}
                     />
                     <span>Remember me</span>
                   </label>
@@ -445,13 +481,13 @@ export default function Login() {
                       setEmailError("");
                       setPasswordError("");
                     }}
-                    style={loginStyles.forgotLink}
+                    style={styles.forgotLink}
                   >
                     Forgot Password?
                   </span>
                 </div>
 
-                <PremiumButton disabled={loading}>
+                <PremiumButton disabled={loading} styles={styles}>
                   {loading ? (
                     <Loader className="animate-spin" size={20} />
                   ) : (
@@ -462,7 +498,7 @@ export default function Login() {
             )}
 
             {resetStep === 1 && (
-              <form onSubmit={handleRequestOtp} noValidate style={loginStyles.form}>
+              <form onSubmit={handleRequestOtp} noValidate style={styles.form}>
                 <FloatingInput
                   id="resetEmail"
                   type="email"
@@ -480,9 +516,11 @@ export default function Login() {
                   icon={Mail}
                   error={resetEmailError}
                   required
+                  styles={styles}
+                  isDark={isDark}
                 />
 
-                <PremiumButton disabled={loading}>
+                <PremiumButton disabled={loading} styles={styles}>
                   {loading ? (
                     <Loader className="animate-spin" size={20} />
                   ) : (
@@ -490,8 +528,8 @@ export default function Login() {
                   )}
                 </PremiumButton>
 
-                <div style={loginStyles.footer}>
-                  <p style={loginStyles.footerText}>
+                <div style={styles.footer}>
+                  <p style={styles.footerText}>
                     Remembered password?{" "}
                     <span
                       onClick={() => {
@@ -500,7 +538,7 @@ export default function Login() {
                         setPasswordError("");
                         setResetEmailError("");
                       }}
-                      style={loginStyles.signUpLink}
+                      style={styles.signUpLink}
                     >
                       Back to Login
                     </span>
@@ -510,7 +548,7 @@ export default function Login() {
             )}
 
             {resetStep === 2 && (
-              <form onSubmit={handleResetPassword} noValidate style={loginStyles.form}>
+              <form onSubmit={handleResetPassword} noValidate style={styles.form}>
                 <FloatingInput
                   id="otp"
                   type="text"
@@ -519,6 +557,8 @@ export default function Login() {
                   onChange={(e) => setOtp(e.target.value)}
                   icon={KeyRound}
                   required
+                  styles={styles}
+                  isDark={isDark}
                 />
 
                 <FloatingInput
@@ -529,6 +569,8 @@ export default function Login() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   icon={Lock}
                   required
+                  styles={styles}
+                  isDark={isDark}
                   rightElement={
                     <div
                       onClick={() => setShowPassword(!showPassword)}
@@ -540,7 +582,7 @@ export default function Login() {
                   }
                 />
 
-                <PremiumButton disabled={loading}>
+                <PremiumButton disabled={loading} styles={styles}>
                   {loading ? (
                     <Loader className="animate-spin" size={20} />
                   ) : (
@@ -548,8 +590,8 @@ export default function Login() {
                   )}
                 </PremiumButton>
 
-                <div style={loginStyles.footer}>
-                  <p style={loginStyles.footerText}>
+                <div style={styles.footer}>
+                  <p style={styles.footerText}>
                     Remembered password?{" "}
                     <span
                       onClick={() => {
@@ -557,7 +599,7 @@ export default function Login() {
                         setEmailError("");
                         setPasswordError("");
                       }}
-                      style={loginStyles.signUpLink}
+                      style={styles.signUpLink}
                     >
                       Back to Login
                     </span>
@@ -572,7 +614,7 @@ export default function Login() {
       {loginAlertMessage && (
         <div
           style={{
-            ...loginStyles.alertOverlay,
+            ...styles.alertOverlay,
             opacity: loginAlertVisible ? 1 : 0,
             pointerEvents: loginAlertClosing ? "none" : "auto",
           }}
@@ -580,7 +622,7 @@ export default function Login() {
         >
           <div
             style={{
-              ...loginStyles.alertDialog,
+              ...styles.alertDialog,
               opacity: loginAlertVisible ? 1 : 0,
               transform: loginAlertVisible ? "translateY(0) scale(1)" : "translateY(10px) scale(0.97)",
             }}
@@ -588,16 +630,16 @@ export default function Login() {
             aria-modal="true"
             aria-labelledby="login-alert-title"
           >
-            <div style={loginStyles.alertIcon}>
+            <div style={styles.alertIcon}>
               <AlertTriangle size={26} />
             </div>
-            <h2 id="login-alert-title" style={loginStyles.alertTitle}>
+            <h2 id="login-alert-title" style={styles.alertTitle}>
               System Alert
             </h2>
-            <p style={loginStyles.alertMessage}>{loginAlertMessage}</p>
+            <p style={styles.alertMessage}>{loginAlertMessage}</p>
             <button
               type="button"
-              style={loginStyles.alertButton}
+              style={styles.alertButton}
               onClick={closeLoginAlert}
             >
               OK

@@ -1805,6 +1805,23 @@ html.dark .detailHeader {
   border-bottom-color: rgba(255, 255, 255, 0.08) !important;
 }
 
+html.dark .messageBoxSecondaryBtn {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .messageBoxSecondaryBtn:hover {
+  background-color: #28374d !important;
+  color: #ffffff !important;
+}
+
+html.dark .messageBoxCloseBtn {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+  border: 1px solid #334155 !important;
+}
+
 /* --------------------------------------------------------------------------
    Quick Command / Shortcut Buttons & Audit Rows
    -------------------------------------------------------------------------- */
