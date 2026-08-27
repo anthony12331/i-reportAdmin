@@ -21,6 +21,24 @@ const getLagongStyle = (isDark) => ({
   dashArray: '5, 5'
 });
 
+const hazardFloodStyle = {
+  color: '#2563eb',
+  weight: 2,
+  opacity: 0.9,
+  fillOpacity: 0.5,
+  fillColor: '#3b82f6',
+  dashArray: '3, 6'
+};
+
+const hazardLandslideStyle = {
+  color: '#d97706',
+  weight: 2,
+  opacity: 0.9,
+  fillOpacity: 0.5,
+  fillColor: '#f59e0b',
+  dashArray: '3, 6'
+};
+
 const onEachBarangay = (feature, layer) => {
   if (feature.properties && feature.properties.NAME_3) {
     layer.bindTooltip(feature.properties.NAME_3, {
@@ -60,6 +78,8 @@ const createEarthquakeIcon = (mag) => {
 export default function Calamities() {
   const { isDark } = useTheme();
   const [lagonglongGeoJSON, setLagonglongGeoJSON] = useState(null);
+  const [floodHazardJSON, setFloodHazardJSON] = useState(null);
+  const [landslideHazardJSON, setLandslideHazardJSON] = useState(null);
   const [earthquakes, setEarthquakes] = useState([]);
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,9 +87,17 @@ export default function Calamities() {
   useEffect(() => {
     let cancelled = false;
 
-    // Load Lagonglong Boundary
-    import('../lagonglong_boundary.json').then((lagong) => {
-      if (!cancelled) setLagonglongGeoJSON(lagong.default);
+    // Load Lagonglong Boundary & Hazard Maps
+    Promise.all([
+      import('../lagonglong_boundary.json'),
+      import('../lagonglong_flood_hazard.json'),
+      import('../lagonglong_landslide_hazard.json')
+    ]).then(([lagong, flood, landslide]) => {
+      if (!cancelled) {
+        setLagonglongGeoJSON(lagong.default);
+        setFloodHazardJSON(flood.default);
+        setLandslideHazardJSON(landslide.default);
+      }
     }).catch(() => {});
 
     // Fetch Live Earthquakes from USGS (within last 48 hours, inside regional bounding box)
@@ -228,6 +256,25 @@ export default function Calamities() {
                       data={lagonglongGeoJSON}
                       style={getLagongStyle(isDark)}
                       onEachFeature={onEachBarangay}
+                    />
+                  </LayersControl.Overlay>
+                )}
+
+                {/* HAZARD ZONES (Precise Coordinates) */}
+                {floodHazardJSON && (
+                  <LayersControl.Overlay checked name="100-Year Flood Susceptibility (Coastal & Riverine)">
+                    <GeoJSON
+                      data={floodHazardJSON}
+                      style={hazardFloodStyle}
+                    />
+                  </LayersControl.Overlay>
+                )}
+
+                {landslideHazardJSON && (
+                  <LayersControl.Overlay checked name="Rain-Induced Landslide Susceptibility (Uplands)">
+                    <GeoJSON
+                      data={landslideHazardJSON}
+                      style={hazardLandslideStyle}
                     />
                   </LayersControl.Overlay>
                 )}
