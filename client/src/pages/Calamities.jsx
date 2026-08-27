@@ -340,6 +340,7 @@ export default function Calamities() {
                     <GeoJSON
                       data={floodHazardJSON}
                       style={hazardFloodStyle}
+                      onEachFeature={onEachBarangay}
                     />
                   </LayersControl.Overlay>
                 )}
@@ -349,6 +350,7 @@ export default function Calamities() {
                     <GeoJSON
                       data={landslideHazardJSON}
                       style={hazardLandslideStyle}
+                      onEachFeature={onEachBarangay}
                     />
                   </LayersControl.Overlay>
                 )}
