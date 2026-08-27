@@ -21,50 +21,14 @@ const getLagongStyle = (isDark) => ({
   dashArray: '5, 5'
 });
 
-const hazardFloodStyle = {
-  color: '#dc2626',
-  weight: 1,
-  opacity: 0.8,
-  fillOpacity: 0.4,
-  fillColor: '#ef4444',
-};
-
-const hazardLandslideStyle = {
-  color: '#d97706',
-  weight: 1,
-  opacity: 0.8,
-  fillOpacity: 0.4,
-  fillColor: '#f59e0b',
-};
-
-// Creating a mock Flood Zone in the lower/coastal part of Lagonglong for demonstration
-const mockFloodGeoJSON = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { name: "Coastal Flood Zone" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[[124.7877, 8.8058], [124.7946, 8.8020], [124.7943, 8.8042], [124.7868, 8.8042], [124.7877, 8.8058]]]
-      }
-    }
-  ]
-};
-
-// Creating a mock Landslide Zone in the hilly part of Lagonglong
-const mockLandslideGeoJSON = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { name: "High Elevation Landslide Risk" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[[124.8193, 8.8120], [124.8306, 8.8121], [124.8268, 8.8225], [124.8116, 8.8217], [124.8193, 8.8120]]]
-      }
-    }
-  ]
+const onEachBarangay = (feature, layer) => {
+  if (feature.properties && feature.properties.NAME_3) {
+    layer.bindTooltip(feature.properties.NAME_3, {
+      permanent: true,
+      direction: 'center',
+      className: 'barangay-label' // Reusing the style from DashboardMap
+    });
+  }
 };
 
 // Custom Icons
@@ -263,24 +227,10 @@ export default function Calamities() {
                     <GeoJSON
                       data={lagonglongGeoJSON}
                       style={getLagongStyle(isDark)}
+                      onEachFeature={onEachBarangay}
                     />
                   </LayersControl.Overlay>
                 )}
-
-                {/* HAZARD ZONES (MOCKED) */}
-                <LayersControl.Overlay checked name="Hazard: Flood Prone (MGB)">
-                  <GeoJSON
-                    data={mockFloodGeoJSON}
-                    style={hazardFloodStyle}
-                  />
-                </LayersControl.Overlay>
-
-                <LayersControl.Overlay checked name="Hazard: Landslide Prone (MGB)">
-                  <GeoJSON
-                    data={mockLandslideGeoJSON}
-                    style={hazardLandslideStyle}
-                  />
-                </LayersControl.Overlay>
               </LayersControl>
 
               {/* PLOT EARTHQUAKES */}
