@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import { useTheme } from "../themes/ThemeContext";
 
 const LOGS_PER_PAGE = 12;
 
@@ -45,6 +46,7 @@ const getAvatarStyle = (name) => {
 };
 
 export default function Audit() {
+  const { isDark } = useTheme();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,29 +118,42 @@ export default function Audit() {
   }, [filteredLogs, page]);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090e17" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* Header Section */}
         <header style={{ marginBottom: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
-            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
               Central Audit Trail
             </h1>
           </div>
-          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+          <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
             Review recorded administrative actions, system events, and security access logs.
           </p>
         </header>
 
         {/* Premium Table Card */}
-        <div className="premium-table-card">
+        <div
+          className="premium-table-card"
+          style={{
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+            boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : undefined,
+          }}
+        >
           {/* Top Toolbar */}
           <div className="table-toolbar">
-            <div className="search-box-premium">
-              <Search size={18} color="#94a3b8" />
+            <div
+              className="search-box-premium"
+              style={{
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+              }}
+            >
+              <Search size={18} color={isDark ? "#64748b" : "#94a3b8"} />
               <input
                 type="text"
                 placeholder="Search by administrator name, target ID, or action..."
@@ -147,6 +162,7 @@ export default function Audit() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
+                style={{ color: isDark ? "#f8fafc" : "#0f172a" }}
               />
               {searchTerm && (
                 <button
@@ -155,7 +171,7 @@ export default function Audit() {
                     setSearchTerm("");
                     setPage(1);
                   }}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: isDark ? "#94a3b8" : "#64748b" }}
                 >
                   <X size={15} />
                 </button>
@@ -163,22 +179,22 @@ export default function Audit() {
             </div>
 
             <div className="table-toolbar-actions">
-              <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>
-                Total Records: <strong>{filteredLogs.length}</strong>
+              <span style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#94a3b8" : "#64748b" }}>
+                Total Records: <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredLogs.length}</strong>
               </span>
             </div>
           </div>
 
           {/* Table Content */}
           {loading && logs.length === 0 ? (
-            <div style={{ padding: "50px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: "#15803d" }}>
+            <div style={{ padding: "50px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: isDark ? "#4ade80" : "#15803d" }}>
               <Loader className="animate-spin" size={26} />
               <span>Loading audit logs from database...</span>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div style={{ padding: "60px 20px", textAlign: "center", color: "#64748b" }}>
-              <ShieldAlert size={42} color="#94a3b8" style={{ marginBottom: "12px" }} />
-              <h3 style={{ margin: "0 0 6px 0", color: "#1e293b", fontSize: "16px" }}>No Audit Logs Found</h3>
+            <div style={{ padding: "60px 20px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b" }}>
+              <ShieldAlert size={42} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginBottom: "12px" }} />
+              <h3 style={{ margin: "0 0 6px 0", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "16px" }}>No Audit Logs Found</h3>
               <p style={{ margin: 0, fontSize: "13.5px" }}>
                 {searchTerm ? "No log entries match your search query." : "No administrative audit events recorded yet."}
               </p>
@@ -205,17 +221,17 @@ export default function Audit() {
 
                       return (
                         <React.Fragment key={log.id}>
-                          <tr>
+                          <tr style={{ borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : undefined }}>
                             <td>
                               <div>
-                                <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "13px", display: "block" }}>
+                                <span style={{ fontWeight: "700", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "13px", display: "block" }}>
                                   {new Date(log.created).toLocaleDateString("en-US", {
                                     month: "short",
                                     day: "2-digit",
                                     year: "numeric",
                                   })}
                                 </span>
-                                <span style={{ fontSize: "12px", color: "#64748b" }}>
+                                <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                                   {new Date(log.created).toLocaleTimeString([], {
                                     hour: "2-digit",
                                     minute: "2-digit",
@@ -231,8 +247,8 @@ export default function Audit() {
                                   {initials}
                                 </div>
                                 <div className="premium-user-info">
-                                  <span className="premium-user-name">{actorName}</span>
-                                  <span className="premium-user-sub">Authorized Actor</span>
+                                  <span className="premium-user-name" style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{actorName}</span>
+                                  <span className="premium-user-sub" style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Authorized Actor</span>
                                 </div>
                               </div>
                             </td>
@@ -246,9 +262,9 @@ export default function Audit() {
                                   borderRadius: "12px",
                                   fontSize: "12px",
                                   fontWeight: "700",
-                                  backgroundColor: "#f0fdf4",
-                                  color: "#15803d",
-                                  border: "1px solid #bbf7d0",
+                                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                                  color: isDark ? "#4ade80" : "#15803d",
+                                  border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
                                 }}
                               >
                                 {log.action || "LOG_EVENT"}
@@ -260,8 +276,9 @@ export default function Audit() {
                                 style={{
                                   fontFamily: "monospace",
                                   fontSize: "12px",
-                                  color: "#475569",
-                                  backgroundColor: "#f1f5f9",
+                                  color: isDark ? "#cbd5e1" : "#475569",
+                                  backgroundColor: isDark ? "#172338" : "#f1f5f9",
+                                  border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
                                   padding: "3px 8px",
                                   borderRadius: "6px",
                                 }}
@@ -271,7 +288,7 @@ export default function Audit() {
                             </td>
 
                             <td>
-                              <div style={{ maxWidth: "340px", fontSize: "13px", color: "#334155" }}>
+                              <div style={{ maxWidth: "340px", fontSize: "13px", color: isDark ? "#cbd5e1" : "#334155" }}>
                                 <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: isExpanded ? "normal" : "nowrap" }}>
                                   {log.details || "No additional context recorded."}
                                 </div>
@@ -282,7 +299,7 @@ export default function Audit() {
                                     background: "none",
                                     border: "none",
                                     padding: "4px 0 0 0",
-                                    color: "#15803d",
+                                    color: isDark ? "#4ade80" : "#15803d",
                                     fontSize: "12px",
                                     fontWeight: "700",
                                     cursor: "pointer",
@@ -299,38 +316,38 @@ export default function Audit() {
                           </tr>
 
                           {isExpanded && (
-                            <tr style={{ backgroundColor: "#f8fafc" }}>
+                            <tr style={{ backgroundColor: isDark ? "#0f172a" : "#f8fafc" }}>
                               <td colSpan="5" style={{ padding: "16px 20px" }}>
                                 <div
                                   style={{
                                     display: "grid",
                                     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                                     gap: "12px",
-                                    backgroundColor: "#ffffff",
-                                    border: "1px solid #e2e8f0",
+                                    backgroundColor: isDark ? "#172338" : "#ffffff",
+                                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                                     borderRadius: "10px",
                                     padding: "14px",
                                   }}
                                 >
                                   <div>
-                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Log ID</span>
-                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{log.id}</div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase" }}>Log ID</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a" }}>{log.id}</div>
                                   </div>
                                   <div>
-                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Admin</span>
-                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{log.admin_name || log.actor || "System"}</div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase" }}>Admin</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a" }}>{log.admin_name || log.actor || "System"}</div>
                                   </div>
                                   <div>
-                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Timestamp</span>
-                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{new Date(log.created).toLocaleString()}</div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase" }}>Timestamp</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a" }}>{new Date(log.created).toLocaleString()}</div>
                                   </div>
                                   <div>
-                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Target Reference</span>
-                                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>{log.target || "N/A"}</div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase" }}>Target Reference</span>
+                                    <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a" }}>{log.target || "N/A"}</div>
                                   </div>
                                   <div style={{ gridColumn: "1 / -1" }}>
-                                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Full Event Description</span>
-                                    <div style={{ fontSize: "13px", color: "#1e293b", marginTop: "4px", whiteSpace: "pre-wrap" }}>{log.details || "No additional context."}</div>
+                                    <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase" }}>Full Event Description</span>
+                                    <div style={{ fontSize: "13px", color: isDark ? "#cbd5e1" : "#1e293b", marginTop: "4px", whiteSpace: "pre-wrap" }}>{log.details || "No additional context."}</div>
                                   </div>
                                 </div>
                               </td>
@@ -345,7 +362,7 @@ export default function Audit() {
 
               {/* Table Footer / Pagination */}
               <div className="premium-table-footer">
-                <div className="premium-pagination-info">
+                <div className="premium-pagination-info" style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
                   Showing <strong>{Math.min((page - 1) * LOGS_PER_PAGE + 1, filteredLogs.length)}</strong>–
                   <strong>{Math.min(page * LOGS_PER_PAGE, filteredLogs.length)}</strong> of <strong>{filteredLogs.length}</strong> Logs
                 </div>
@@ -391,3 +408,4 @@ export default function Audit() {
     </div>
   );
 }
+

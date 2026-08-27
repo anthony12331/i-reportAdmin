@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
+import { useTheme } from "../themes/ThemeContext";
 import { Copy, KeyRound, RefreshCw, ShieldAlert, Loader, Check, Search, X } from "lucide-react";
 
 export default function GenerateResponderPin() {
+  const { isDark } = useTheme();
   const [accessRecords, setAccessRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedRecordId, setCopiedRecordId] = useState(null);
@@ -128,39 +130,53 @@ export default function GenerateResponderPin() {
   );
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090e17" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* Header */}
         <header style={{ marginBottom: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
-            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
               Responder PIN Management
             </h1>
           </div>
-          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+          <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
             Generate and manage access PINs for responder department registration.
           </p>
         </header>
 
         {/* Premium Table Card */}
-        <div className="premium-table-card">
+        <div
+          className="premium-table-card"
+          style={{
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+            boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : undefined,
+          }}
+        >
           {/* Top Toolbar */}
           <div className="table-toolbar">
-            <div className="search-box-premium">
-              <Search size={18} color="#94a3b8" />
+            <div
+              className="search-box-premium"
+              style={{
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+              }}
+            >
+              <Search size={18} color={isDark ? "#64748b" : "#94a3b8"} />
               <input
                 type="text"
                 placeholder="Search department or PIN code..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ color: isDark ? "#f8fafc" : "#0f172a" }}
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm("")}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: isDark ? "#94a3b8" : "#64748b" }}
                 >
                   <X size={15} />
                 </button>
@@ -168,13 +184,27 @@ export default function GenerateResponderPin() {
             </div>
 
             <div className="table-toolbar-actions">
-              <span style={{ fontSize: "13px", fontWeight: "600", color: "#64748b" }}>
-                Active Departments: <strong>{filteredRecords.length}</strong>
+              <span style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#94a3b8" : "#64748b" }}>
+                Active Departments: <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredRecords.length}</strong>
               </span>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "10px", margin: "0 0 20px 0", fontSize: "13px", color: "#166534", lineHeight: "1.4" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "12px 16px",
+              backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4",
+              border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0",
+              borderRadius: "10px",
+              margin: "0 0 20px 0",
+              fontSize: "13px",
+              color: isDark ? "#86efac" : "#166534",
+              lineHeight: "1.4",
+            }}
+          >
             <ShieldAlert size={18} style={{ flexShrink: 0 }} />
             <span>
               <strong>Security Notice:</strong> Field personnel must enter their department PIN during app registration. Generating a new PIN immediately replaces and invalidates the previous code.
@@ -182,14 +212,14 @@ export default function GenerateResponderPin() {
           </div>
 
           {loading ? (
-            <div style={{ padding: "50px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: "#15803d" }}>
+            <div style={{ padding: "50px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: isDark ? "#4ade80" : "#15803d" }}>
               <Loader className="animate-spin" size={26} />
               <span>Loading responder PIN access records...</span>
             </div>
           ) : filteredRecords.length === 0 ? (
-            <div style={{ padding: "50px 20px", textAlign: "center", color: "#64748b" }}>
-              <KeyRound size={40} color="#94a3b8" style={{ marginBottom: "12px" }} />
-              <h3 style={{ margin: "0 0 6px 0", color: "#1e293b", fontSize: "16px" }}>No Departments Found</h3>
+            <div style={{ padding: "50px 20px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b" }}>
+              <KeyRound size={40} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginBottom: "12px" }} />
+              <h3 style={{ margin: "0 0 6px 0", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "16px" }}>No Departments Found</h3>
               <p style={{ margin: 0, fontSize: "13.5px" }}>No access records match your query.</p>
             </div>
           ) : (
@@ -205,7 +235,7 @@ export default function GenerateResponderPin() {
                 </thead>
                 <tbody>
                   {filteredRecords.map((record) => (
-                    <tr key={record.id}>
+                    <tr key={record.id} style={{ borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : undefined }}>
                       <td>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                           <div
@@ -213,12 +243,12 @@ export default function GenerateResponderPin() {
                               width: "38px",
                               height: "38px",
                               borderRadius: "10px",
-                              backgroundColor: "#f0fdf4",
-                              border: "1px solid #bbf7d0",
+                              backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                              border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              color: "#15803d",
+                              color: isDark ? "#4ade80" : "#15803d",
                               fontWeight: "800",
                               fontSize: "14px",
                             }}
@@ -226,10 +256,10 @@ export default function GenerateResponderPin() {
                             {record.department ? record.department.slice(0, 2).toUpperCase() : "DP"}
                           </div>
                           <div>
-                            <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "14px", display: "block" }}>
+                            <span style={{ fontWeight: "700", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "14px", display: "block" }}>
                               {record.department ? record.department.toUpperCase() : "GENERAL"}
                             </span>
-                            <span style={{ fontSize: "12px", color: "#64748b" }}>Authorized Responder Unit</span>
+                            <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>Authorized Responder Unit</span>
                           </div>
                         </div>
                       </td>
@@ -242,11 +272,11 @@ export default function GenerateResponderPin() {
                               fontSize: "16px",
                               fontWeight: "800",
                               letterSpacing: "0.15em",
-                              backgroundColor: "#f8fafc",
-                              border: "1px solid #e2e8f0",
+                              backgroundColor: isDark ? "#172338" : "#f8fafc",
+                              border: isDark ? "1px solid rgba(255, 255, 255, 0.14)" : "1px solid #e2e8f0",
                               padding: "6px 12px",
                               borderRadius: "8px",
-                              color: "#0f172a",
+                              color: isDark ? "#4ade80" : "#0f172a",
                             }}
                           >
                             {record.pin}
@@ -260,9 +290,13 @@ export default function GenerateResponderPin() {
                               gap: "4px",
                               padding: "6px 10px",
                               borderRadius: "6px",
-                              border: "1px solid #cbd5e1",
-                              backgroundColor: copiedRecordId === record.id ? "#f0fdf4" : "#ffffff",
-                              color: copiedRecordId === record.id ? "#15803d" : "#475569",
+                              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                              backgroundColor: copiedRecordId === record.id
+                                ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
+                                : (isDark ? "#172338" : "#ffffff"),
+                              color: copiedRecordId === record.id
+                                ? (isDark ? "#4ade80" : "#15803d")
+                                : (isDark ? "#cbd5e1" : "#475569"),
                               fontSize: "12px",
                               fontWeight: "600",
                               cursor: "pointer",
@@ -292,7 +326,11 @@ export default function GenerateResponderPin() {
                             type="button"
                             className="premium-action-btn"
                             onClick={() => generateNewPin(record)}
-                            style={{ color: "#15803d", borderColor: "#bbf7d0", backgroundColor: "#f0fdf4" }}
+                            style={{
+                              color: isDark ? "#4ade80" : "#15803d",
+                              borderColor: isDark ? "rgba(34, 197, 94, 0.35)" : "#bbf7d0",
+                              backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                            }}
                             title="Generate a new secure PIN"
                           >
                             <RefreshCw size={13} />
@@ -303,9 +341,9 @@ export default function GenerateResponderPin() {
                             type="button"
                             className="premium-action-btn"
                             style={{
-                              color: record.is_active ? "#ef4444" : "#15803d",
-                              borderColor: record.is_active ? "#fecaca" : "#bbf7d0",
-                              backgroundColor: record.is_active ? "#fef2f2" : "#f0fdf4",
+                              color: record.is_active ? (isDark ? "#f87171" : "#ef4444") : (isDark ? "#4ade80" : "#15803d"),
+                              borderColor: record.is_active ? (isDark ? "rgba(239, 68, 68, 0.35)" : "#fecaca") : (isDark ? "rgba(34, 197, 94, 0.35)" : "#bbf7d0"),
+                              backgroundColor: record.is_active ? (isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2") : (isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4"),
                             }}
                             onClick={() => toggleStatus(record)}
                           >
@@ -324,3 +362,4 @@ export default function GenerateResponderPin() {
     </div>
   );
 }
+

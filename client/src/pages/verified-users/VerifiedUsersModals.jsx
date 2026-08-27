@@ -16,17 +16,19 @@ import {
   MapPin,
   Calendar,
 } from "lucide-react";
+import { useTheme } from "../../themes/ThemeContext";
 import { getVerifiedUserDetails } from "./verifiedUsersUtils";
 
 function DetailsGrid({ user }) {
+  const { isDark } = useTheme();
   const details = getVerifiedUserDetails(user);
 
   return (
     <div style={styles.detailsGrid}>
       {details.map((item) => (
-        <div key={item.label} style={styles.detailItem}>
-          <span style={styles.detailLabel}>{item.label}</span>
-          <span style={styles.detailValue}>{item.value}</span>
+        <div key={item.label} style={{ ...styles.detailItem, backgroundColor: isDark ? "#172338" : "#f8fafc", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+          <span style={{ ...styles.detailLabel, color: isDark ? "#94a3b8" : "#64748b" }}>{item.label}</span>
+          <span style={{ ...styles.detailValue, color: isDark ? "#f8fafc" : "#0f172a" }}>{item.value}</span>
         </div>
       ))}
     </div>
@@ -34,15 +36,16 @@ function DetailsGrid({ user }) {
 }
 
 function MediaPanel({ label, src, alt }) {
+  const { isDark } = useTheme();
   return (
-    <section style={styles.reviewPanel}>
-      <span style={styles.panelLabel}>{label}</span>
+    <section style={{ ...styles.reviewPanel, backgroundColor: isDark ? "#131c2e" : "#f8fafc", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+      <span style={{ ...styles.panelLabel, color: isDark ? "#4ade80" : "#15803d" }}>{label}</span>
       {src ? (
         <img src={src} alt={alt} style={styles.reviewImage} />
       ) : (
         <div style={styles.emptyMedia}>
-          <User size={34} color="#94a3b8" />
-          <span style={styles.emptyMediaText}>
+          <User size={34} color={isDark ? "#64748b" : "#94a3b8"} />
+          <span style={{ ...styles.emptyMediaText, color: isDark ? "#64748b" : "#94a3b8" }}>
             No {label.toLowerCase()} available
           </span>
         </div>
@@ -55,6 +58,7 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
   src,
   onClose,
 }) {
+  const { isDark } = useTheme();
   if (!src) return null;
 
   return (
@@ -62,7 +66,7 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.8)",
+        backgroundColor: isDark ? "rgba(3, 7, 18, 0.9)" : "rgba(15, 23, 42, 0.8)",
         backdropFilter: "blur(12px)",
         zIndex: 99999,
         display: "flex",
@@ -78,7 +82,8 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
           position: "relative",
           width: "100%",
           maxWidth: "680px",
-          backgroundColor: "#ffffff",
+          backgroundColor: isDark ? "#131c2e" : "#ffffff",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
           borderRadius: "20px",
           overflow: "hidden",
           boxShadow: "0 30px 80px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15)",
@@ -95,8 +100,8 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
             alignItems: "center",
             justifyContent: "space-between",
             padding: "16px 22px",
-            borderBottom: "1px solid #e2e8f0",
-            backgroundColor: "#f8fafc",
+            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+            backgroundColor: isDark ? "#0f172a" : "#f8fafc",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -107,9 +112,9 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
                 gap: "6px",
                 padding: "4px 12px",
                 borderRadius: "14px",
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                color: "#15803d",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                color: isDark ? "#4ade80" : "#15803d",
                 fontSize: "12.5px",
                 fontWeight: "700",
               }}
@@ -126,9 +131,9 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              border: "1px solid #e2e8f0",
-              backgroundColor: "#ffffff",
-              color: "#475569",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              backgroundColor: isDark ? "#172338" : "#ffffff",
+              color: isDark ? "#f8fafc" : "#475569",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -140,6 +145,7 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
             <X size={18} />
           </button>
         </div>
+
 
         {/* Large Image Canvas */}
         <div
@@ -352,6 +358,7 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
   onViewUser,
   onUnsuspend,
 }) {
+  const { isDark } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
 
   if (!isOpen) return null;
@@ -376,7 +383,7 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.75)",
+        backgroundColor: isDark ? "rgba(3, 7, 18, 0.85)" : "rgba(15, 23, 42, 0.75)",
         backdropFilter: "blur(10px)",
         zIndex: 9999,
         display: "flex",
@@ -388,7 +395,8 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
     >
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: isDark ? "#131c2e" : "#ffffff",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
           borderRadius: "22px",
           width: "100%",
           maxWidth: "760px",
@@ -404,8 +412,8 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
         <div
           style={{
             padding: "20px 26px",
-            borderBottom: "1px solid #f1f5f9",
-            backgroundColor: "#fff",
+            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+            backgroundColor: isDark ? "#0f172a" : "#fff",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -417,19 +425,19 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                 width: "44px",
                 height: "44px",
                 borderRadius: "14px",
-                backgroundColor: "#fef2f2",
-                border: "1px solid #fecaca",
+                backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#b91c1c",
+                color: isDark ? "#f87171" : "#b91c1c",
               }}
             >
               <UserX size={22} />
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "900", color: "#0f172a" }}>
+                <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a" }}>
                   Suspended Citizens Archive
                 </h2>
                 <span
@@ -438,15 +446,15 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                     fontWeight: "800",
                     padding: "2px 8px",
                     borderRadius: "10px",
-                    backgroundColor: "#fef2f2",
-                    color: "#b91c1c",
-                    border: "1px solid #fecaca",
+                    backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                    color: isDark ? "#f87171" : "#b91c1c",
+                    border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
                   }}
                 >
                   {users.length} Suspended
                 </span>
               </div>
-              <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>
+              <p style={{ margin: "2px 0 0", fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b" }}>
                 Audit, inspect, or restore verification privileges for suspended citizen accounts.
               </p>
             </div>
@@ -460,8 +468,9 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              border: "1px solid #e2e8f0",
-              backgroundColor: "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              backgroundColor: isDark ? "#172338" : "#ffffff",
+              color: isDark ? "#f8fafc" : "#475569",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -473,21 +482,29 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
         </div>
 
         {/* Search Toolbar */}
-        <div style={{ padding: "14px 26px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
-          <div className="search-box-premium" style={{ width: "100%", boxSizing: "border-box" }}>
-            <Search size={16} color="#94a3b8" />
+        <div style={{ padding: "14px 26px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", backgroundColor: isDark ? "#131c2e" : "#f8fafc" }}>
+          <div
+            className="search-box-premium"
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              backgroundColor: isDark ? "#172338" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+            }}
+          >
+            <Search size={16} color={isDark ? "#64748b" : "#94a3b8"} />
             <input
               type="text"
               placeholder="Search by citizen name, email, ID number, or barangay..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ fontSize: "13px" }}
+              style={{ fontSize: "13px", color: isDark ? "#f8fafc" : "#0f172a" }}
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm("")}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: isDark ? "#94a3b8" : "#64748b" }}
               >
                 <X size={14} />
               </button>
@@ -498,12 +515,12 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
         {/* Body List */}
         <div style={{ padding: "20px 26px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "12px" }}>
           {filteredUsers.length === 0 ? (
-            <div style={{ padding: "48px 20px", textAlign: "center", color: "#64748b" }}>
-              <ShieldCheck size={40} color="#15803d" style={{ marginBottom: "10px" }} />
-              <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>
+            <div style={{ padding: "48px 20px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b" }}>
+              <ShieldCheck size={40} color={isDark ? "#4ade80" : "#15803d"} style={{ marginBottom: "10px" }} />
+              <h3 style={{ margin: "0 0 4px", fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
                 {searchTerm ? "No Matching Suspended Citizens" : "No Suspended Citizens"}
               </h3>
-              <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+              <p style={{ margin: 0, fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b" }}>
                 {searchTerm ? "Try searching with a different name or ID." : "All registered resident accounts are currently active in good standing."}
               </p>
             </div>
@@ -519,9 +536,9 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                     gap: "10px",
                     padding: "16px 18px",
                     borderRadius: "14px",
-                    border: "1px solid #fecaca",
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+                    border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
+                    backgroundColor: isDark ? "#172338" : "#ffffff",
+                    boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.25)" : "0 1px 3px rgba(0, 0, 0, 0.02)",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
@@ -531,9 +548,9 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                           width: "42px",
                           height: "42px",
                           borderRadius: "12px",
-                          backgroundColor: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          color: "#b91c1c",
+                          backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                          border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
+                          color: isDark ? "#f87171" : "#b91c1c",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -545,12 +562,12 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                       </div>
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <strong style={{ fontSize: "14.5px", color: "#0f172a" }}>{fullName}</strong>
-                          <span style={{ fontSize: "11px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", padding: "1px 6px", borderRadius: "6px" }}>
+                          <strong style={{ fontSize: "14.5px", color: isDark ? "#f8fafc" : "#0f172a" }}>{fullName}</strong>
+                          <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#f87171" : "#b91c1c", backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2", padding: "1px 6px", borderRadius: "6px" }}>
                             SUSPENDED
                           </span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#64748b", fontSize: "12px", marginTop: "2px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: isDark ? "#94a3b8" : "#64748b", fontSize: "12px", marginTop: "2px" }}>
                           <span>Citizen ID: #{user.user_id || "N/A"}</span>
                           <span>•</span>
                           <span>{user.email || user.contact_number || "No direct contact"}</span>
@@ -572,9 +589,9 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                             gap: "5px",
                             padding: "6px 12px",
                             borderRadius: "8px",
-                            border: "1px solid #bbf7d0",
-                            backgroundColor: "#f0fdf4",
-                            color: "#15803d",
+                            border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                            backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                            color: isDark ? "#4ade80" : "#15803d",
                             fontSize: "12px",
                             fontWeight: "700",
                             cursor: "pointer",
@@ -593,9 +610,9 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                           gap: "5px",
                           padding: "6px 14px",
                           borderRadius: "8px",
-                          border: "1px solid #e2e8f0",
-                          backgroundColor: "#f8fafc",
-                          color: "#334155",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                          backgroundColor: isDark ? "#131c2e" : "#f8fafc",
+                          color: isDark ? "#f8fafc" : "#334155",
                           fontSize: "12px",
                           fontWeight: "700",
                           cursor: "pointer",
@@ -611,10 +628,10 @@ export const SuspendedUsersModal = memo(function SuspendedUsersModal({
                     style={{
                       padding: "8px 12px",
                       borderRadius: "8px",
-                      backgroundColor: "#fef2f2",
-                      border: "1px solid #fee2e2",
+                      backgroundColor: isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2",
+                      border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fee2e2",
                       fontSize: "12px",
-                      color: "#991b1b",
+                      color: isDark ? "#fca5a5" : "#991b1b",
                       display: "flex",
                       alignItems: "flex-start",
                       gap: "6px",
@@ -644,6 +661,7 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
   onConfirm,
   isProcessing,
 }) {
+  const { isDark } = useTheme();
   if (!isOpen || !user) return null;
 
   const quickReasons = [
@@ -664,7 +682,7 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.75)",
+        backgroundColor: isDark ? "rgba(3, 7, 18, 0.85)" : "rgba(15, 23, 42, 0.75)",
         backdropFilter: "blur(10px)",
         zIndex: 9999,
         display: "flex",
@@ -676,7 +694,8 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
     >
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: isDark ? "#131c2e" : "#ffffff",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
           borderRadius: "22px",
           width: "100%",
           maxWidth: "540px",
@@ -694,9 +713,9 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
               width: "44px",
               height: "44px",
               borderRadius: "12px",
-              backgroundColor: "#fef2f2",
-              border: "1px solid #fecaca",
-              color: "#b91c1c",
+              backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+              border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
+              color: isDark ? "#f87171" : "#b91c1c",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -706,10 +725,10 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
             <ShieldAlert size={22} />
           </div>
           <div>
-            <h2 style={{ margin: "0 0 4px", fontSize: "17px", fontWeight: "900", color: "#0f172a" }}>
+            <h2 style={{ margin: "0 0 4px", fontSize: "17px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a" }}>
               Suspend Citizen Verification
             </h2>
-            <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+            <p style={{ margin: 0, fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b" }}>
               Suspending <strong>{user.first_name} {user.last_name}</strong> (Citizen ID #{user.user_id || "N/A"}).
             </p>
           </div>
@@ -719,9 +738,9 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
           style={{
             padding: "10px 14px",
             borderRadius: "10px",
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fee2e2",
-            color: "#991b1b",
+            backgroundColor: isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2",
+            border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fee2e2",
+            color: isDark ? "#fca5a5" : "#991b1b",
             fontSize: "12px",
             display: "flex",
             alignItems: "center",
@@ -734,7 +753,7 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
 
         {/* Quick Reason Chips */}
         <div>
-          <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px", letterSpacing: "0.04em" }}>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "8px", letterSpacing: "0.04em" }}>
             Quick Reason Tags (Click to Apply):
           </span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -746,12 +765,19 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
                 style={{
                   padding: "4px 10px",
                   borderRadius: "8px",
-                  border: message === reason ? "1px solid #dc2626" : "1px solid #e2e8f0",
-                  backgroundColor: message === reason ? "#fef2f2" : "#f8fafc",
-                  color: message === reason ? "#b91c1c" : "#475569",
+                  border: message === reason
+                    ? (isDark ? "1px solid #ef4444" : "1px solid #dc2626")
+                    : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+                  backgroundColor: message === reason
+                    ? (isDark ? "rgba(239, 68, 68, 0.22)" : "#fef2f2")
+                    : (isDark ? "#172338" : "#f8fafc"),
+                  color: message === reason
+                    ? (isDark ? "#f87171" : "#b91c1c")
+                    : (isDark ? "#cbd5e1" : "#475569"),
                   fontSize: "11.5px",
                   fontWeight: "700",
                   cursor: "pointer",
+                  transition: "all 0.15s ease",
                 }}
               >
                 {reason}
@@ -762,7 +788,7 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
 
         {/* Reason Textarea */}
         <div>
-          <label style={{ fontSize: "12px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "6px" }}>
+          <label style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#f8fafc" : "#334155", display: "block", marginBottom: "6px" }}>
             Official Justification Notes:
           </label>
           <textarea
@@ -774,7 +800,9 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
               minHeight: "85px",
               padding: "10px 12px",
               borderRadius: "10px",
-              border: "1px solid #cbd5e1",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+              backgroundColor: isDark ? "#172338" : "#ffffff",
+              color: isDark ? "#f8fafc" : "#0f172a",
               fontSize: "13px",
               fontFamily: "inherit",
               outline: "none",
@@ -791,9 +819,9 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
             style={{
               padding: "8px 16px",
               borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              backgroundColor: "#ffffff",
-              color: "#475569",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              backgroundColor: isDark ? "#172338" : "#ffffff",
+              color: isDark ? "#cbd5e1" : "#475569",
               fontSize: "13px",
               fontWeight: "700",
               cursor: "pointer",
@@ -809,12 +837,13 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
               padding: "8px 18px",
               borderRadius: "10px",
               border: "none",
-              backgroundColor: message.trim() ? "#dc2626" : "#cbd5e1",
-              color: "#ffffff",
+              backgroundColor: message.trim() ? "#dc2626" : (isDark ? "#1e293b" : "#cbd5e1"),
+              color: message.trim() ? "#ffffff" : (isDark ? "#64748b" : "#ffffff"),
               fontSize: "13px",
               fontWeight: "800",
               cursor: message.trim() ? "pointer" : "not-allowed",
               boxShadow: message.trim() ? "0 4px 12px rgba(220, 38, 38, 0.25)" : "none",
+              transition: "all 0.15s ease",
             }}
           >
             {isProcessing ? "Processing..." : "Confirm Suspension"}
@@ -824,6 +853,7 @@ export const SuspendPromptModal = memo(function SuspendPromptModal({
     </div>
   );
 });
+
 
 const styles = {
   darkOverlay: {

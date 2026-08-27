@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
+import { useTheme } from "../themes/ThemeContext";
 import { addAuditLog } from "../utils/auditLog";
 import { buildVerifiedUsersFilter } from "./verified-users/verifiedUsersUtils";
 import { verifiedUserStyle as styles } from "../themes/verifiedUserStyle";
@@ -56,6 +57,7 @@ const getAvatarStyle = (name) => {
 };
 
 function RegistrationDatePicker({ value, onChange }) {
+  const { isDark } = useTheme();
   const selectedDate = value ? new Date(`${value}T00:00:00`) : null;
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(selectedDate || new Date());
@@ -72,31 +74,82 @@ function RegistrationDatePicker({ value, onChange }) {
     : "Registration date";
 
   return (
-    <div style={styles.datePicker}>
-      <button type="button" className="verifiedUsersButton" style={styles.dateTrigger} onClick={() => setOpen((isOpen) => !isOpen)}>
-        <Calendar size={14} />
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        className="verifiedUsersButton"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          minWidth: "140px",
+          padding: "8px 12px",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+          borderRadius: "6px",
+          backgroundColor: isDark ? "#131c2e" : "#ffffff",
+          color: isDark ? "#f8fafc" : "#334155",
+          cursor: "pointer",
+          fontSize: "12px",
+          fontWeight: "500",
+          textAlign: "left",
+        }}
+        onClick={() => setOpen((isOpen) => !isOpen)}
+      >
+        <Calendar size={14} color={isDark ? "#94a3b8" : "#64748b"} />
         {displayValue}
       </button>
       {open && (
-        <div style={styles.datePopover}>
-          <div style={styles.dateHeader}>
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            zIndex: 99,
+            width: "250px",
+            padding: "12px",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+            borderRadius: "8px",
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            boxShadow: isDark ? "0 8px 24px rgba(0, 0, 0, 0.5)" : "0 8px 24px rgba(0, 0, 0, 0.08)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: isDark ? "#f8fafc" : "#0f172a", fontSize: "12px", fontWeight: "600", marginBottom: "10px" }}>
             <strong>{viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong>
-            <div style={styles.dateNavigation}>
-              <button type="button" className="verifiedUsersButton" style={styles.dateNavButton} onClick={() => setViewDate(new Date(year, month - 1, 1))}>‹</button>
-              <button type="button" className="verifiedUsersButton" style={styles.dateNavButton} onClick={() => setViewDate(new Date(year, month + 1, 1))}>›</button>
+            <div style={{ display: "flex", gap: "4px" }}>
+              <button type="button" className="verifiedUsersButton" style={{ width: "22px", height: "22px", padding: 0, border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", borderRadius: "4px", backgroundColor: isDark ? "#172338" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", cursor: "pointer", fontSize: "14px", lineHeight: 1 }} onClick={() => setViewDate(new Date(year, month - 1, 1))}>‹</button>
+              <button type="button" className="verifiedUsersButton" style={{ width: "22px", height: "22px", padding: 0, border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", borderRadius: "4px", backgroundColor: isDark ? "#172338" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", cursor: "pointer", fontSize: "14px", lineHeight: 1 }} onClick={() => setViewDate(new Date(year, month + 1, 1))}>›</button>
             </div>
           </div>
-          <div style={styles.weekdays}>{["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => <span key={day}>{day}</span>)}</div>
-          <div style={styles.dateGrid}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: "4px", color: isDark ? "#64748b" : "#94a3b8", fontSize: "10px", fontWeight: "600", textAlign: "center" }}>
+            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => <span key={day}>{day}</span>)}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px" }}>
             {days.map((day, index) => day ? (
-              <button key={day} type="button" className="verifiedUsersButton" style={styles.dayButton(value === toValue(day), new Date().toDateString() === new Date(year, month, day).toDateString())} onClick={() => { onChange(toValue(day)); setOpen(false); }}>
+              <button
+                key={day}
+                type="button"
+                className="verifiedUsersButton"
+                style={{
+                  width: "26px",
+                  height: "26px",
+                  padding: 0,
+                  border: (new Date().toDateString() === new Date(year, month, day).toDateString()) && value !== toValue(day) ? (isDark ? "1px solid #4ade80" : "1px solid #15803d") : "1px solid transparent",
+                  borderRadius: "4px",
+                  backgroundColor: value === toValue(day) ? "#15803d" : "transparent",
+                  color: value === toValue(day) ? "#ffffff" : (isDark ? "#cbd5e1" : "#334155"),
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: value === toValue(day) ? "700" : "400",
+                }}
+                onClick={() => { onChange(toValue(day)); setOpen(false); }}
+              >
                 {day}
               </button>
             ) : <span key={`empty-${index}`} />)}
           </div>
-          <div style={styles.dateFooter}>
-            <button type="button" className="verifiedUsersButton" style={styles.dateTextButton} onClick={() => { onChange(""); setOpen(false); }}>Clear</button>
-            <button type="button" className="verifiedUsersButton" style={styles.dateTextButton} onClick={() => { const today = new Date(); onChange(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`); setViewDate(today); setOpen(false); }}>Today</button>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", paddingTop: "8px", borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9" }}>
+            <button type="button" className="verifiedUsersButton" style={{ padding: "2px 0", border: 0, background: "transparent", color: isDark ? "#4ade80" : "#15803d", cursor: "pointer", fontSize: "11px", fontWeight: "600" }} onClick={() => { onChange(""); setOpen(false); }}>Clear</button>
+            <button type="button" className="verifiedUsersButton" style={{ padding: "2px 0", border: 0, background: "transparent", color: isDark ? "#4ade80" : "#15803d", cursor: "pointer", fontSize: "11px", fontWeight: "600" }} onClick={() => { const today = new Date(); onChange(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`); setViewDate(today); setOpen(false); }}>Today</button>
           </div>
         </div>
       )}
@@ -105,22 +158,77 @@ function RegistrationDatePicker({ value, onChange }) {
 }
 
 function FilterDropdown({ label, value, options, onChange }) {
+  const { isDark } = useTheme();
   const [open, setOpen] = useState(false);
   const selectedLabel = options.find((option) => option.value === value)?.label || label;
 
   return (
-    <div style={styles.filterDropdown}>
-      <button type="button" className="verifiedUsersButton" style={styles.filterDropdownTrigger} onClick={() => setOpen((isOpen) => !isOpen)}>
+    <div style={{ position: "relative", minWidth: "140px" }}>
+      <button
+        type="button"
+        className="verifiedUsersButton"
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
+          padding: "8px 12px",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+          borderRadius: "6px",
+          backgroundColor: isDark ? "#131c2e" : "#ffffff",
+          color: isDark ? "#f8fafc" : "#334155",
+          cursor: "pointer",
+          fontSize: "12px",
+          fontWeight: "500",
+          textAlign: "left",
+        }}
+        onClick={() => setOpen((isOpen) => !isOpen)}
+      >
         <span>{selectedLabel}</span>
-        <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }} />
+        <ChevronDown size={14} color={isDark ? "#94a3b8" : "#64748b"} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }} />
       </button>
       {open && (
-        <div style={styles.filterDropdownMenu}>
-          {options.map((option) => (
-            <button key={option.value} type="button" className="verifiedUsersButton" style={styles.filterDropdownOption(option.value === value)} onClick={() => { onChange(option.value); setOpen(false); }}>
-              {option.label}
-            </button>
-          ))}
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 4px)",
+            left: 0,
+            right: 0,
+            zIndex: 99,
+            padding: "4px",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+            borderRadius: "6px",
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            boxShadow: isDark ? "0 8px 24px rgba(0, 0, 0, 0.5)" : "0 4px 12px rgba(0, 0, 0, 0.08)",
+          }}
+        >
+          {options.map((option) => {
+            const isActive = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className="verifiedUsersButton"
+                style={{
+                  width: "100%",
+                  display: "block",
+                  padding: "6px 8px",
+                  border: 0,
+                  borderRadius: "4px",
+                  backgroundColor: isActive ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4") : "transparent",
+                  color: isActive ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#cbd5e1" : "#334155"),
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: isActive ? "600" : "400",
+                  textAlign: "left",
+                }}
+                onClick={() => { onChange(option.value); setOpen(false); }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -128,6 +236,7 @@ function FilterDropdown({ label, value, options, onChange }) {
 }
 
 export default function VerifiedUsers() {
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -399,34 +508,50 @@ export default function VerifiedUsers() {
   ].filter(Boolean).length;
 
   return (
-    <div style={styles.container}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090e17" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", fontFamily: "Inter, Arial, sans-serif" }}>
       <Sidebar />
 
-      <main style={styles.main}>
+      <main style={{ flex: 1, padding: "24px 24px 40px", marginLeft: "216px" }}>
         {/* Header */}
         <header style={{ marginBottom: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
-            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
+            <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
               Registered Users Management
             </h1>
           </div>
-          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+          <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
             Monitor and manage verified civilian resident records, contact info, and account statuses.
           </p>
         </header>
 
         {/* Premium Table Card Upgrade */}
-        <div className="premium-table-card">
+        <div
+          className="premium-table-card"
+          style={{
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+            boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : undefined,
+          }}
+        >
           {/* Top Toolbar */}
           <div className="table-toolbar">
-            <div className="search-box-premium">
-              <Search size={18} color="#94a3b8" />
+            <div
+              className="search-box-premium"
+              style={{
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+              }}
+            >
+              <Search size={18} color={isDark ? "#64748b" : "#94a3b8"} />
               <input
                 type="text"
                 placeholder="Search by citizen name, ID, or phone number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  color: isDark ? "#f8fafc" : "#0f172a",
+                }}
               />
               {searchTerm && (
                 <button
@@ -438,7 +563,7 @@ export default function VerifiedUsers() {
                     cursor: "pointer",
                     padding: 0,
                     display: "flex",
-                    color: "#94a3b8",
+                    color: isDark ? "#94a3b8" : "#64748b",
                   }}
                   aria-label="Clear search"
                 >
@@ -452,6 +577,17 @@ export default function VerifiedUsers() {
                 type="button"
                 className={`premium-btn-filter ${showFilters || activeFilterCount > 0 ? "active" : ""}`}
                 onClick={() => setShowFilters(!showFilters)}
+                style={{
+                  backgroundColor: showFilters || activeFilterCount > 0
+                    ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
+                    : (isDark ? "#172338" : "#ffffff"),
+                  border: showFilters || activeFilterCount > 0
+                    ? (isDark ? "1px solid #22c55e" : "1px solid #15803d")
+                    : (isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0"),
+                  color: showFilters || activeFilterCount > 0
+                    ? (isDark ? "#4ade80" : "#15803d")
+                    : (isDark ? "#f8fafc" : "#334155"),
+                }}
               >
                 <SlidersHorizontal size={15} />
                 <span>Filter</span>
@@ -475,15 +611,20 @@ export default function VerifiedUsers() {
                 type="button"
                 className="premium-btn-action"
                 onClick={openSuspendedUsersPopup}
+                style={{
+                  backgroundColor: isDark ? "#172338" : "#ffffff",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                  color: isDark ? "#f8fafc" : "#334155",
+                }}
               >
-                <UserX size={16} />
+                <UserX size={16} color={isDark ? "#f87171" : "#dc2626"} />
                 <span>Suspended Users</span>
                 {suspendedUsers.length > 0 && (
                   <span
                     style={{
-                      backgroundColor: "#fef2f2",
-                      color: "#b91c1c",
-                      border: "1px solid #fecaca",
+                      backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                      color: isDark ? "#f87171" : "#b91c1c",
+                      border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
                       fontSize: "11px",
                       fontWeight: "800",
                       borderRadius: "10px",
@@ -508,8 +649,8 @@ export default function VerifiedUsers() {
                 gap: "10px",
                 padding: "14px 16px",
                 marginBottom: "18px",
-                backgroundColor: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                backgroundColor: isDark ? "#172338" : "#f8fafc",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                 borderRadius: "12px",
               }}
             >
@@ -559,13 +700,14 @@ export default function VerifiedUsers() {
                   alignItems: "center",
                   gap: "6px",
                   padding: "9px 14px",
-                  border: "1px solid #e2e8f0",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
                   borderRadius: "8px",
-                  backgroundColor: "#ffffff",
-                  color: "#64748b",
+                  backgroundColor: isDark ? "#131c2e" : "#ffffff",
+                  color: isDark ? "#94a3b8" : "#64748b",
                   cursor: "pointer",
                   fontSize: "12px",
                   fontWeight: "700",
+                  transition: "all 0.15s ease",
                 }}
                 onClick={() => {
                   setSearchTerm("");
@@ -581,7 +723,7 @@ export default function VerifiedUsers() {
 
           {/* Table Error / Loading / Content */}
           {error ? (
-            <div style={styles.errorContainer}>
+            <div style={{ textAlign: "center", padding: "60px 20px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fee2e2", borderRadius: "14px", color: isDark ? "#f87171" : "#b91c1c", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
               <AlertCircle size={48} color="#ef4444" />
               <p style={{ margin: 0, fontWeight: "700" }}>{error}</p>
               <button
@@ -593,21 +735,30 @@ export default function VerifiedUsers() {
               </button>
             </div>
           ) : loading && users.length === 0 ? (
-            <div style={styles.loadingContainer}>
-              <Loader className="animate-spin" size={42} color="#15803d" />
+            <div style={{ textAlign: "center", minHeight: "260px", padding: "40px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px", color: isDark ? "#4ade80" : "#15803d", fontSize: "14px", fontWeight: "600" }}>
+              <Loader className="animate-spin" size={42} color={isDark ? "#4ade80" : "#15803d"} />
               <span>Loading verified citizen records...</span>
             </div>
           ) : users.length === 0 ? (
-            <div style={styles.emptyContainer}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "60px 20px",
+                backgroundColor: isDark ? "#131c2e" : "#ffffff",
+                border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1",
+                borderRadius: "14px",
+                color: isDark ? "#94a3b8" : "#64748b",
+              }}
+            >
               <ShieldCheck
                 size={56}
-                color="#64748b"
+                color={isDark ? "#475569" : "#94a3b8"}
                 style={{ marginBottom: "16px", opacity: 0.8 }}
               />
-              <h3 style={{ color: "#111827", margin: "0 0 8px 0" }}>
+              <h3 style={{ color: isDark ? "#f8fafc" : "#111827", margin: "0 0 8px 0" }}>
                 No Verified Citizens Found
               </h3>
-              <p style={{ margin: 0, fontSize: "14px", color: "#64748b" }}>
+              <p style={{ margin: 0, fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b" }}>
                 No verified citizen records match your search or filter criteria. Try clearing your filters or using different keywords.
               </p>
             </div>
@@ -660,11 +811,11 @@ export default function VerifiedUsers() {
                                 <span
                                   className="premium-user-name"
                                   onClick={() => openUserDetails(user)}
-                                  style={{ cursor: "pointer" }}
+                                  style={{ cursor: "pointer", color: isDark ? "#f8fafc" : "#0f172a" }}
                                 >
                                   {fullName}
                                 </span>
-                                <span className="premium-user-sub">
+                                <span className="premium-user-sub" style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
                                   {user.email || `Citizen ID: #${user.user_id || "N/A"}`}
                                 </span>
                               </div>
@@ -672,21 +823,21 @@ export default function VerifiedUsers() {
                           </td>
                           <td>
                             <div>
-                              <span style={{ fontWeight: 600, color: "#1e293b", display: "block" }}>
+                              <span style={{ fontWeight: 600, color: isDark ? "#f8fafc" : "#1e293b", display: "block" }}>
                                 Resident
                               </span>
-                              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                              <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                                 {user.baranggay || "Lagonglong"}
                               </span>
                             </div>
                           </td>
                           <td>
-                            <span style={{ color: "#334155", fontWeight: 500 }}>
+                            <span style={{ color: isDark ? "#cbd5e1" : "#334155", fontWeight: 500 }}>
                               {user.contact_number || user.contactNumber || "—"}
                             </span>
                           </td>
                           <td>
-                            <span style={{ color: "#64748b", fontSize: "13px" }}>
+                            <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px" }}>
                               {formatRegisteredDate(user.date_time)}
                             </span>
                           </td>
@@ -726,7 +877,7 @@ export default function VerifiedUsers() {
 
               {/* Table Footer with Pagination matching reference */}
               <div className="premium-table-footer">
-                <div className="premium-pagination-info">
+                <div className="premium-pagination-info" style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
                   Showing <strong>{Math.min((page - 1) * USERS_PER_PAGE + 1, totalItems)}</strong>–
                   <strong>{Math.min(page * USERS_PER_PAGE, totalItems)}</strong> of <strong>{totalItems}</strong> Users
                 </div>
@@ -807,3 +958,4 @@ export default function VerifiedUsers() {
     </div>
   );
 }
+

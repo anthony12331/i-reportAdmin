@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
+import { useTheme } from "../themes/ThemeContext";
 
 export default function CustomDropdown({
   label,
@@ -13,6 +14,7 @@ export default function CustomDropdown({
   menuStyle = {},
   size = "md", // "sm" | "md"
 }) {
+  const { isDark } = useTheme();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -57,19 +59,25 @@ export default function CustomDropdown({
           alignItems: "center",
           justifyContent: "space-between",
           gap: "8px",
-          padding: isSmall ? "5px 10px" : "8px 12px",
-          borderRadius: "8px",
-          border: open || isActive ? "1.5px solid #15803d" : "1px solid #dfeae3",
-          backgroundColor: isActive ? "#f0fdf4" : "#ffffff",
-          color: isActive ? "#15803d" : "#334155",
+          padding: isSmall ? "5px 10px" : "10px 14px",
+          borderRadius: "10px",
+          border: open || isActive
+            ? (isDark ? "1.5px solid #22c55e" : "1.5px solid #15803d")
+            : (isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1"),
+          backgroundColor: isActive
+            ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
+            : (isDark ? "#172338" : "#ffffff"),
+          color: isActive
+            ? (isDark ? "#4ade80" : "#15803d")
+            : (isDark ? "#f8fafc" : "#334155"),
           cursor: "pointer",
-          fontSize: isSmall ? "11px" : "12.5px",
+          fontSize: isSmall ? "11px" : "13px",
           fontWeight: "800",
           textAlign: "left",
           outline: "none",
           boxShadow: open
-            ? "0 0 0 3px rgba(21, 128, 61, 0.14)"
-            : "0 2px 5px rgba(24, 95, 53, 0.05)",
+            ? (isDark ? "0 0 0 3px rgba(34, 197, 94, 0.25)" : "0 0 0 3px rgba(21, 128, 61, 0.14)")
+            : undefined,
           transition: "all 0.15s ease",
           boxSizing: "border-box",
           ...triggerStyle,
@@ -80,7 +88,7 @@ export default function CustomDropdown({
         </span>
         <ChevronDown
           size={isSmall ? 12 : 14}
-          color={open || isActive ? "#15803d" : "#64748b"}
+          color={open || isActive ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b")}
           style={{
             flexShrink: 0,
             transform: open ? "rotate(180deg)" : "none",
@@ -99,11 +107,13 @@ export default function CustomDropdown({
             right: 0,
             minWidth: "100%",
             zIndex: 9999,
-            padding: "5px",
-            border: "1px solid #cfe3d5",
-            borderRadius: "9px",
-            backgroundColor: "#ffffff",
-            boxShadow: "0 12px 28px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(24, 95, 53, 0.08)",
+            padding: "6px",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cfe3d5",
+            borderRadius: "10px",
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            boxShadow: isDark
+              ? "0 14px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)"
+              : "0 12px 28px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(24, 95, 53, 0.08)",
             display: "flex",
             flexDirection: "column",
             gap: "2px",
@@ -132,8 +142,12 @@ export default function CustomDropdown({
                   padding: isSmall ? "6px 9px" : "8px 10px",
                   border: "none",
                   borderRadius: "6px",
-                  backgroundColor: isOptionSelected ? "#e7f5eb" : "transparent",
-                  color: isOptionSelected ? "#15803d" : "#334155",
+                  backgroundColor: isOptionSelected
+                    ? (isDark ? "rgba(34, 197, 94, 0.22)" : "#e7f5eb")
+                    : "transparent",
+                  color: isOptionSelected
+                    ? (isDark ? "#4ade80" : "#15803d")
+                    : (isDark ? "#cbd5e1" : "#334155"),
                   cursor: "pointer",
                   fontSize: isSmall ? "11px" : "12px",
                   fontWeight: isOptionSelected ? "800" : "600",
@@ -143,14 +157,14 @@ export default function CustomDropdown({
                 }}
                 onMouseEnter={(e) => {
                   if (!isOptionSelected) {
-                    e.currentTarget.style.backgroundColor = "#f8fafc";
-                    e.currentTarget.style.color = "#0f172a";
+                    e.currentTarget.style.backgroundColor = isDark ? "#172338" : "#f8fafc";
+                    e.currentTarget.style.color = isDark ? "#f8fafc" : "#0f172a";
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isOptionSelected) {
                     e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.color = "#334155";
+                    e.currentTarget.style.color = isDark ? "#cbd5e1" : "#334155";
                   }
                 }}
               >
@@ -161,7 +175,7 @@ export default function CustomDropdown({
                       width: "6px",
                       height: "6px",
                       borderRadius: "50%",
-                      backgroundColor: "#15803d",
+                      backgroundColor: isDark ? "#4ade80" : "#15803d",
                       display: "inline-block",
                     }}
                   />
@@ -174,3 +188,4 @@ export default function CustomDropdown({
     </div>
   );
 }
+

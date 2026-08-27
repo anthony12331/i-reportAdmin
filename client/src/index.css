@@ -2914,6 +2914,52 @@ html.dark .verify-btn-reject:hover {
   background-color: rgba(239, 68, 68, 0.25) !important;
 }
 
+html.dark .status-pill-pending {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+html.dark .lightboxModalCard {
+  background-color: #131c2e !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc !important;
+}
+
+html.dark .lightboxModalBackdrop {
+  background-color: rgba(3, 7, 18, 0.85) !important;
+}
+
+/* Verified User Details Dark Mode Overrides */
+html.dark .verified-detail-tile {
+  background-color: #172338 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+html.dark .verified-detail-tile span {
+  color: #94a3b8 !important;
+}
+
+html.dark .verified-detail-tile strong {
+  color: #f8fafc !important;
+}
+
+/* Dark Mode Date Picker Native Icons and Calendar Overrides */
+html.dark input[type="date"],
+[data-theme="dark"] input[type="date"] {
+  color-scheme: dark;
+}
+
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) brightness(1.2);
+  cursor: pointer;
+}
+
+
+
+
 
 
 

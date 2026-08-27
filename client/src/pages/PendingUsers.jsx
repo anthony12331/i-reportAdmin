@@ -3,6 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
 import { addAuditLog } from "../utils/auditLog";
+import { useTheme } from "../themes/ThemeContext";
 import {
   X,
   UserCheck,
@@ -126,6 +127,7 @@ const QUICK_FEEDBACK_CHIPS = [
 ];
 
 export default function PendingUserRegistration() {
+  const { isDark } = useTheme();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -416,7 +418,7 @@ export default function PendingUserRegistration() {
   });
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090e17" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
       <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
@@ -424,12 +426,12 @@ export default function PendingUserRegistration() {
         <header style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-              <span className="live-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
-              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+              <span className="live-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#22c55e" : "#15803d", display: "inline-block" }} />
+              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#4ade80" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
                 Pending Citizen Verifications
               </h1>
             </div>
-            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+            <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
               Audit submitted government credentials and civilian identity documents for emergency system registration.
             </p>
           </div>
@@ -442,9 +444,9 @@ export default function PendingUserRegistration() {
                 gap: "6px",
                 padding: "6px 14px",
                 borderRadius: "20px",
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                color: "#15803d",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                color: isDark ? "#4ade80" : "#15803d",
                 fontSize: "13px",
                 fontWeight: "700",
               }}
@@ -462,12 +464,13 @@ export default function PendingUserRegistration() {
                 gap: "6px",
                 padding: "6px 12px",
                 borderRadius: "8px",
-                border: "1px solid #e2e8f0",
-                backgroundColor: "#ffffff",
-                color: "#475569",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                color: isDark ? "#cbd5e1" : "#475569",
                 fontSize: "12.5px",
                 fontWeight: "600",
                 cursor: "pointer",
+                transition: "all 0.15s ease",
               }}
             >
               <RotateCcw size={13} />
@@ -478,7 +481,7 @@ export default function PendingUserRegistration() {
 
         {/* Empty State */}
         {loading && users.length === 0 ? (
-          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#15803d" }}>
+          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: isDark ? "#4ade80" : "#15803d" }}>
             <Loader className="animate-spin" size={32} />
             <span style={{ fontWeight: "700", fontSize: "15px" }}>Loading pending citizen verification queue...</span>
           </div>
@@ -492,7 +495,9 @@ export default function PendingUserRegistration() {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              background: "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+              backgroundColor: isDark ? "#131c2e" : undefined,
+              background: isDark ? undefined : "linear-gradient(180deg, #ffffff 0%, #f6faf7 100%)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
             }}
           >
             <div
@@ -500,22 +505,22 @@ export default function PendingUserRegistration() {
                 width: "72px",
                 height: "72px",
                 borderRadius: "24px",
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #bbf7d0",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#15803d",
+                color: isDark ? "#4ade80" : "#15803d",
                 marginBottom: "18px",
-                boxShadow: "0 10px 25px -5px rgba(21, 128, 61, 0.15)",
+                boxShadow: isDark ? "0 10px 25px -5px rgba(0, 0, 0, 0.5)" : "0 10px 25px -5px rgba(21, 128, 61, 0.15)",
               }}
             >
               <CheckCircle size={36} />
             </div>
-            <h3 style={{ color: "#0f172a", fontSize: "20px", fontWeight: "800", margin: "0 0 8px 0" }}>
+            <h3 style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "20px", fontWeight: "800", margin: "0 0 8px 0" }}>
               All Caught Up!
             </h3>
-            <p style={{ margin: 0, fontSize: "14.5px", color: "#64748b", maxWidth: "420px", lineHeight: "1.5" }}>
+            <p style={{ margin: 0, fontSize: "14.5px", color: isDark ? "#94a3b8" : "#64748b", maxWidth: "420px", lineHeight: "1.5" }}>
               There are no pending resident verification requests in the queue. New submissions will stream here in real time.
             </p>
           </div>
@@ -524,34 +529,34 @@ export default function PendingUserRegistration() {
           <div style={{ display: "grid", gridTemplateColumns: isMaximized ? "1fr" : "360px 1fr", gap: "24px", alignItems: "start" }}>
             {/* Left Column: Applicants Queue (Hidden when maximized) */}
             {!isMaximized && (
-              <div className="premium-table-card" style={{ padding: "20px" }}>
+              <div className="premium-table-card" style={{ padding: "20px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : undefined }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <UserCheck size={18} color="#15803d" />
-                    <h2 style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                    <UserCheck size={18} color={isDark ? "#4ade80" : "#15803d"} />
+                    <h2 style={{ fontSize: "15px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", margin: 0 }}>
                       Applicant Queue
                     </h2>
                   </div>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#15803d", backgroundColor: "#f0fdf4", padding: "2px 8px", borderRadius: "10px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#4ade80" : "#15803d", backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "none", padding: "2px 8px", borderRadius: "10px" }}>
                     {filteredUsers.length} total
                   </span>
                 </div>
 
                 {/* Search Box */}
-                <div className="search-box-premium" style={{ width: "100%", marginBottom: "14px", minWidth: "100%", boxSizing: "border-box" }}>
-                  <Search size={16} color="#94a3b8" />
+                <div className="search-box-premium" style={{ width: "100%", marginBottom: "14px", minWidth: "100%", boxSizing: "border-box", backgroundColor: isDark ? "#172338" : "#ffffff", borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : undefined }}>
+                  <Search size={16} color={isDark ? "#64748b" : "#94a3b8"} />
                   <input
                     type="text"
                     placeholder="Search applicant name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ fontSize: "13px" }}
+                    style={{ fontSize: "13px", color: isDark ? "#f8fafc" : "#0f172a", backgroundColor: "transparent" }}
                   />
                   {searchTerm && (
                     <button
                       type="button"
                       onClick={() => setSearchTerm("")}
-                      style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: isDark ? "#94a3b8" : "#94a3b8" }}
                     >
                       <X size={14} />
                     </button>
@@ -563,8 +568,6 @@ export default function PendingUserRegistration() {
                   {filteredUsers.map((user) => {
                     const isSelected = previewUser?.id === user.id;
                     const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Applicant";
-                    const initials = getInitials(user);
-                    const avatarStyle = getAvatarStyle(fullName);
 
                     return (
                       <div
@@ -576,36 +579,49 @@ export default function PendingUserRegistration() {
                         style={{
                           padding: "14px",
                           borderRadius: "14px",
-                          border: isSelected ? "2px solid #15803d" : "1px solid #e2e8f0",
-                          backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
+                          border: isSelected
+                            ? (isDark ? "2px solid #22c55e" : "2px solid #15803d")
+                            : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                          backgroundColor: isSelected
+                            ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
+                            : (isDark ? "#172338" : "#ffffff"),
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           display: "flex",
                           flexDirection: "column",
                           gap: "10px",
-                          boxShadow: isSelected ? "0 4px 20px -2px rgba(21, 128, 61, 0.14)" : "0 1px 3px rgba(0,0,0,0.02)",
+                          boxShadow: isSelected
+                            ? (isDark ? "0 4px 20px rgba(34, 197, 94, 0.2)" : "0 4px 20px -2px rgba(21, 128, 61, 0.14)")
+                            : (isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)"),
                           position: "relative",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                           <UserAvatar user={user} size={42} fontSize={14} />
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <span style={{ display: "block", fontWeight: "800", color: isSelected ? "#14532d" : "#0f172a", fontSize: "14.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <span style={{ display: "block", fontWeight: "800", color: isSelected ? (isDark ? "#4ade80" : "#14532d") : (isDark ? "#f8fafc" : "#0f172a"), fontSize: "14.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {fullName}
                             </span>
-                            <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: isSelected ? (isDark ? "#86efac" : "#64748b") : (isDark ? "#94a3b8" : "#64748b"), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
                               <Mail size={11} /> {user.email || "No email"}
                             </span>
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "8px", borderTop: "1px solid #f1f5f9", fontSize: "12px" }}>
-                          <span style={{ color: "#64748b", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                            <MapPin size={12} color="#15803d" /> Brgy. {user.baranggay || user.barangay || "Lagonglong"}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "8px", borderTop: isSelected ? (isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #f1f5f9") : (isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #f1f5f9"), fontSize: "12px" }}>
+                          <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                            <MapPin size={12} color={isDark ? "#4ade80" : "#15803d"} /> Brgy. {user.baranggay || user.barangay || "Lagonglong"}
                           </span>
                           <span
                             className="premium-status-pill status-pill-pending"
-                            style={{ fontSize: "11px", padding: "2px 8px", fontWeight: "700" }}
+                            style={{
+                              fontSize: "11px",
+                              padding: "2px 8px",
+                              fontWeight: "700",
+                              backgroundColor: isDark ? "rgba(245, 158, 11, 0.18)" : "#fffbeb",
+                              color: isDark ? "#fbbf24" : "#b45309",
+                              border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fef3c7",
+                            }}
                           >
                             Reviewing
                           </span>
@@ -619,9 +635,9 @@ export default function PendingUserRegistration() {
 
             {/* Right Column: Citizen Verification Workbench */}
             {previewUser ? (
-              <div className="premium-table-card verify-workbench-card" style={{ padding: isMaximized ? "36px 40px" : "28px" }}>
+              <div className="premium-table-card verify-workbench-card" style={{ padding: isMaximized ? "36px 40px" : "28px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : undefined }}>
                 {/* Workbench Top Bar */}
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: "20px", borderBottom: "1px solid #f1f5f9", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: "20px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                     <UserAvatar
                       user={previewUser}
@@ -635,18 +651,18 @@ export default function PendingUserRegistration() {
                     />
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 8px", borderRadius: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0", padding: "2px 8px", borderRadius: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                           Citizen Applicant
                         </span>
-                        <span style={{ fontSize: "11px", backgroundColor: "#f1f5f9", color: "#64748b", padding: "2px 8px", borderRadius: "6px", fontFamily: "monospace", fontWeight: "600" }}>
+                        <span style={{ fontSize: "11px", backgroundColor: isDark ? "#1e293b" : "#f1f5f9", color: isDark ? "#94a3b8" : "#64748b", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "none", padding: "2px 8px", borderRadius: "6px", fontFamily: "monospace", fontWeight: "600" }}>
                           ID: #{previewUser.user_id || previewUser.id}
                         </span>
                       </div>
-                      <h2 style={{ fontSize: isMaximized ? "26px" : "21px", fontWeight: "900", color: "#0f172a", margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
+                      <h2 style={{ fontSize: isMaximized ? "26px" : "21px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
                         {previewUser.first_name} {previewUser.middle_name ? `${previewUser.middle_name} ` : ""}{previewUser.last_name} {previewUser.extension || ""}
                       </h2>
-                      <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "12.5px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <Calendar size={13} color="#15803d" /> Submitted on {formatDateTime(previewUser.date_time || previewUser.created)}
+                      <p style={{ margin: "4px 0 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "12.5px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Calendar size={13} color={isDark ? "#4ade80" : "#15803d"} /> Submitted on {formatDateTime(previewUser.date_time || previewUser.created)}
                       </p>
                     </div>
                   </div>
@@ -665,9 +681,9 @@ export default function PendingUserRegistration() {
                           style={{
                             padding: "6px 12px",
                             borderRadius: "8px",
-                            border: "1px solid #e2e8f0",
-                            backgroundColor: "#fff",
-                            color: "#475569",
+                            border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                            backgroundColor: isDark ? "#1e293b" : "#fff",
+                            color: isDark ? "#f8fafc" : "#475569",
                             fontSize: "12px",
                             fontWeight: "700",
                             cursor: "pointer",
@@ -677,7 +693,7 @@ export default function PendingUserRegistration() {
                         >
                           ← Prev
                         </button>
-                        <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "700", padding: "0 4px" }}>
+                        <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "700", padding: "0 4px" }}>
                           {users.findIndex(u => u.id === previewUser.id) + 1} / {users.length}
                         </span>
                         <button
@@ -691,9 +707,9 @@ export default function PendingUserRegistration() {
                           style={{
                             padding: "6px 12px",
                             borderRadius: "8px",
-                            border: "1px solid #e2e8f0",
-                            backgroundColor: "#fff",
-                            color: "#475569",
+                            border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                            backgroundColor: isDark ? "#1e293b" : "#fff",
+                            color: isDark ? "#f8fafc" : "#475569",
                             fontSize: "12px",
                             fontWeight: "700",
                             cursor: "pointer",
@@ -708,7 +724,16 @@ export default function PendingUserRegistration() {
 
                     <span
                       className="premium-status-pill status-pill-pending"
-                      style={{ fontSize: "11.5px", padding: "6px 12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.04em" }}
+                      style={{
+                        fontSize: "11.5px",
+                        padding: "6px 12px",
+                        fontWeight: "800",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        backgroundColor: isDark ? "rgba(245, 158, 11, 0.18)" : "#fffbeb",
+                        color: isDark ? "#fbbf24" : "#b45309",
+                        border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fde68a",
+                      }}
                     >
                       Pending Verification
                     </span>
@@ -722,9 +747,13 @@ export default function PendingUserRegistration() {
                         gap: "6px",
                         padding: "7px 14px",
                         borderRadius: "10px",
-                        border: "1px solid #cbd5e1",
-                        backgroundColor: isMaximized ? "#f0fdf4" : "#ffffff",
-                        color: isMaximized ? "#15803d" : "#334155",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                        backgroundColor: isMaximized
+                          ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
+                          : (isDark ? "#1e293b" : "#ffffff"),
+                        color: isMaximized
+                          ? (isDark ? "#4ade80" : "#15803d")
+                          : (isDark ? "#cbd5e1" : "#334155"),
                         fontSize: "12.5px",
                         fontWeight: "700",
                         cursor: "pointer",
@@ -742,10 +771,10 @@ export default function PendingUserRegistration() {
                 {/* Proof of Identity Documents Comparison Panel */}
                 <div style={{ marginBottom: "28px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
-                    <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                      <ShieldCheck size={18} color="#15803d" /> Identity Document Verification
+                    <h3 style={{ fontSize: "15px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                      <ShieldCheck size={18} color={isDark ? "#4ade80" : "#15803d"} /> Identity Document Verification
                     </h3>
-                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "500" }}>
+                    <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "500" }}>
                       Click any photo to open high-resolution inspector
                     </span>
                   </div>
@@ -755,7 +784,7 @@ export default function PendingUserRegistration() {
                     <div
                       className="verify-photo-card"
                       style={{
-                        border: "1px solid #e2e8f0",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
                         borderRadius: "16px",
                         overflow: "hidden",
                         backgroundColor: "#070b14",
@@ -763,7 +792,7 @@ export default function PendingUserRegistration() {
                         transition: "all 0.2s ease",
                       }}
                     >
-                      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)", backgroundColor: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)", backgroundColor: isDark ? "#0d1527" : "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
                           <User size={14} color="#38bdf8" /> 1. Civilian Live Selfie
                         </span>
@@ -807,7 +836,7 @@ export default function PendingUserRegistration() {
                     <div
                       className="verify-photo-card"
                       style={{
-                        border: "1px solid #e2e8f0",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
                         borderRadius: "16px",
                         overflow: "hidden",
                         backgroundColor: "#070b14",
@@ -815,7 +844,7 @@ export default function PendingUserRegistration() {
                         transition: "all 0.2s ease",
                       }}
                     >
-                      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)", backgroundColor: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)", backgroundColor: isDark ? "#0d1527" : "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
                           <IdCard size={14} color="#4ade80" /> 2. Government Photo ID
                         </span>
@@ -860,11 +889,11 @@ export default function PendingUserRegistration() {
                 {/* Submitted Personal Details - Enhanced Executive Tiles */}
                 <div style={{ marginBottom: "30px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                    <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                      <ClipboardList size={17} color="#15803d" />
+                    <h3 style={{ fontSize: "15px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                      <ClipboardList size={17} color={isDark ? "#4ade80" : "#15803d"} />
                       <span>Submitted Personal Details</span>
                     </h3>
-                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                    <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                       Civilian Master Registry Data
                     </span>
                   </div>
@@ -877,35 +906,35 @@ export default function PendingUserRegistration() {
                     }}
                   >
                     {/* 1. Full Legal Name */}
-                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(2, 132, 199, 0.2)" : "#e0f2fe", color: isDark ? "#38bdf8" : "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <User size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           Full Legal Name
                         </span>
-                        <strong style={{ display: "block", fontSize: "14.5px", color: "#0f172a", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
+                        <strong style={{ display: "block", fontSize: "14.5px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
                           {previewUser.first_name} {previewUser.middle_name || ""} {previewUser.last_name} {previewUser.extension || ""}
                         </strong>
                       </div>
                     </div>
 
                     {/* 2. Date of Birth & Age */}
-                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#eef2ff", color: "#4f46e5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(99, 102, 241, 0.2)" : "#eef2ff", color: isDark ? "#818cf8" : "#4f46e5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Calendar size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           Birthdate & Age
                         </span>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
-                          <strong style={{ fontSize: "14px", color: "#0f172a", fontWeight: "800" }}>
+                          <strong style={{ fontSize: "14px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "800" }}>
                             {formatBirthdate(previewUser.birthdate)}
                           </strong>
                           {previewUser.age && (
-                            <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: "#f1f5f9", color: "#334155", padding: "2px 8px", borderRadius: "12px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: isDark ? "#1e293b" : "#f1f5f9", color: isDark ? "#cbd5e1" : "#334155", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "none", padding: "2px 8px", borderRadius: "12px" }}>
                               {previewUser.age} yrs
                             </span>
                           )}
@@ -914,15 +943,15 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 3. Phone Number */}
-                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#f0fdf4", color: "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Phone size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           Phone Number
                         </span>
-                        <strong style={{ display: "block", fontSize: "14.5px", color: "#0f172a", fontWeight: "800", marginTop: "2px" }}>
+                        <strong style={{ display: "block", fontSize: "14.5px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "800", marginTop: "2px" }}>
                           {previewUser.contact_number || previewUser.contactNumber || "Not provided"}
                         </strong>
                       </div>
@@ -935,7 +964,7 @@ export default function PendingUserRegistration() {
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            color: copiedField === "phone" ? "#15803d" : "#94a3b8",
+                            color: copiedField === "phone" ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#64748b" : "#94a3b8"),
                             padding: "6px",
                             display: "flex",
                             alignItems: "center",
@@ -948,15 +977,15 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 4. Email Address */}
-                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#ccfbf1", color: "#0f766e", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(20, 184, 166, 0.2)" : "#ccfbf1", color: isDark ? "#2dd4bf" : "#0f766e", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Mail size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           Email Address
                         </span>
-                        <strong style={{ display: "block", fontSize: "14px", color: "#0f172a", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
+                        <strong style={{ display: "block", fontSize: "14px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
                           {previewUser.email || "Not provided"}
                         </strong>
                       </div>
@@ -969,7 +998,7 @@ export default function PendingUserRegistration() {
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            color: copiedField === "email" ? "#15803d" : "#94a3b8",
+                            color: copiedField === "email" ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#64748b" : "#94a3b8"),
                             padding: "6px",
                             display: "flex",
                             alignItems: "center",
@@ -982,45 +1011,45 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 5. Barangay Jurisdiction */}
-                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7", color: isDark ? "#fbbf24" : "#d97706", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <MapPin size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           Barangay
                         </span>
-                        <strong style={{ display: "block", fontSize: "14.5px", color: "#0f172a", fontWeight: "800", marginTop: "2px" }}>
+                        <strong style={{ display: "block", fontSize: "14.5px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "800", marginTop: "2px" }}>
                           Brgy. {previewUser.baranggay || previewUser.barangay || "Lagonglong"}
                         </strong>
                       </div>
                     </div>
 
                     {/* 6. Municipality & Province */}
-                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#fae8ff", color: "#a21caf", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(168, 85, 247, 0.2)" : "#fae8ff", color: isDark ? "#c084fc" : "#a21caf", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Building2 size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           Municipality & Province
                         </span>
-                        <strong style={{ display: "block", fontSize: "14px", color: "#0f172a", fontWeight: "800", marginTop: "2px" }}>
+                        <strong style={{ display: "block", fontSize: "14px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "800", marginTop: "2px" }}>
                           {previewUser.municipality || "Lagonglong"}, {previewUser.province || "Misamis Oriental"}
                         </strong>
                       </div>
                     </div>
 
                     {/* 7. Complete Street Address */}
-                    <div className="verify-info-tile" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#f1f5f9", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div className="verify-info-tile" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 8px rgba(0, 0, 0, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(148, 163, 184, 0.2)" : "#f1f5f9", color: isDark ? "#94a3b8" : "#475569", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Home size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                           Complete Street Address & Landmark
                         </span>
-                        <strong style={{ display: "block", fontSize: "14.5px", color: "#0f172a", fontWeight: "800", marginTop: "2px" }}>
+                        <strong style={{ display: "block", fontSize: "14.5px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "800", marginTop: "2px" }}>
                           {previewUser.street_address || previewUser.address || "No street address specified"}
                         </strong>
                       </div>
@@ -1029,12 +1058,12 @@ export default function PendingUserRegistration() {
                 </div>
 
                 {/* Reviewer Action Dock */}
-                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "24px" }}>
+                <div style={{ borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", paddingTop: "24px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", flexWrap: "wrap", gap: "8px" }}>
-                    <label style={{ fontSize: "13.5px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                    <label style={{ fontSize: "13.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", margin: 0 }}>
                       Reviewer Feedback & Remarks (Optional)
                     </label>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                    <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                       Sent to citizen upon clarification/rejection
                     </span>
                   </div>
@@ -1050,9 +1079,15 @@ export default function PendingUserRegistration() {
                         style={{
                           padding: "6px 12px",
                           borderRadius: "8px",
-                          border: reviewMessage === chip ? "1px solid #15803d" : "1px solid #e2e8f0",
-                          backgroundColor: reviewMessage === chip ? "#f0fdf4" : "#ffffff",
-                          color: reviewMessage === chip ? "#15803d" : "#475569",
+                          border: reviewMessage === chip
+                            ? (isDark ? "1px solid #22c55e" : "1px solid #15803d")
+                            : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+                          backgroundColor: reviewMessage === chip
+                            ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
+                            : (isDark ? "#172338" : "#ffffff"),
+                          color: reviewMessage === chip
+                            ? (isDark ? "#4ade80" : "#15803d")
+                            : (isDark ? "#94a3b8" : "#475569"),
                           fontSize: "12px",
                           fontWeight: "700",
                           cursor: "pointer",
@@ -1075,9 +1110,9 @@ export default function PendingUserRegistration() {
                       minHeight: "84px",
                       padding: "12px 14px",
                       borderRadius: "12px",
-                      border: "1px solid #cbd5e1",
-                      backgroundColor: "#ffffff",
-                      color: "#0f172a",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                      backgroundColor: isDark ? "#172338" : "#ffffff",
+                      color: isDark ? "#f8fafc" : "#0f172a",
                       fontSize: "13.5px",
                       boxSizing: "border-box",
                       marginBottom: "18px",
@@ -1098,9 +1133,9 @@ export default function PendingUserRegistration() {
                         gap: "8px",
                         padding: "12px 20px",
                         borderRadius: "12px",
-                        border: "1px solid #fde68a",
-                        backgroundColor: "#fffbeb",
-                        color: "#b45309",
+                        border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fde68a",
+                        backgroundColor: isDark ? "rgba(245, 158, 11, 0.16)" : "#fffbeb",
+                        color: isDark ? "#fbbf24" : "#b45309",
                         fontSize: "13.5px",
                         fontWeight: "800",
                         cursor: "pointer",
@@ -1129,9 +1164,9 @@ export default function PendingUserRegistration() {
                         gap: "8px",
                         padding: "12px 20px",
                         borderRadius: "12px",
-                        border: "1px solid #fecaca",
-                        backgroundColor: "#fef2f2",
-                        color: "#b91c1c",
+                        border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
+                        backgroundColor: isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2",
+                        color: isDark ? "#f87171" : "#b91c1c",
                         fontSize: "13.5px",
                         fontWeight: "800",
                         cursor: "pointer",
@@ -1170,9 +1205,9 @@ export default function PendingUserRegistration() {
                 </div>
               </div>
             ) : (
-              <div className="premium-table-card" style={{ padding: "70px 20px", textAlign: "center", color: "#64748b" }}>
-                <IdCard size={44} color="#94a3b8" style={{ marginBottom: "14px" }} />
-                <h3 style={{ color: "#0f172a", fontSize: "17px", fontWeight: "700", margin: "0 0 6px 0" }}>
+              <div className="premium-table-card" style={{ padding: "70px 20px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                <IdCard size={44} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginBottom: "14px" }} />
+                <h3 style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "17px", fontWeight: "700", margin: "0 0 6px 0" }}>
                   Select an Applicant
                 </h3>
                 <p style={{ margin: 0, fontSize: "14px" }}>
@@ -1191,7 +1226,7 @@ export default function PendingUserRegistration() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backgroundColor: isDark ? "rgba(3, 7, 18, 0.85)" : "rgba(15, 23, 42, 0.75)",
             backdropFilter: "blur(10px)",
             zIndex: 9999,
             display: "flex",
@@ -1204,7 +1239,8 @@ export default function PendingUserRegistration() {
           <div
             className="lightboxModalCard"
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
               borderRadius: "20px",
               width: "100%",
               maxWidth: "480px",
@@ -1214,12 +1250,12 @@ export default function PendingUserRegistration() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-              <div style={{ width: "40px", height: "40px", borderRadius: "12px", backgroundColor: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", color: "#b91c1c" }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "12px", backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#f87171" : "#b91c1c" }}>
                 <UserX size={22} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>Confirm Application Rejection</h3>
-                <span style={{ fontSize: "12.5px", color: "#64748b" }}>This reason will be recorded and sent to the applicant</span>
+                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>Confirm Application Rejection</h3>
+                <span style={{ fontSize: "12.5px", color: isDark ? "#94a3b8" : "#64748b" }}>This reason will be recorded and sent to the applicant</span>
               </div>
             </div>
 
@@ -1229,7 +1265,9 @@ export default function PendingUserRegistration() {
                 minHeight: "100px",
                 padding: "12px",
                 borderRadius: "10px",
-                border: "1px solid #cbd5e1",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                color: isDark ? "#f8fafc" : "#0f172a",
                 fontSize: "13.5px",
                 boxSizing: "border-box",
                 marginBottom: "20px",
@@ -1244,7 +1282,7 @@ export default function PendingUserRegistration() {
               <button
                 type="button"
                 onClick={() => setRejectionModal({ isOpen: false, userId: null, userEmail: null, reason: "" })}
-                style={{ padding: "10px 18px", borderRadius: "10px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontSize: "13.5px", fontWeight: "700", cursor: "pointer" }}
+                style={{ padding: "10px 18px", borderRadius: "10px", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1", background: isDark ? "#1e293b" : "#fff", color: isDark ? "#cbd5e1" : "#475569", fontSize: "13.5px", fontWeight: "700", cursor: "pointer" }}
               >
                 Cancel
               </button>
@@ -1268,7 +1306,7 @@ export default function PendingUserRegistration() {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.85)",
+            backgroundColor: isDark ? "rgba(3, 7, 18, 0.9)" : "rgba(15, 23, 42, 0.85)",
             backdropFilter: "blur(14px)",
             zIndex: 99999,
             display: "flex",
@@ -1287,7 +1325,8 @@ export default function PendingUserRegistration() {
               position: "relative",
               width: "100%",
               maxWidth: "840px",
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
               borderRadius: "22px",
               overflow: "hidden",
               boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.7)",
@@ -1302,35 +1341,35 @@ export default function PendingUserRegistration() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "14px 22px",
-                borderBottom: "1px solid #e2e8f0",
-                backgroundColor: "#f8fafc",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+                backgroundColor: isDark ? "#0f172a" : "#f8fafc",
                 flexWrap: "wrap",
                 gap: "10px",
               }}
             >
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
                 <ShieldCheck size={16} /> {previewImage.alt}
               </span>
 
               {/* Zoom Controls */}
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "2px" }}>
+                <div style={{ display: "flex", alignItems: "center", backgroundColor: isDark ? "#172338" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", borderRadius: "8px", padding: "2px" }}>
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
                     title="Zoom out"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: "#475569" }}
+                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
                   >
                     <ZoomOut size={15} />
                   </button>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: "#0f172a", minWidth: "42px", textAlign: "center" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", minWidth: "42px", textAlign: "center" }}>
                     {Math.round(zoomLevel * 100)}%
                   </span>
                   <button
                     type="button"
                     onClick={() => setZoomLevel((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
                     title="Zoom in"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: "#475569" }}
+                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
                   >
                     <ZoomIn size={15} />
                   </button>
@@ -1342,9 +1381,9 @@ export default function PendingUserRegistration() {
                   style={{
                     padding: "6px 10px",
                     borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
-                    backgroundColor: "#ffffff",
-                    color: "#475569",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                    backgroundColor: isDark ? "#172338" : "#ffffff",
+                    color: isDark ? "#cbd5e1" : "#475569",
                     fontSize: "12px",
                     fontWeight: "700",
                     cursor: "pointer",
@@ -1380,7 +1419,7 @@ export default function PendingUserRegistration() {
                     setPreviewImage(null);
                     setZoomLevel(1);
                   }}
-                  style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ width: "34px", height: "34px", borderRadius: "50%", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#172338" : "#fff", color: isDark ? "#f8fafc" : "#334155", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   <X size={17} />
                 </button>
@@ -1421,3 +1460,4 @@ export default function PendingUserRegistration() {
     </div>
   );
 }
+
