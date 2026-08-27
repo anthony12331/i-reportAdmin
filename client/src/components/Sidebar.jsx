@@ -31,7 +31,7 @@ export default function Sidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const admin = pb.authStore.model;
-  const { confirm } = useMessageBox();
+  const { confirm, alert } = useMessageBox();
 
   const [isHidden, setIsHidden] = useState(() => {
     try {
@@ -40,6 +40,56 @@ export default function Sidebar({
       return false;
     }
   });
+
+  const lastAlertTime = useRef(0);
+
+  // Background Hazard Polling (Runs every 10 minutes)
+  useEffect(() => {
+    let interval;
+    
+    const checkHazards = async () => {
+      // Prevent spamming alerts (only alert once every 6 hours max)
+      if (Date.now() - lastAlertTime.current < 6 * 60 * 60 * 1000) return;
+
+      try {
+        // 1. Check Weather
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=8.8066&longitude=124.7880&current=precipitation,wind_speed_10m`);
+        const weatherData = await weatherRes.json();
+        
+        if (weatherData?.current) {
+          if (weatherData.current.precipitation > 15 || weatherData.current.wind_speed_10m > 60) {
+            lastAlertTime.current = Date.now();
+            alert(`SEVERE WEATHER WARNING FOR LAGONGLONG: High winds/rain detected. Prepare MDRRMO units!`, { title: "Calamity Alert" });
+            return;
+          }
+        }
+
+        // 2. Check Earthquakes (within 100km radius basically)
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const dateStr = d.toISOString().split('T')[0];
+        const quakeRes = await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${dateStr}&minlatitude=6.0&maxlatitude=10.0&minlongitude=123.0&maxlongitude=127.0&minmagnitude=5.0`);
+        const quakeData = await quakeRes.json();
+        
+        if (quakeData?.features?.length > 0) {
+          const latest = quakeData.features[0];
+          lastAlertTime.current = Date.now();
+          alert(`EARTHQUAKE ALERT: Magnitude ${latest.properties.mag} earthquake detected near Mindanao. Check Lagonglong status.`, { title: "Seismic Alert" });
+        }
+      } catch (err) {
+        // Silent fail for background checker
+      }
+    };
+
+    // Run once on mount after 5 seconds, then every 10 minutes
+    const initialTimer = setTimeout(checkHazards, 5000);
+    interval = setInterval(checkHazards, 10 * 60 * 1000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [alert]);
 
   useEffect(() => {
     if (isHidden) {

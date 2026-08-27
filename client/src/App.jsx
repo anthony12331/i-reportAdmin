@@ -25,6 +25,7 @@ const AuditLogs              = lazy(() => import("./pages/Audit"));
 const GenerateResponderPin   = lazy(() => import("./pages/GenerateResponderPin"));
 const RequestBackup          = lazy(() => import("./pages/RequestBackup"));
 const OngoingBackup          = lazy(() => import("./pages/OngoingBackup"));
+const Calamities             = lazy(() => import("./pages/Calamities"));
 
 // Components
 import { MessageBoxProvider } from "./components/MessageBox";
@@ -695,6 +696,14 @@ function App() {
               element={
                 <ProtectedRoute requiredModule="users">
                   <VerifiedUserDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calamities"
+              element={
+                <ProtectedRoute requiredModule="dashboard">
+                  <Calamities />
                 </ProtectedRoute>
               }
             />
