@@ -491,6 +491,15 @@ export default function Sidebar({
                 <span>Generate Reports</span>
               </div>
             </div>
+            <div
+              style={isActive("/calamities") ? styles.navItemActive : styles.navItem}
+              onClick={() => navigate("/calamities")}
+            >
+              <div style={styles.navLinkGroup}>
+                <AlertTriangle size={17} color={isActive("/calamities") ? "#15803d" : "#64748b"} />
+                <span>Hazards & Calamities</span>
+              </div>
+            </div>
           </>
         )}
 
