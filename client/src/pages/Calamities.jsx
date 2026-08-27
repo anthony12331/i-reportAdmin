@@ -254,7 +254,7 @@ export default function Calamities() {
                     <div style={{ width: '20px', height: '20px', backgroundColor: '#3b82f6', opacity: 0.8, border: '2px solid #2563eb', borderRadius: '4px', flexShrink: 0 }}></div>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>High Flood & Storm Surge</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Coastal and river-basin barangays (Poblacion, Tabok, Kauswagan)</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Coastal/Riverine: Dampil, Kabulawan, Poblacion, Tabok, Kauswagan</div>
                     </div>
                   </div>
 
@@ -262,7 +262,7 @@ export default function Calamities() {
                     <div style={{ width: '20px', height: '20px', backgroundColor: '#f59e0b', opacity: 0.8, border: '2px solid #d97706', borderRadius: '4px', flexShrink: 0 }}></div>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>Rain-Induced Landslides</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Eastern mountainous slopes (Umagos, Gaston, Banglay)</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Uplands: Dampil, Gaston, Umagos, Banglay, Lumbo, Manaol</div>
                     </div>
                   </div>
                 </div>
