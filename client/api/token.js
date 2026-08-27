@@ -1,4 +1,4 @@
-﻿const { RtcTokenBuilder, RtcRole } = require('agora-token');
+const { RtcTokenBuilder, RtcRole } = require('agora-token');
 
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -16,7 +16,7 @@ module.exports = (req, res) => {
   
   const uid = 0;
   const role = RtcRole.PUBLISHER;
-  const expirationTimeInSeconds = 3600 * 24;
+  const expirationTimeInSeconds = 3600 * 24 * 365 * 10; // 10 years
   const currentTimestamp = Math.floor(Date.now() / 1000);
   const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
