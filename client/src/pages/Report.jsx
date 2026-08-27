@@ -513,18 +513,6 @@ export default function Report() {
     ],
   }), [analytics.statuses]);
 
-  const filteredReports = useMemo(() => {
-    if (!tableSearch.trim()) return reports;
-    const query = tableSearch.toLowerCase();
-    return reports.filter((r) => {
-      const rawType = (r.type || r.assigned_department || "").toLowerCase();
-      const addr = (r.resolvedAddress || "").toLowerCase();
-      const rep = r.reporterUser
-        ? `${r.reporterUser.first_name || ""} ${r.reporterUser.last_name || ""}`.toLowerCase()
-        : "";
-      return rawType.includes(query) || addr.includes(query) || rep.includes(query);
-    });
-  }, [reports, tableSearch]);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
