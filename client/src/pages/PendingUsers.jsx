@@ -61,6 +61,62 @@ const getAvatarStyle = (name) => {
   return palettes[index];
 };
 
+const getUserImageUrl = (user) => {
+  if (!user) return null;
+  const file = user.selfie || user.avatar || user.profile_picture || user.image;
+  if (!file) return null;
+  try {
+    return pb.files.getURL(user, file);
+  } catch (e) {
+    return null;
+  }
+};
+
+function UserAvatar({ user, size = 42, fontSize = 14, style = {}, onClick, title }) {
+  const [imgError, setImgError] = useState(false);
+  const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Applicant";
+  const initials = getInitials(user);
+  const avatarStyle = getAvatarStyle(fullName);
+  const imgUrl = getUserImageUrl(user);
+
+  return (
+    <div
+      className="premium-avatar"
+      onClick={onClick}
+      title={title || fullName}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        fontSize: `${fontSize}px`,
+        background: avatarStyle.bg,
+        color: avatarStyle.color,
+        flexShrink: 0,
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: "800",
+        borderRadius: size > 50 ? "18px" : "12px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        border: "1px solid rgba(0,0,0,0.06)",
+        position: "relative",
+        ...style,
+      }}
+    >
+      {imgUrl && !imgError ? (
+        <img
+          src={imgUrl}
+          alt={fullName}
+          onError={() => setImgError(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      ) : (
+        <span>{initials}</span>
+      )}
+    </div>
+  );
+}
+
 const QUICK_FEEDBACK_CHIPS = [
   "ID photo is blurry or unreadable",
   "Selfie does not match the submitted ID",
@@ -532,20 +588,7 @@ export default function PendingUserRegistration() {
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <div
-                            className="premium-avatar"
-                            style={{
-                              width: "42px",
-                              height: "42px",
-                              fontSize: "14px",
-                              background: avatarStyle.bg,
-                              color: avatarStyle.color,
-                              flexShrink: 0,
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                            }}
-                          >
-                            {initials}
-                          </div>
+                          <UserAvatar user={user} size={42} fontSize={14} />
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <span style={{ display: "block", fontWeight: "800", color: isSelected ? "#14532d" : "#0f172a", fontSize: "14.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {fullName}
@@ -576,44 +619,41 @@ export default function PendingUserRegistration() {
 
             {/* Right Column: Citizen Verification Workbench */}
             {previewUser ? (
-              <div className="premium-table-card" style={{ padding: isMaximized ? "36px 40px" : "28px" }}>
+              <div className="premium-table-card verify-workbench-card" style={{ padding: isMaximized ? "36px 40px" : "28px" }}>
                 {/* Workbench Top Bar */}
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", paddingBottom: "20px", borderBottom: "1px solid #f1f5f9", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                    <div
-                      className="premium-avatar"
-                      style={{
-                        width: isMaximized ? "64px" : "56px",
-                        height: isMaximized ? "64px" : "56px",
-                        fontSize: isMaximized ? "20px" : "18px",
-                        background: getAvatarStyle(`${previewUser.first_name} ${previewUser.last_name}`).bg,
-                        color: "#fff",
-                        boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
+                    <UserAvatar
+                      user={previewUser}
+                      size={isMaximized ? 64 : 54}
+                      fontSize={isMaximized ? 20 : 17}
+                      onClick={() => {
+                        const imgUrl = getUserImageUrl(previewUser);
+                        if (imgUrl) setPreviewImage({ src: imgUrl, alt: "Citizen Profile Photo" });
                       }}
-                    >
-                      {getInitials(previewUser)}
-                    </div>
+                      style={{ cursor: getUserImageUrl(previewUser) ? "zoom-in" : "default" }}
+                    />
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "12px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 8px", borderRadius: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                           Citizen Applicant
                         </span>
-                        <span style={{ fontSize: "11px", backgroundColor: "#f1f5f9", color: "#475569", padding: "2px 6px", borderRadius: "6px", fontFamily: "monospace" }}>
-                          ID: {previewUser.id}
+                        <span style={{ fontSize: "11px", backgroundColor: "#f1f5f9", color: "#64748b", padding: "2px 8px", borderRadius: "6px", fontFamily: "monospace", fontWeight: "600" }}>
+                          ID: #{previewUser.user_id || previewUser.id}
                         </span>
                       </div>
-                      <h2 style={{ fontSize: isMaximized ? "26px" : "22px", fontWeight: "800", color: "#0f172a", margin: "4px 0 0 0", letterSpacing: "-0.01em" }}>
-                        {previewUser.first_name} {previewUser.middle_name ? `${previewUser.middle_name} ` : ""}{previewUser.last_name}
+                      <h2 style={{ fontSize: isMaximized ? "26px" : "21px", fontWeight: "900", color: "#0f172a", margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
+                        {previewUser.first_name} {previewUser.middle_name ? `${previewUser.middle_name} ` : ""}{previewUser.last_name} {previewUser.extension || ""}
                       </h2>
-                      <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <Calendar size={13} /> Submitted on {formatDateTime(previewUser.date_time || previewUser.created)}
+                      <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "12.5px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Calendar size={13} color="#15803d" /> Submitted on {formatDateTime(previewUser.date_time || previewUser.created)}
                       </p>
                     </div>
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                    {isMaximized && users.length > 1 && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginRight: "6px" }}>
+                    {users.length > 1 && (
+                      <div className="verify-nav-controls" style={{ display: "flex", alignItems: "center", gap: "6px", marginRight: "4px" }}>
                         <button
                           type="button"
                           onClick={() => {
@@ -631,12 +671,14 @@ export default function PendingUserRegistration() {
                             fontSize: "12px",
                             fontWeight: "700",
                             cursor: "pointer",
+                            transition: "all 0.15s ease",
                           }}
+                          title="Previous applicant"
                         >
                           ← Prev
                         </button>
-                        <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
-                          {users.findIndex(u => u.id === previewUser.id) + 1} of {users.length}
+                        <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "700", padding: "0 4px" }}>
+                          {users.findIndex(u => u.id === previewUser.id) + 1} / {users.length}
                         </span>
                         <button
                           type="button"
@@ -655,7 +697,9 @@ export default function PendingUserRegistration() {
                             fontSize: "12px",
                             fontWeight: "700",
                             cursor: "pointer",
+                            transition: "all 0.15s ease",
                           }}
+                          title="Next applicant"
                         >
                           Next →
                         </button>
@@ -664,7 +708,7 @@ export default function PendingUserRegistration() {
 
                     <span
                       className="premium-status-pill status-pill-pending"
-                      style={{ fontSize: "12px", padding: "6px 12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.04em" }}
+                      style={{ fontSize: "11.5px", padding: "6px 12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.04em" }}
                     >
                       Pending Verification
                     </span>
@@ -697,38 +741,39 @@ export default function PendingUserRegistration() {
 
                 {/* Proof of Identity Documents Comparison Panel */}
                 <div style={{ marginBottom: "28px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
                     <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Shield size={16} color="#15803d" /> Identity Document Verification
+                      <ShieldCheck size={18} color="#15803d" /> Identity Document Verification
                     </h3>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "500" }}>
                       Click any photo to open high-resolution inspector
                     </span>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
                     {/* Selfie Box */}
                     <div
+                      className="verify-photo-card"
                       style={{
                         border: "1px solid #e2e8f0",
                         borderRadius: "16px",
                         overflow: "hidden",
-                        backgroundColor: "#0b0f19",
-                        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.05)",
-                        transition: "transform 0.15s ease, border-color 0.15s ease",
+                        backgroundColor: "#070b14",
+                        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      <div style={{ padding: "10px 14px", borderBottom: "1px solid #1e293b", backgroundColor: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)", backgroundColor: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
                           <User size={14} color="#38bdf8" /> 1. Civilian Live Selfie
                         </span>
-                        <span style={{ fontSize: "11px", color: "#38bdf8", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Maximize2 size={12} /> Click to zoom
+                        <span style={{ fontSize: "11px", color: "#38bdf8", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(56, 189, 248, 0.12)", padding: "2px 7px", borderRadius: "6px" }}>
+                          <Maximize2 size={11} /> Click to zoom
                         </span>
                       </div>
                       <div
                         style={{
-                          height: isMaximized ? "340px" : "250px",
+                          height: isMaximized ? "340px" : "260px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -738,13 +783,16 @@ export default function PendingUserRegistration() {
                           backgroundImage: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, transparent 80%)",
                           transition: "height 0.25s ease",
                         }}
-                        onClick={() => previewUser.selfie && setPreviewImage({ src: pb.files.getURL(previewUser, previewUser.selfie), alt: "Civilian Live Selfie" })}
+                        onClick={() => {
+                          const selfieFile = previewUser.selfie || previewUser.avatar || previewUser.profile_picture;
+                          if (selfieFile) setPreviewImage({ src: pb.files.getURL(previewUser, selfieFile), alt: "Civilian Live Selfie" });
+                        }}
                       >
-                        {previewUser.selfie ? (
+                        {(previewUser.selfie || previewUser.avatar || previewUser.profile_picture) ? (
                           <img
-                            src={pb.files.getURL(previewUser, previewUser.selfie)}
+                            src={pb.files.getURL(previewUser, previewUser.selfie || previewUser.avatar || previewUser.profile_picture)}
                             alt="Applicant Selfie"
-                            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: "10px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}
+                            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: "10px", boxShadow: "0 10px 30px rgba(0,0,0,0.6)" }}
                           />
                         ) : (
                           <div style={{ color: "#94a3b8", fontSize: "13px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
@@ -757,26 +805,27 @@ export default function PendingUserRegistration() {
 
                     {/* Government ID Box */}
                     <div
+                      className="verify-photo-card"
                       style={{
                         border: "1px solid #e2e8f0",
                         borderRadius: "16px",
                         overflow: "hidden",
-                        backgroundColor: "#0b0f19",
-                        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.05)",
-                        transition: "transform 0.15s ease, border-color 0.15s ease",
+                        backgroundColor: "#070b14",
+                        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      <div style={{ padding: "10px 14px", borderBottom: "1px solid #1e293b", backgroundColor: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)", backgroundColor: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <IdCard size={14} color="#10b981" /> 2. Government Photo ID
+                          <IdCard size={14} color="#4ade80" /> 2. Government Photo ID
                         </span>
-                        <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Maximize2 size={12} /> Click to zoom
+                        <span style={{ fontSize: "11px", color: "#4ade80", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(74, 222, 128, 0.12)", padding: "2px 7px", borderRadius: "6px" }}>
+                          <Maximize2 size={11} /> Click to zoom
                         </span>
                       </div>
                       <div
                         style={{
-                          height: isMaximized ? "340px" : "250px",
+                          height: isMaximized ? "340px" : "260px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -786,13 +835,16 @@ export default function PendingUserRegistration() {
                           backgroundImage: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, transparent 80%)",
                           transition: "height 0.25s ease",
                         }}
-                        onClick={() => previewUser.id_photo && setPreviewImage({ src: pb.files.getURL(previewUser, previewUser.id_photo), alt: "Government Photo ID" })}
+                        onClick={() => {
+                          const idFile = previewUser.id_photo || previewUser.government_id || previewUser.idPhoto;
+                          if (idFile) setPreviewImage({ src: pb.files.getURL(previewUser, idFile), alt: "Government Photo ID" });
+                        }}
                       >
-                        {previewUser.id_photo ? (
+                        {(previewUser.id_photo || previewUser.government_id || previewUser.idPhoto) ? (
                           <img
-                            src={pb.files.getURL(previewUser, previewUser.id_photo)}
+                            src={pb.files.getURL(previewUser, previewUser.id_photo || previewUser.government_id || previewUser.idPhoto)}
                             alt="Government ID"
-                            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: "10px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}
+                            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: "10px", boxShadow: "0 10px 30px rgba(0,0,0,0.6)" }}
                           />
                         ) : (
                           <div style={{ color: "#94a3b8", fontSize: "13px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
@@ -825,32 +877,8 @@ export default function PendingUserRegistration() {
                     }}
                   >
                     {/* 1. Full Legal Name */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "14px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                        transition: "all 0.18s ease",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          borderRadius: "12px",
-                          backgroundColor: "#e0f2fe",
-                          color: "#0284c7",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <User size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -864,32 +892,8 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 2. Date of Birth & Age */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "14px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                        transition: "all 0.18s ease",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          borderRadius: "12px",
-                          backgroundColor: "#eef2ff",
-                          color: "#4f46e5",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#eef2ff", color: "#4f46e5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Calendar size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -910,33 +914,8 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 3. Phone Number */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "14px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                        transition: "all 0.18s ease",
-                        position: "relative",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          borderRadius: "12px",
-                          backgroundColor: "#f0fdf4",
-                          color: "#15803d",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#f0fdf4", color: "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Phone size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -969,33 +948,8 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 4. Email Address */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "14px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                        transition: "all 0.18s ease",
-                        position: "relative",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          borderRadius: "12px",
-                          backgroundColor: "#ccfbf1",
-                          color: "#0f766e",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#ccfbf1", color: "#0f766e", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Mail size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1028,32 +982,8 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 5. Barangay Jurisdiction */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "14px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                        transition: "all 0.18s ease",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          borderRadius: "12px",
-                          backgroundColor: "#fef3c7",
-                          color: "#d97706",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <MapPin size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1067,32 +997,8 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 6. Municipality & Province */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "14px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                        transition: "all 0.18s ease",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          borderRadius: "12px",
-                          backgroundColor: "#fae8ff",
-                          color: "#a21caf",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#fae8ff", color: "#a21caf", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Building2 size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1106,33 +1012,8 @@ export default function PendingUserRegistration() {
                     </div>
 
                     {/* 7. Complete Street Address */}
-                    <div
-                      style={{
-                        gridColumn: "1 / -1",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "14px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                        transition: "all 0.18s ease",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                          borderRadius: "12px",
-                          backgroundColor: "#f1f5f9",
-                          color: "#475569",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="verify-info-tile" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: "#f1f5f9", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Home size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1149,7 +1030,7 @@ export default function PendingUserRegistration() {
 
                 {/* Reviewer Action Dock */}
                 <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "24px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", flexWrap: "wrap", gap: "8px" }}>
                     <label style={{ fontSize: "13.5px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
                       Reviewer Feedback & Remarks (Optional)
                     </label>
@@ -1164,15 +1045,16 @@ export default function PendingUserRegistration() {
                       <button
                         key={chip}
                         type="button"
+                        className={`verify-preset-chip ${reviewMessage === chip ? "active" : ""}`}
                         onClick={() => setReviewMessage(chip)}
                         style={{
-                          padding: "5px 10px",
+                          padding: "6px 12px",
                           borderRadius: "8px",
-                          border: "1px solid #e2e8f0",
+                          border: reviewMessage === chip ? "1px solid #15803d" : "1px solid #e2e8f0",
                           backgroundColor: reviewMessage === chip ? "#f0fdf4" : "#ffffff",
                           color: reviewMessage === chip ? "#15803d" : "#475569",
-                          fontSize: "11.5px",
-                          fontWeight: "600",
+                          fontSize: "12px",
+                          fontWeight: "700",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
                         }}
@@ -1183,16 +1065,19 @@ export default function PendingUserRegistration() {
                   </div>
 
                   <textarea
+                    className="verify-textarea"
                     value={reviewMessage}
                     onChange={(e) => setReviewMessage(e.target.value)}
                     placeholder="Enter instructions for citizen clarification or specific reason for rejection..."
                     disabled={isProcessing}
                     style={{
                       width: "100%",
-                      minHeight: "78px",
+                      minHeight: "84px",
                       padding: "12px 14px",
                       borderRadius: "12px",
                       border: "1px solid #cbd5e1",
+                      backgroundColor: "#ffffff",
+                      color: "#0f172a",
                       fontSize: "13.5px",
                       boxSizing: "border-box",
                       marginBottom: "18px",
@@ -1204,19 +1089,20 @@ export default function PendingUserRegistration() {
                   <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                     <button
                       type="button"
+                      className="verify-btn-clarify"
                       onClick={submitClarification}
                       disabled={isProcessing}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "8px",
-                        padding: "11px 20px",
+                        padding: "12px 20px",
                         borderRadius: "12px",
                         border: "1px solid #fde68a",
                         backgroundColor: "#fffbeb",
                         color: "#b45309",
                         fontSize: "13.5px",
-                        fontWeight: "700",
+                        fontWeight: "800",
                         cursor: "pointer",
                         transition: "all 0.15s ease",
                       }}
@@ -1227,6 +1113,7 @@ export default function PendingUserRegistration() {
 
                     <button
                       type="button"
+                      className="verify-btn-reject"
                       onClick={() => {
                         setRejectionModal({
                           isOpen: true,
@@ -1240,13 +1127,13 @@ export default function PendingUserRegistration() {
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "8px",
-                        padding: "11px 20px",
+                        padding: "12px 20px",
                         borderRadius: "12px",
                         border: "1px solid #fecaca",
                         backgroundColor: "#fef2f2",
                         color: "#b91c1c",
                         fontSize: "13.5px",
-                        fontWeight: "700",
+                        fontWeight: "800",
                         cursor: "pointer",
                         transition: "all 0.15s ease",
                       }}
@@ -1257,13 +1144,14 @@ export default function PendingUserRegistration() {
 
                     <button
                       type="button"
+                      className="verify-btn-approve"
                       onClick={() => handleApprove(previewUser)}
                       disabled={isProcessing}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "8px",
-                        padding: "11px 26px",
+                        padding: "12px 26px",
                         borderRadius: "12px",
                         border: "none",
                         background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
@@ -1272,7 +1160,7 @@ export default function PendingUserRegistration() {
                         fontWeight: "800",
                         cursor: "pointer",
                         boxShadow: "0 4px 14px rgba(21, 128, 61, 0.35)",
-                        transition: "transform 0.15s ease",
+                        transition: "all 0.15s ease",
                       }}
                     >
                       {isProcessing ? <Loader className="animate-spin" size={16} /> : <UserCheck size={18} />}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search,
   Clock,
@@ -96,19 +96,24 @@ export default function Audit() {
     };
   }, [fetchLogs]);
 
-  // 3. Client-side Search and Filter
-  const filteredLogs = logs.filter((log) => {
+  // 3. Client-side Search and Filter with useMemo
+  const filteredLogs = useMemo(() => {
+    if (!searchTerm.trim()) return logs;
     const searchLower = searchTerm.toLowerCase();
-    return (
-      (log.admin_name || log.actor || "").toLowerCase().includes(searchLower) ||
-      (log.target || "").toLowerCase().includes(searchLower) ||
-      (log.action || "").toLowerCase().includes(searchLower) ||
-      (log.details || "").toLowerCase().includes(searchLower)
-    );
-  });
+    return logs.filter((log) => {
+      return (
+        (log.admin_name || log.actor || "").toLowerCase().includes(searchLower) ||
+        (log.target || "").toLowerCase().includes(searchLower) ||
+        (log.action || "").toLowerCase().includes(searchLower) ||
+        (log.details || "").toLowerCase().includes(searchLower)
+      );
+    });
+  }, [logs, searchTerm]);
 
-  const totalPages = Math.ceil(filteredLogs.length / LOGS_PER_PAGE) || 1;
-  const paginatedLogs = filteredLogs.slice((page - 1) * LOGS_PER_PAGE, page * LOGS_PER_PAGE);
+  const totalPages = useMemo(() => Math.ceil(filteredLogs.length / LOGS_PER_PAGE) || 1, [filteredLogs.length]);
+  const paginatedLogs = useMemo(() => {
+    return filteredLogs.slice((page - 1) * LOGS_PER_PAGE, page * LOGS_PER_PAGE);
+  }, [filteredLogs, page]);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>

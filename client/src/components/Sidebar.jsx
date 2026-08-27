@@ -16,8 +16,10 @@ import {
   KeyRound,
   ClipboardList,
   Shield,
+  Menu,
 } from "lucide-react";
 import { useMessageBox } from "./MessageBox";
+import { ThemeSwitch } from "../themes/ThemeContext";
 
 const ONGOING_STATUSES = ["ongoing", "accepted", "en_route", "at_scene", "dispatched"];
 
@@ -30,6 +32,40 @@ export default function Sidebar({
   const location = useLocation();
   const admin = pb.authStore.model;
   const { confirm } = useMessageBox();
+
+  const [isHidden, setIsHidden] = useState(() => {
+    try {
+      return localStorage.getItem("sidebar_hidden") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (isHidden) {
+      document.documentElement.classList.add("sidebar-hidden");
+      try {
+        localStorage.setItem("sidebar_hidden", "true");
+      } catch {}
+    } else {
+      document.documentElement.classList.remove("sidebar-hidden");
+      try {
+        localStorage.setItem("sidebar_hidden", "false");
+      } catch {}
+    }
+
+    // Trigger resize events so Leaflet map canvas updates smoothly
+    window.dispatchEvent(new Event("resize"));
+    const t1 = setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
+    const t2 = setTimeout(() => window.dispatchEvent(new Event("resize")), 200);
+    const t3 = setTimeout(() => window.dispatchEvent(new Event("resize")), 320);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [isHidden]);
 
   const [liveCounts, setLiveCounts] = useState({
     pendingIncidents: 0,
@@ -177,30 +213,52 @@ export default function Sidebar({
   const adminInitial = adminName.charAt(0).toUpperCase();
 
   return (
-    <aside style={styles.sidebar}>
-      {/* Brand Header */}
-      <div style={styles.brandBox}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
-          <img
-            src="/icon.ico"
-            alt="Lagonglong Emergency logo"
-            style={styles.brandLogo}
-          />
-          <div>
-            <h2 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", lineHeight: "1.2" }}>
-              Lagonglong
-            </h2>
-            <span style={{ fontSize: "12px", color: "#15803d", fontWeight: "700", letterSpacing: "0.02em" }}>
-              Emergency Command
-            </span>
+    <>
+      {/* 3 Landscape Lines Floating Button to restore sidebar when hidden */}
+      {isHidden && (
+        <button
+          type="button"
+          className="sidebar-floating-toggle-btn"
+          onClick={() => setIsHidden(false)}
+          title="Open Navigation Menu"
+          aria-label="Open Navigation Menu"
+        >
+          <Menu size={20} strokeWidth={2.5} />
+        </button>
+      )}
+
+      <aside className="sidebar-container" style={styles.sidebar}>
+        {/* Brand Header */}
+        <div style={styles.brandBox}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+              <img
+                src="/icon.ico"
+                alt="Lagonglong Emergency logo"
+                style={styles.brandLogo}
+              />
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#0f172a", lineHeight: "1.2" }}>
+                  Lagonglong
+                </h2>
+                <span style={{ fontSize: "11px", color: "#15803d", fontWeight: "600", letterSpacing: "0.01em" }}>
+                  Emergency Command
+                </span>
+              </div>
+            </div>
+
+            {/* 3 Landscape Lines Button inside sidebar to collapse */}
+            <button
+              type="button"
+              className="sidebar-hamburger-btn"
+              onClick={() => setIsHidden(true)}
+              title="Collapse Sidebar"
+              aria-label="Collapse Sidebar"
+            >
+              <Menu size={18} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
-
-        <div style={styles.onlineBadge}>
-          <span className="live-status-pulse" style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
-          <span>System Online</span>
-        </div>
-      </div>
 
       {/* Navigation */}
       <nav ref={navRef} className="sidebarNavNoScroll" style={styles.nav}>
@@ -438,8 +496,8 @@ export default function Sidebar({
       </nav>
 
       {/* Admin Profile & Logout Footer */}
-      <div style={styles.logoutSection}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+      <div className="sidebarLogoutSection" style={styles.logoutSection}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
           <div
             style={{
               width: "34px",
@@ -458,13 +516,14 @@ export default function Sidebar({
             {adminInitial}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <span className="sidebarAdminName" style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {adminName}
             </span>
-            <span style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b" }}>
+            <span className="sidebarAdminRole" style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b" }}>
               {isSuperAdmin ? "Super Admin" : "Officer"}
             </span>
           </div>
+          <ThemeSwitch />
         </div>
 
         <button className="sidebarLogoutBtn" onClick={handleLogout} style={styles.logoutBtn}>
@@ -472,14 +531,16 @@ export default function Sidebar({
         </button>
       </div>
     </aside>
+  </>
   );
 }
+
 
 const styles = {
   sidebar: {
     width: "216px",
     backgroundColor: "#ffffff",
-    borderRight: "1px solid #eef2f6",
+    borderRight: "1px solid #e2e8f0",
     color: "#0f172a",
     display: "flex",
     flexDirection: "column",
@@ -489,92 +550,79 @@ const styles = {
     top: 0,
     zIndex: 1000,
     overflow: "hidden",
-    boxShadow: "2px 0 14px rgba(15, 23, 42, 0.03)",
+    boxShadow: "none",
   },
   brandBox: {
-    padding: "20px 16px 16px",
+    padding: "16px 14px",
     borderBottom: "1px solid #f1f5f9",
     backgroundColor: "#ffffff",
   },
   brandLogo: {
-    width: "36px",
-    height: "36px",
+    width: "32px",
+    height: "32px",
     display: "block",
-    borderRadius: "8px",
-  },
-  onlineBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "3px 8px",
-    borderRadius: "12px",
-    backgroundColor: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-    color: "#15803d",
-    fontSize: "10.5px",
-    fontWeight: "700",
-    letterSpacing: "0.02em",
+    borderRadius: "6px",
   },
   nav: {
     flex: 1,
-    padding: "12px 10px",
+    padding: "12px 8px",
     display: "flex",
     flexDirection: "column",
-    gap: "2px",
+    gap: "1px",
     overflowY: "auto",
   },
   sectionTitle: {
-    padding: "14px 10px 6px",
-    fontSize: "10.5px",
+    padding: "14px 10px 4px",
+    fontSize: "11px",
     color: "#94a3b8",
-    fontWeight: "800",
+    fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: "0.06em",
+    letterSpacing: "0.05em",
     margin: 0,
   },
   navItem: {
-    padding: "9px 12px",
+    padding: "8px 10px",
     cursor: "pointer",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: "10px",
-    transition: "all 0.16s ease",
+    borderRadius: "6px",
+    transition: "background-color 0.15s ease, color 0.15s ease",
     color: "#475569",
     fontSize: "13px",
-    fontWeight: "600",
+    fontWeight: "500",
   },
   navItemActive: {
-    padding: "9px 12px",
+    padding: "8px 10px",
     backgroundColor: "#f0fdf4",
     color: "#15803d",
-    fontWeight: "800",
+    fontWeight: "600",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: "10px",
+    borderRadius: "6px",
     fontSize: "13px",
-    transition: "all 0.16s ease",
-    borderLeft: "3px solid #15803d",
+    transition: "background-color 0.15s ease, color 0.15s ease",
+    borderLeft: "2.5px solid #15803d",
   },
   subNavItem: {
-    padding: "7px 12px 7px 32px",
+    padding: "6px 10px 6px 28px",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
-    borderRadius: "8px",
+    borderRadius: "6px",
     color: "#64748b",
     fontSize: "12px",
     fontWeight: "500",
   },
   subNavItemActive: {
-    padding: "7px 12px 7px 32px",
+    padding: "6px 10px 6px 28px",
     backgroundColor: "#f0fdf4",
     color: "#15803d",
-    fontWeight: "700",
+    fontWeight: "600",
     display: "flex",
     alignItems: "center",
-    borderRadius: "8px",
+    borderRadius: "6px",
     fontSize: "12px",
   },
   navLinkGroup: {
@@ -584,67 +632,67 @@ const styles = {
     minWidth: 0,
   },
   badgeRed: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: "#fef2f2",
     color: "#b91c1c",
-    border: "1px solid #fecaca",
+    border: "1px solid #fee2e2",
     fontSize: "11px",
-    minWidth: "19px",
-    height: "19px",
+    minWidth: "18px",
+    height: "18px",
     padding: "0 5px",
     borderRadius: "999px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontWeight: "800",
+    fontWeight: "600",
   },
   badgeOrange: {
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#fffbeb",
     color: "#b45309",
-    border: "1px solid #fde68a",
+    border: "1px solid #fef3c7",
     fontSize: "11px",
-    minWidth: "19px",
-    height: "19px",
+    minWidth: "18px",
+    height: "18px",
     padding: "0 5px",
     borderRadius: "999px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontWeight: "800",
+    fontWeight: "600",
   },
   badgeGreen: {
     backgroundColor: "#f0fdf4",
     color: "#15803d",
-    border: "1px solid #bbf7d0",
+    border: "1px solid #dcfce7",
     fontSize: "11px",
-    minWidth: "19px",
-    height: "19px",
+    minWidth: "18px",
+    height: "18px",
     padding: "0 5px",
     borderRadius: "999px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    fontWeight: "800",
+    fontWeight: "600",
   },
   logoutSection: {
-    padding: "14px 14px 16px",
+    padding: "12px 14px 14px",
     borderTop: "1px solid #f1f5f9",
-    backgroundColor: "#fcfdfd",
+    backgroundColor: "#ffffff",
     marginTop: "auto",
   },
   logoutBtn: {
     width: "100%",
-    padding: "8px 12px",
+    padding: "7px 10px",
     backgroundColor: "#ffffff",
-    color: "#dc2626",
-    border: "1px solid #fecaca",
-    borderRadius: "10px",
+    color: "#64748b",
+    border: "1px solid #e2e8f0",
+    borderRadius: "6px",
     cursor: "pointer",
-    fontWeight: "700",
+    fontWeight: "500",
     fontSize: "12px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "8px",
-    transition: "all 0.18s ease",
+    gap: "6px",
+    transition: "all 0.15s ease",
   },
 };

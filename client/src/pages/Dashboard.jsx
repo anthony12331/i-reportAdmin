@@ -51,18 +51,19 @@ const ONGOING_STATUSES = [
 
 // Isolated clock component — its 1-second setInterval re-renders ONLY this
 // tiny node, not the entire Dashboard tree (KPIs, map, panels, etc.)
-function LiveClock({ color = "#0f172a", size = 13, style = {} }) {
+function LiveClock({ color = "inherit", size = 13, style = {} }) {
   const [time, setTime] = React.useState(() => new Date());
   React.useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
   return (
-    <span style={style}>
+    <span style={{ color, ...style }}>
       {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
     </span>
   );
 }
+
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -405,10 +406,11 @@ export default function Dashboard() {
 
           {/* Right Header Live Telemetry Controls */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            {/* Audio Alert Toggle */}
+            {/* Audio Siren Mute / Unmute Toggle */}
             <button
               type="button"
-              onClick={() => setSoundMuted((prev) => !prev)}
+              className="dashboard-sirens-btn"
+              onClick={() => setSoundMuted(!soundMuted)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -431,6 +433,7 @@ export default function Dashboard() {
 
             {/* Live Clock Pill */}
             <div
+              className="dashboard-clock-pill"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -529,14 +532,14 @@ export default function Dashboard() {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
+              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#d97706", margin: 0, letterSpacing: "-0.03em" }}>
                 {pendingIncidents.length}
               </h2>
-              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#d97706" }}>unassigned</span>
+              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#b45309" }}>unassigned</span>
             </div>
           </div>
 
-          {/* Ongoing Operations */}
+          {/* Active Dispatches */}
           <div
             className="premium-table-card"
             onClick={() => navigate("/ongoing-incidents")}
@@ -552,7 +555,7 @@ export default function Dashboard() {
               <span style={{ fontSize: "11px", fontWeight: "800", color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                 Active Dispatches
               </span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#e0f2fe", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Clock size={14} color="#0284c7" />
               </div>
             </div>
@@ -609,7 +612,7 @@ export default function Dashboard() {
                 Citizen Registrations
               </span>
               <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <UserCheck size={14} color="#7c3aed" />
+                <Users size={14} color="#7c3aed" />
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
@@ -624,7 +627,7 @@ export default function Dashboard() {
         {/* 3. HERO LIVE TACTICAL MAP (FULL WIDTH DIRECTLY IN THE MIDDLE + TV FULLSCREEN SUPPORT) */}
         <div
           ref={mapCardRef}
-          className={isTvMode ? "" : "premium-table-card"}
+          className={isTvMode ? "dashboard-map-card" : "premium-table-card dashboard-map-card"}
           style={
             isTvMode
               ? {
@@ -654,6 +657,7 @@ export default function Dashboard() {
         >
           {/* Map Header / TV Fullscreen HUD Bar */}
           <div
+            className="dashboard-map-header"
             style={
               isTvMode
                 ? {
@@ -684,6 +688,7 @@ export default function Dashboard() {
             {/* Title & Live Status */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div
+                className="dashboard-map-icon-wrap"
                 style={{
                   width: isTvMode ? "36px" : "32px",
                   height: isTvMode ? "36px" : "32px",
@@ -699,7 +704,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <h3 style={{ margin: 0, fontSize: isTvMode ? "17px" : "16px", fontWeight: "900", color: isTvMode ? "#ffffff" : "#0f172a", letterSpacing: "-0.02em" }}>
+                  <h3 className="dashboard-map-title" style={{ margin: 0, fontSize: isTvMode ? "17px" : "16px", fontWeight: "900", color: isTvMode ? "#ffffff" : "#0f172a", letterSpacing: "-0.02em" }}>
                     {isTvMode ? "LAGONGLONG MDRRMO • COMMAND CENTER LIVE MAP" : "Live Tactical Emergency Map"}
                   </h3>
                   {isTvMode && (
@@ -708,7 +713,7 @@ export default function Dashboard() {
                     </span>
                   )}
                 </div>
-                <span style={{ fontSize: "11.5px", color: isTvMode ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+                <span className="dashboard-map-subtitle" style={{ fontSize: "11.5px", color: isTvMode ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                   Real-time GPS emergency positioning, live responder units, and municipal jurisdiction boundaries
                 </span>
               </div>
@@ -740,6 +745,7 @@ export default function Dashboard() {
 
               {/* Status Badges */}
               <span
+                className="dashboard-map-sos-badge"
                 style={{
                   fontSize: "11.5px",
                   fontWeight: "800",
@@ -757,6 +763,7 @@ export default function Dashboard() {
                 <span>{activeSosList.length} SOS Alerts</span>
               </span>
               <span
+                className="dashboard-map-ongoing-badge"
                 style={{
                   fontSize: "11.5px",
                   fontWeight: "800",
@@ -774,6 +781,7 @@ export default function Dashboard() {
                 <span>{ongoingCount} Ongoing Incidents</span>
               </span>
               <span
+                className="dashboard-map-ready-badge"
                 style={{
                   fontSize: "11.5px",
                   fontWeight: "800",
@@ -794,6 +802,7 @@ export default function Dashboard() {
               {/* Fullscreen Button Toggle */}
               <button
                 type="button"
+                className="dashboard-map-fullscreen-btn"
                 onClick={toggleTvMode}
                 style={{
                   display: "inline-flex",
@@ -935,6 +944,7 @@ export default function Dashboard() {
               </div>
               <button
                 type="button"
+                className="dashboard-view-all-btn"
                 onClick={() => navigate("/pending-incidents")}
                 style={{
                   padding: "4px 10px",
@@ -1112,6 +1122,7 @@ export default function Dashboard() {
                     return (
                       <div
                         key={key}
+                        className="dashboard-agency-card"
                         style={{
                           padding: "8px 10px",
                           borderRadius: "8px",
@@ -1173,6 +1184,7 @@ export default function Dashboard() {
             <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #f1f5f9" }}>
               <button
                 type="button"
+                className="dashboard-footer-action-btn"
                 onClick={() => navigate("/ongoing-incidents")}
                 style={{
                   width: "100%",
@@ -1223,6 +1235,7 @@ export default function Dashboard() {
               </div>
               <button
                 type="button"
+                className="dashboard-view-all-btn"
                 onClick={() => navigate("/audit-logs")}
                 style={{
                   padding: "4px 10px",
@@ -1255,6 +1268,7 @@ export default function Dashboard() {
                     {data.auditLogs.slice(0, 3).map((log) => (
                       <div
                         key={log.id}
+                        className="dashboard-audit-row"
                         style={{
                           display: "flex",
                           alignItems: "flex-start",
@@ -1288,6 +1302,7 @@ export default function Dashboard() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px" }}>
                   <button
                     type="button"
+                    className="dashboard-quick-cmd-btn"
                     onClick={() => navigate("/report")}
                     style={{
                       padding: "8px",
@@ -1309,6 +1324,7 @@ export default function Dashboard() {
                   </button>
                   <button
                     type="button"
+                    className="dashboard-quick-cmd-btn"
                     onClick={() => navigate("/verified-users")}
                     style={{
                       padding: "8px",
@@ -1330,6 +1346,7 @@ export default function Dashboard() {
                   </button>
                   <button
                     type="button"
+                    className="dashboard-quick-cmd-btn"
                     onClick={() => navigate("/ongoing-incidents")}
                     style={{
                       padding: "8px",
@@ -1351,6 +1368,7 @@ export default function Dashboard() {
                   </button>
                   <button
                     type="button"
+                    className="dashboard-quick-cmd-btn"
                     onClick={() => navigate("/manage-admins")}
                     style={{
                       padding: "8px",
@@ -1367,12 +1385,13 @@ export default function Dashboard() {
                       gap: "5px",
                     }}
                   >
-                    <Settings size={13} color="#64748b" />
+                    <Shield size={13} color="#64748b" />
                     <span>Admin Mgmt</span>
                   </button>
                 </div>
               </div>
             </div>
+
 
             {/* Panel Footer */}
             <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px", color: "#64748b", fontWeight: "700" }}>

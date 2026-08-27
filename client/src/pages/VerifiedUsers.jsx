@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
@@ -154,6 +154,22 @@ export default function VerifiedUsers() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const { confirm } = useMessageBox();
+
+  const barangayOptions = useMemo(() => {
+    const unique = [...new Set(users.map((user) => user.baranggay).filter(Boolean))];
+    return [
+      { value: "", label: "All Barangays" },
+      ...unique.map((barangay) => ({ value: barangay, label: barangay })),
+    ];
+  }, [users]);
+
+  const municipalityOptions = useMemo(() => {
+    const unique = [...new Set(users.map((user) => user.municipality).filter(Boolean))];
+    return [
+      { value: "", label: "All Municipalities" },
+      ...unique.map((municipality) => ({ value: municipality, label: municipality })),
+    ];
+  }, [users]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -500,13 +516,7 @@ export default function VerifiedUsers() {
               <FilterDropdown
                 label="All Barangays"
                 value={filters.barangay}
-                options={[
-                  { value: "", label: "All Barangays" },
-                  ...[...new Set(users.map((user) => user.baranggay).filter(Boolean))].map((barangay) => ({
-                    value: barangay,
-                    label: barangay,
-                  })),
-                ]}
+                options={barangayOptions}
                 onChange={(barangay) => {
                   setPage(1);
                   setFilters((current) => ({ ...current, barangay }));
@@ -515,13 +525,7 @@ export default function VerifiedUsers() {
               <FilterDropdown
                 label="All Municipalities"
                 value={filters.municipality}
-                options={[
-                  { value: "", label: "All Municipalities" },
-                  ...[...new Set(users.map((user) => user.municipality).filter(Boolean))].map((municipality) => ({
-                    value: municipality,
-                    label: municipality,
-                  })),
-                ]}
+                options={municipalityOptions}
                 onChange={(municipality) => {
                   setPage(1);
                   setFilters((current) => ({ ...current, municipality }));

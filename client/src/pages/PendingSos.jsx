@@ -416,6 +416,12 @@ export default function PendingSos() {
             const activeSosDispatches = sosDispatches.filter((d) => d.status?.toLowerCase() !== "resolved");
             const previouslyDispatchedIds = new Set(sosDispatches.map((d) => d.responder_id));
             const selectedIds = selectedResponderIds[sos.id] || [];
+            const sosUser = sos.expand?.user || sos.expand?.users;
+            const sosUserAvatar = sosUser ? (
+              (sosUser.selfie ? pb.files.getURL(sosUser, sosUser.selfie) : null) ||
+              (sosUser.avatar ? pb.files.getURL(sosUser, sosUser.avatar) : null) ||
+              (sosUser.profile_picture ? pb.files.getURL(sosUser, sosUser.profile_picture) : null)
+            ) : null;
 
             return (
               <div
@@ -502,9 +508,18 @@ export default function PendingSos() {
                       fontWeight: "800",
                       fontSize: "13px",
                       flexShrink: 0,
+                      overflow: "hidden",
                     }}
                   >
-                    <User size={18} />
+                    {sosUserAvatar ? (
+                      <img
+                        src={sosUserAvatar}
+                        alt="Resident"
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <User size={18} />
+                    )}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>

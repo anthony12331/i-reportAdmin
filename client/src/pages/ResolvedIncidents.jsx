@@ -25,6 +25,14 @@ import {
   Mountain,
 } from "lucide-react";
 
+const getFileUrl = (record, field) =>
+  record && record[field] ? pb.files.getURL(record, record[field]) : null;
+
+const getUserAvatarUrl = (user) => {
+  if (!user) return null;
+  return getFileUrl(user, "selfie") || getFileUrl(user, "avatar") || getFileUrl(user, "profile_picture") || null;
+};
+
 const getInitials = (user) => {
   if (!user) return "CT";
   const first = user.first_name ? user.first_name.trim().charAt(0).toUpperCase() : "";
@@ -280,6 +288,7 @@ export default function ResolvedIncidents() {
                   <button
                     key={val}
                     type="button"
+                    className={`resolved-filter-tab ${isActive ? "active" : ""}`}
                     onClick={() => {
                       setTypeFilter(val);
                       setCurrentPage(1);
@@ -338,6 +347,7 @@ export default function ResolvedIncidents() {
                       const fullName = `${reporter?.first_name || ""} ${reporter?.last_name || ""}`.trim() || (isSos ? "SOS Citizen" : "Verified Citizen");
                       const initials = getInitials(reporter);
                       const avatarStyle = getAvatarStyle(fullName);
+                      const avatarUrl = getUserAvatarUrl(reporter);
                       const typeBadge = getTypeBadge(incident.type, isSos);
 
                       return (
@@ -345,9 +355,18 @@ export default function ResolvedIncidents() {
                           {/* Citizen Reporter */}
                           <td>
                             <div className="premium-user-cell">
-                              <div className="premium-avatar" style={{ background: avatarStyle.bg, color: avatarStyle.color }}>
-                                {initials}
-                              </div>
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={fullName}
+                                  className="premium-avatar"
+                                  style={{ objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div className="premium-avatar" style={{ background: avatarStyle.bg, color: avatarStyle.color }}>
+                                  {initials}
+                                </div>
+                              )}
                               <div className="premium-user-info">
                                 <span className="premium-user-name">{fullName}</span>
                                 <span className="premium-user-sub">
@@ -360,6 +379,7 @@ export default function ResolvedIncidents() {
                           {/* Incident Type */}
                           <td>
                             <span
+                              className={`resolved-type-badge type-${(incident.type || (isSos ? "sos" : "default")).toLowerCase()}`}
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
@@ -380,7 +400,7 @@ export default function ResolvedIncidents() {
 
                           {/* Location */}
                           <td>
-                            <div style={{ maxWidth: "260px" }}>
+                            <div className="resolved-location-cell" style={{ maxWidth: "260px" }}>
                               <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", fontSize: "13px", color: "#1e293b", fontWeight: "600" }}>
                                 <MapPin size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
                                 <span>{addresses[incident.id] || "Resolving GPS telemetry..."}</span>
@@ -401,6 +421,7 @@ export default function ResolvedIncidents() {
                                   return (
                                     <span
                                       key={d.id}
+                                      className="resolved-unit-badge"
                                       style={{
                                         display: "inline-flex",
                                         alignItems: "center",
@@ -420,6 +441,7 @@ export default function ResolvedIncidents() {
                                 })
                               ) : isSos && incident.expand?.assigned_responder ? (
                                 <span
+                                  className="resolved-unit-badge"
                                   style={{
                                     display: "inline-flex",
                                     alignItems: "center",
@@ -437,6 +459,7 @@ export default function ResolvedIncidents() {
                                 </span>
                               ) : (
                                 <span
+                                  className="resolved-unit-badge"
                                   style={{
                                     display: "inline-flex",
                                     alignItems: "center",
@@ -458,7 +481,7 @@ export default function ResolvedIncidents() {
 
                           {/* Resolved Date */}
                           <td>
-                            <div>
+                            <div className="resolved-date-cell">
                               <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "13px", display: "block" }}>
                                 {formatDate(incident.updated || incident.created)}
                               </span>
@@ -565,25 +588,26 @@ export default function ResolvedIncidents() {
                   <h3 style={detailStyles.detailSectionTitle}>Reporter Information</h3>
                   <div style={detailStyles.reporterDetail}>
                     <div style={detailStyles.reporterAvatar}>
-                      {selectedIncident.expand?.users?.selfie ? (
-                        <img
-                          src={pb.files.getURL(
-                            selectedIncident.expand.users,
-                            selectedIncident.expand.users.selfie
-                          )}
-                          alt="Reporter"
-                          style={detailStyles.reporterAvatarImage}
-                        />
-                      ) : (
-                        <ShieldCheck size={20} />
-                      )}
+                      {(() => {
+                        const rep = selectedIncident.expand?.users || selectedIncident.expand?.user;
+                        const repAvatar = getUserAvatarUrl(rep);
+                        return repAvatar ? (
+                          <img
+                            src={repAvatar}
+                            alt="Reporter"
+                            style={detailStyles.reporterAvatarImage}
+                          />
+                        ) : (
+                          <ShieldCheck size={20} />
+                        );
+                      })()}
                     </div>
                     <div style={detailStyles.reporterSummary}>
                       <strong style={detailStyles.reporterName}>
-                        {selectedIncident.expand?.users?.first_name || "Unknown"} {selectedIncident.expand?.users?.last_name || "Resident"}
+                        {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.first_name || "Unknown"} {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.last_name || "Resident"}
                       </strong>
                       <span style={detailStyles.reporterSub}>Verified Resident</span>
-                      <span style={detailStyles.reporterSub}>ID: {selectedIncident.expand?.users?.user_id || "Not available"}</span>
+                      <span style={detailStyles.reporterSub}>ID: {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.user_id || "Not available"}</span>
                     </div>
                   </div>
                   <div style={detailStyles.detailContactRow}>

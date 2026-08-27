@@ -1,51 +1,52 @@
+// src/themes/resolvedStyles.js
 export function getUnitStyles(department = "") {
   const dept = department ? department.toLowerCase() : "";
 
   if (dept.includes("pnp") || dept.includes("police")) {
     return {
-      color: "#06b6d4",
-      bg: "rgba(56, 189, 248, 0.15)",
+      color: "#0369a1",
+      bg: "#f0f9ff",
     };
   }
 
   if (dept.includes("bfp") || dept.includes("fire")) {
     return {
-      color: "#fb923c",
-      bg: "rgba(251, 146, 60, 0.15)",
+      color: "#c2410c",
+      bg: "#fff7ed",
     };
   }
 
   if (dept.includes("rhu") || dept.includes("medical") || dept.includes("health")) {
     return {
-      color: "#f87171",
-      bg: "rgba(248, 113, 113, 0.15)",
+      color: "#b91c1c",
+      bg: "#fef2f2",
     };
   }
 
   return {
-    color: "#34d399",
-    bg: "rgba(52, 211, 153, 0.15)",
+    color: "#15803d",
+    bg: "#f0fdf4",
   };
 }
 
 const glassPanel = {
   backgroundColor: "#ffffff",
-  border: "1px solid #d7e5da",
-  boxShadow: "0 8px 24px rgba(24, 95, 53, 0.06)",
-  borderRadius: "12px",
+  border: "1px solid #e2e8f0",
+  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+  borderRadius: "8px",
 };
 
 export const resolvedStyles = {
   shell: {
     display: "flex",
     minHeight: "100vh",
-    background: "radial-gradient(circle at 50% -20%, #ffffff 0%, #f6faf7 80%)",
-    color: "#111111",
+    background: "#f8fafc",
+    color: "#0f172a",
     fontFamily: "Inter, Arial, sans-serif",
   },
   main: {
     flex: 1,
-    padding: "28px 24px 40px",
+    padding: "24px 24px 40px",
     marginLeft: "216px",
   },
   headerRow: {
@@ -57,19 +58,19 @@ export const resolvedStyles = {
   pageTitle: {
     fontFamily: "Inter, Arial, sans-serif",
     fontSize: "20px",
-    fontWeight: "800",
-    color: "#111111",
-    letterSpacing: "0",
+    fontWeight: "600",
+    color: "#0f172a",
+    letterSpacing: "-0.02em",
     margin: 0,
     textTransform: "capitalize",
   },
   subtitle: {
-    fontSize: "15px",
-    margin: "8px 0 0 0",
-    fontWeight: "600",
-    color: "#477257",
+    fontSize: "13px",
+    margin: "4px 0 0 0",
+    fontWeight: "400",
+    color: "#64748b",
     textTransform: "none",
-    letterSpacing: "0.3px",
+    letterSpacing: "0",
   },
   searchWrapper: {
     position: "relative",
@@ -77,20 +78,20 @@ export const resolvedStyles = {
   },
   searchInput: {
     width: "100%",
-    padding: "16px 40px 16px 52px",
+    padding: "10px 14px 10px 42px",
     backgroundColor: "#ffffff",
-    border: "1px solid #c8ddce",
-    borderRadius: "9px",
-    color: "#111111",
-    fontSize: "15px",
-    fontWeight: "800",
+    border: "1px solid #e2e8f0",
+    borderRadius: "6px",
+    color: "#0f172a",
+    fontSize: "13px",
+    fontWeight: "400",
     outline: "none",
-    boxShadow: "0 8px 20px rgba(24, 95, 53, 0.08)",
-    transition: "all 0.3s",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)",
+    transition: "border-color 0.15s ease",
   },
   filterGroup: {
     display: "flex",
-    gap: "14px",
+    gap: "8px",
     alignItems: "center",
     flexWrap: "wrap",
   },
@@ -99,29 +100,28 @@ export const resolvedStyles = {
     alignItems: "center",
     flexWrap: "wrap",
     gap: "8px",
-    padding: "14px 16px",
+    padding: "12px 14px",
     marginBottom: "14px",
     backgroundColor: "#ffffff",
-    border: "1px solid #d7e5da",
+    border: "1px solid #e2e8f0",
     borderRadius: "8px",
-    boxShadow: "0 4px 14px rgba(24, 95, 53, 0.04)",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)",
   },
   filterBarSearch: {
     flex: "1 0 100%",
   },
   pillButton: (isActive) => ({
-    background: isActive ? "#18864b" : "#ffffff",
-    color: isActive ? "#ffffff" : "#477257",
-    border: isActive ? "1px solid #18864b" : "1px solid #c8ddce",
-    padding: "9px 14px",
-    borderRadius: "7px",
-    fontWeight: "700",
-    fontSize: "10px",
-    letterSpacing: "2px",
+    background: isActive ? "#15803d" : "#ffffff",
+    color: isActive ? "#ffffff" : "#475569",
+    border: isActive ? "1px solid #15803d" : "1px solid #e2e8f0",
+    padding: "6px 12px",
+    borderRadius: "6px",
+    fontWeight: "500",
+    fontSize: "11px",
+    letterSpacing: "0.02em",
     textTransform: "uppercase",
     cursor: "pointer",
-    transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-    boxShadow: isActive ? "0 6px 14px rgba(24, 95, 53, 0.16)" : "none",
+    transition: "all 0.15s ease",
   }),
   panel: {
     ...glassPanel,
@@ -132,40 +132,40 @@ export const resolvedStyles = {
   },
   th: {
     textAlign: "left",
-    padding: "24px 32px",
-    fontSize: "12px",
-    fontWeight: "700",
-    color: "#477257",
-    letterSpacing: "2px",
+    padding: "12px 18px",
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "#64748b",
+    letterSpacing: "0.04em",
     textTransform: "uppercase",
-    borderBottom: "1px solid #d7e5da",
-    backgroundColor: "#e7f5eb",
+    borderBottom: "1px solid #e2e8f0",
+    backgroundColor: "#f8fafc",
   },
   td: {
-    padding: "24px 32px",
+    padding: "14px 18px",
     verticalAlign: "middle",
-    borderBottom: "1px solid #edf3ee",
-    color: "#111111",
-    fontWeight: "500",
-    fontSize: "14px",
+    borderBottom: "1px solid #f1f5f9",
+    color: "#334155",
+    fontWeight: "400",
+    fontSize: "13px",
   },
   mutedText: {
-    fontSize: "12px",
-    fontWeight: "700",
+    fontSize: "11px",
+    fontWeight: "400",
     color: "#94a3b8",
-    marginTop: "6px",
+    marginTop: "2px",
   },
   detailsButton: {
-    padding: "9px 12px",
-    border: "1px solid #b8d7c1",
-    borderRadius: "8px",
-    backgroundColor: "#f6faf7",
-    color: "#177a4a",
+    padding: "5px 10px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "6px",
+    backgroundColor: "#ffffff",
+    color: "#15803d",
     cursor: "pointer",
     fontSize: "12px",
-    fontWeight: "800",
+    fontWeight: "600",
     whiteSpace: "nowrap",
-    transition: "all 0.2s ease",
+    transition: "all 0.15s ease",
   },
 };
 

@@ -638,7 +638,7 @@ function App() {
 
       <div style={styles.alertStack}>
         {incidentAlerts.map((alert) => (
-          <div key={alert.alertKey || alert.id} style={styles.incidentAlert}>
+          <div key={alert.alertKey || alert.id} className="global-incident-alert-toast" style={styles.incidentAlert}>
             <strong>{alert.label}</strong>
             <span>{alert.message}</span>
           </div>

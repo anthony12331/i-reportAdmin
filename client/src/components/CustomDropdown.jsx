@@ -49,6 +49,7 @@ export default function CustomDropdown({
     >
       <button
         type="button"
+        className={`custom-dropdown-trigger ${open ? "open" : ""} ${isActive ? "active" : ""}`}
         onClick={() => setOpen((prev) => !prev)}
         style={{
           width: "100%",
@@ -90,6 +91,7 @@ export default function CustomDropdown({
 
       {open && (
         <div
+          className="custom-dropdown-menu"
           style={{
             position: "absolute",
             top: "calc(100% + 5px)",
@@ -117,6 +119,7 @@ export default function CustomDropdown({
               <button
                 key={option.value}
                 type="button"
+                className={`custom-dropdown-item ${isOptionSelected ? "selected" : ""}`}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);

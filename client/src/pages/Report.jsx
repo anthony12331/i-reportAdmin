@@ -475,8 +475,8 @@ export default function Report() {
     },
   };
 
-  // Chart Configs
-  const typeChartData = {
+  // Chart Configs & Filtered Reports with useMemo
+  const typeChartData = useMemo(() => ({
     labels: Object.keys(analytics.types),
     datasets: [
       {
@@ -495,9 +495,9 @@ export default function Report() {
         barThickness: 28,
       },
     ],
-  };
+  }), [analytics.types]);
 
-  const statusChartData = {
+  const statusChartData = useMemo(() => ({
     labels: ["Resolved", "Active / Ongoing", "Pending Queue"],
     datasets: [
       {
@@ -511,7 +511,20 @@ export default function Report() {
         hoverOffset: 6,
       },
     ],
-  };
+  }), [analytics.statuses]);
+
+  const filteredReports = useMemo(() => {
+    if (!tableSearch.trim()) return reports;
+    const query = tableSearch.toLowerCase();
+    return reports.filter((r) => {
+      const rawType = (r.type || r.assigned_department || "").toLowerCase();
+      const addr = (r.resolvedAddress || "").toLowerCase();
+      const rep = r.reporterUser
+        ? `${r.reporterUser.first_name || ""} ${r.reporterUser.last_name || ""}`.toLowerCase()
+        : "";
+      return rawType.includes(query) || addr.includes(query) || rep.includes(query);
+    });
+  }, [reports, tableSearch]);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>

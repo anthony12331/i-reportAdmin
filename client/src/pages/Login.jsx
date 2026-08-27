@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import { loginStyles } from "../themes/loginStyles";
-import { AlertTriangle, Eye, EyeOff, Loader, Mail, Lock, ArrowRight, KeyRound } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, Loader, Mail, Lock, KeyRound } from "lucide-react";
 
 function FloatingInput({
   id,
@@ -147,8 +147,23 @@ export default function Login() {
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Restore saved email from localStorage if Remember Me was enabled
+  // Preload Dashboard bundle + pre-warm API connection on mount
   useEffect(() => {
+    // Preload next page and components in background for instant navigation
+    import("./Dashboard").catch(() => {});
+    import("../components/Sidebar").catch(() => {});
+
+    // Pre-warm TCP/TLS connection to the auth API
+    try {
+      fetch("https://api.ireportsystem.com/express-api/admin-login", {
+        method: "OPTIONS",
+        mode: "cors",
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
+
+    // Restore saved email from localStorage if Remember Me was enabled
     try {
       const savedEmail = localStorage.getItem("admin_remember_email");
       if (savedEmail) {
@@ -229,11 +244,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // POST request to Node API server
+      // High-priority POST request to Node API server
       const response = await fetch("https://api.ireportsystem.com/express-api/admin-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: trimmedEmail, password }),
+        priority: "high",
+        keepalive: true,
       });
 
       const data = await response.json();
@@ -256,8 +273,7 @@ export default function Login() {
         // ignore storage errors
       }
 
-      console.log(`Logged in successfully as ${data.role}`);
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.warn("Security Block:", err.message);
       showLoginAlert("Access Denied: Invalid Email or Password.");
@@ -439,10 +455,7 @@ export default function Login() {
                   {loading ? (
                     <Loader className="animate-spin" size={20} />
                   ) : (
-                    <>
-                      <span>Login</span>
-                      <ArrowRight size={18} />
-                    </>
+                    <span>Login</span>
                   )}
                 </PremiumButton>
               </form>
@@ -473,10 +486,7 @@ export default function Login() {
                   {loading ? (
                     <Loader className="animate-spin" size={20} />
                   ) : (
-                    <>
-                      <span>Send OTP</span>
-                      <ArrowRight size={18} />
-                    </>
+                    <span>Send OTP</span>
                   )}
                 </PremiumButton>
 
@@ -534,10 +544,7 @@ export default function Login() {
                   {loading ? (
                     <Loader className="animate-spin" size={20} />
                   ) : (
-                    <>
-                      <span>Reset Password</span>
-                      <ArrowRight size={18} />
-                    </>
+                    <span>Reset Password</span>
                   )}
                 </PremiumButton>
 

@@ -1,10 +1,11 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, Tooltip, LayersControl } from 'react-leaflet';
-import { Radio, Phone, ShieldAlert, Clock, CheckCircle2, Navigation, MapPin, Activity, AlertTriangle, Flame, Shield, Ambulance, Car, AlertOctagon } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, GeoJSON, LayersControl } from 'react-leaflet';
+import { Radio, Phone, ShieldAlert, Clock, CheckCircle2, Navigation, MapPin, Activity, Flame } from 'lucide-react';
 // GeoJSON files are loaded lazily when the map mounts, not at app startup
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { dashboardStyles } from '../themes/dashboardStyles';
+import { useTheme } from '../themes/ThemeContext';
 
 const style = document.createElement('style');
 style.textContent = `
@@ -24,17 +25,19 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-const LAGONG_STYLE = {
-  color: '#3b82f6',
+const getLagongStyle = (isDark) => ({
+  color: isDark ? '#38bdf8' : '#3b82f6',
   weight: 2,
-  fillOpacity: 0.1
-};
+  fillColor: isDark ? '#0284c7' : '#3b82f6',
+  fillOpacity: isDark ? 0.18 : 0.1,
+});
 
-const BALINGASAG_STYLE = {
-  color: '#f59e0b',
+const getBalingasagStyle = (isDark) => ({
+  color: isDark ? '#fbbf24' : '#f59e0b',
   weight: 2,
-  fillOpacity: 0.1
-};
+  fillColor: isDark ? '#d97706' : '#f59e0b',
+  fillOpacity: isDark ? 0.18 : 0.1,
+});
 
 const onEachBarangay = (feature, layer) => {
   if (feature.properties && feature.properties.NAME_3) {
@@ -167,25 +170,23 @@ function MapFlyToListener({ reports, sos }) {
         timeout1 = setTimeout(() => {
           if (map && isMounted) {
             try {
-              // Step 1: Fly directly to the new report and ZOOM IN very close (level 17)
               map.flyTo([latest.latitude, latest.longitude], 17, { 
                 duration: 2.0,
                 animate: true
               });
 
-              // Step 2: After arriving and pausing briefly, slowly ZOOM OUT to provide context
               timeout2 = setTimeout(() => {
                 if (map && isMounted) {
                   try {
                     map.flyTo([latest.latitude, latest.longitude], 12, { 
-                      duration: 4.0, // Slow, dramatic zoom out
+                      duration: 4.0,
                       animate: true
                     });
                   } catch (e) {
                     console.warn("Map zoom out interrupted", e);
                   }
                 }
-              }, 3500); // 2s flight + 1.5s pause at street level
+              }, 3500);
             } catch (e) {
               console.warn("Map flyTo interrupted", e);
             }
@@ -202,19 +203,49 @@ function MapFlyToListener({ reports, sos }) {
   }, [reports, sos, map]);
 
   useEffect(() => {
-    if (map) {
-      const handleResize = () => {
-        setTimeout(() => {
-          try {
-            map.invalidateSize();
-          } catch (e) {}
-        }, 150);
-      };
+    if (!map) return;
 
-      handleResize();
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
+    const invalidate = () => {
+      try {
+        map.invalidateSize();
+      } catch (e) {}
+    };
+
+    invalidate();
+    const t1 = setTimeout(invalidate, 100);
+    const t2 = setTimeout(invalidate, 200);
+    const t3 = setTimeout(invalidate, 320);
+
+    const handleResize = () => {
+      invalidate();
+      setTimeout(invalidate, 150);
+      setTimeout(invalidate, 320);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    let resizeObserver = null;
+    try {
+      const container = map.getContainer();
+      if (container && window.ResizeObserver) {
+        resizeObserver = new ResizeObserver(() => {
+          invalidate();
+        });
+        resizeObserver.observe(container);
+      }
+    } catch (e) {
+      console.warn("ResizeObserver initialization:", e);
     }
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener("resize", handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
   }, [map]);
 
   return null;
@@ -272,8 +303,8 @@ const renderStatusBadge = (status) => {
 };
 
 export default function DashboardMap({ reports = [], sos = [], responders = [], dispatches = [], backupRequests = [] }) {
+  const { isDark } = useTheme();
   const [showStatusDetails, setShowStatusDetails] = useState(true);
-  // GeoJSON loaded lazily on mount so it doesn't block app startup (Login page)
   const [lagonglongGeoJSON, setLagonglongGeoJSON] = useState(null);
   const [balingasagGeoJSON, setBalingasagGeoJSON] = useState(null);
 
@@ -365,7 +396,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Marker>
       );
     });
-  }, [validReports.map(r => r.id + r.status + r.updated).join(',')]);
+  }, [validReports]);
 
   const sosMarkers = useMemo(() => {
     return validSos.map(s => {
@@ -401,7 +432,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Marker>
       );
     });
-  }, [validSos.map(s => s.id + s.status + s.updated).join(',')]);
+  }, [validSos]);
 
   const backupMarkers = useMemo(() => {
     return validBackups.map(b => {
@@ -426,27 +457,28 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </Marker>
       );
     });
-  }, [validBackups.map(b => b.id + b.updated).join(',')]);
+  }, [validBackups]);
 
   const dispatchPaths = useMemo(() => {
     return dispatches.map(dispatch => {
-      if (dispatch.status === 'resolved') return null;
-      
       const responder = responders.find(r => r.id === dispatch.responder_id);
       if (!responder || !responder.latitude || !responder.longitude) return null;
-      
+
       let target = validReports.find(r => r.id === dispatch.incident_id);
       let isSosTarget = false;
-      
+
       if (!target) {
-        target = validSos.find(s => s.id === dispatch.sos_id);
-        if (target) isSosTarget = true;
+        target = validSos.find(s => s.id === dispatch.sos_id || s.id === dispatch.incident_id);
+        isSosTarget = true;
       }
-      
-      if (!target || !target.latitude || !target.longitude) return null; 
-      
-      const metrics = calculateDistanceAndETA(responder.latitude, responder.longitude, target.latitude, target.longitude);
-      
+
+      if (!target || !target.latitude || !target.longitude) return null;
+
+      const metrics = calculateDistanceAndETA(
+        responder.latitude, responder.longitude,
+        target.latitude, target.longitude
+      );
+
       return (
         <React.Fragment key={`dispatch-${dispatch.id}`}>
           <Polyline 
@@ -480,13 +512,13 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         </React.Fragment>
       );
     });
-  }, [dispatches.map(d => d.id + d.updated).join(','), responders.map(r => r.id + r.latitude + r.longitude).join(','), validReports.map(r => r.id + r.updated).join(','), validSos.map(s => s.id + s.updated).join(',')]);
+  }, [dispatches, responders, validReports, validSos]);
 
   return (
     <div style={{ width: '100%', height: '100%', minHeight: '430px', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', position: 'relative' }}>
       <style>{`
         .leaflet-container {
-          background: #0f172a;
+          background: ${isDark ? '#0f172a' : '#f8fafc'};
           width: 100% !important;
           height: 100% !important;
           min-height: 430px !important;
@@ -499,7 +531,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
       
       <div style={dashboardStyles.mapOverlayPosition}>
         {showStatusDetails ? (
-          <div style={dashboardStyles.mapStatusPanel}>
+          <div className="dashboard-map-status-overlay" style={dashboardStyles.mapStatusPanel}>
             <button
               type="button"
               style={dashboardStyles.mapStatusHeaderButton}
@@ -526,6 +558,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         ) : (
           <button
             type="button"
+            className="dashboard-map-status-collapsed"
             style={dashboardStyles.mapStatusCollapsed}
             onClick={() => setShowStatusDetails(true)}
             aria-label="Show incident status"
@@ -536,6 +569,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
       </div>
 
       <MapContainer 
+        key={isDark ? 'map-dark' : 'map-light'}
         center={COMMAND_CENTER}
         zoom={13} 
         style={{ width: '100%', height: '100%', minHeight: '430px' }}
@@ -548,21 +582,21 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         <MapFlyToListener reports={validReports} sos={validSos} />
         
         <LayersControl position="bottomleft">
-          <LayersControl.BaseLayer name="Standard View">
+          <LayersControl.BaseLayer checked={isDark} name="Dark Tactical View">
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; OpenStreetMap &copy; CARTO'
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer checked name="Satellite View">
+          <LayersControl.BaseLayer checked={!isDark} name="Satellite View">
             <TileLayer
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               attribution='&copy; Esri &copy; Earthstar Geographics'
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Dark Mode">
+          <LayersControl.BaseLayer name="Standard View">
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
               attribution='&copy; OpenStreetMap &copy; CARTO'
             />
           </LayersControl.BaseLayer>
@@ -572,7 +606,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
             <LayersControl.Overlay checked name="Lagonglong Area">
               <GeoJSON
                 data={lagonglongGeoJSON}
-                style={LAGONG_STYLE}
+                style={getLagongStyle(isDark)}
                 onEachFeature={onEachBarangay}
               />
             </LayersControl.Overlay>
@@ -583,7 +617,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
             <LayersControl.Overlay name="Balingasag Area">
               <GeoJSON
                 data={balingasagGeoJSON}
-                style={BALINGASAG_STYLE}
+                style={getBalingasagStyle(isDark)}
                 onEachFeature={onEachBarangay}
               />
             </LayersControl.Overlay>

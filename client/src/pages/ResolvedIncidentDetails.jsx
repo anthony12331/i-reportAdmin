@@ -215,7 +215,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
   const reporter = incident.expand?.users || incident.expand?.user;
   const imageUrl = fileUrl(incident, "incident_image");
   const videoUrl = fileUrl(incident, "incident_video");
-  const selfieUrl = fileUrl(reporter, "selfie");
+  const selfieUrl = fileUrl(reporter, "selfie") || fileUrl(reporter, "avatar") || fileUrl(reporter, "profile_picture");
   const cat = getCategoryMeta(incident.type, isSos);
   const reportersCount = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
   const isResolved = (incident.status || "").toLowerCase() === "resolved";
@@ -229,6 +229,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px", flexWrap: "wrap", gap: "12px" }}>
           <button
             type="button"
+            className="details-back-btn"
             onClick={() => navigate(-1)}
             style={{
               display: "inline-flex",
@@ -251,6 +252,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               type="button"
+              className="details-refresh-btn"
               onClick={fetchIncidentData}
               style={{
                 display: "inline-flex",
@@ -329,6 +331,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   Case #{incident.id}
                 </h1>
                 <span
+                  className={`details-type-badge type-${(incident.type || (isSos ? "sos" : "default")).toLowerCase()}`}
                   style={{
                     fontSize: "11px",
                     fontWeight: "800",
@@ -378,6 +381,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             )}
 
             <span
+              className="details-status-pill"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -488,6 +492,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
               )}
 
               <div
+                className="details-description-box"
                 style={{
                   padding: "16px",
                   borderRadius: "12px",
@@ -524,6 +529,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                     return (
                       <div
                         key={dispatch.id}
+                        className="details-dispatch-item"
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -608,6 +614,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button
                       type="button"
+                      className="details-map-fullscreen-btn"
                       onClick={() =>
                         setSelectedMap({
                           lat: incident.latitude,
@@ -656,6 +663,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 </div>
 
                 <div
+                  className="details-telemetry-address-strip"
                   style={{
                     padding: "12px 14px",
                     borderRadius: "10px",
@@ -776,7 +784,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
                   <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
                     <Phone size={12} color="#15803d" /> Contact Phone
                   </span>
@@ -794,12 +802,12 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
                   <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>Barangay Jurisdiction</span>
                   <strong style={{ color: "#0f172a", fontSize: "13.5px" }}>{reporter?.baranggay || reporter?.barangay || "Lagonglong"}</strong>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
                   <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>Full Registered Address</span>
                   <strong style={{ color: "#0f172a", fontSize: "13px", wordBreak: "break-word", overflowWrap: "anywhere", lineHeight: "1.4" }}>
                     {[reporter?.street_address, reporter?.municipality, reporter?.province].filter(Boolean).join(", ") || "Lagonglong, Misamis Oriental"}
@@ -885,18 +893,18 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
                   <span style={{ color: "#64748b" }}>Case Logged:</span>
                   <strong style={{ color: "#0f172a" }}>{formatDate(incident.created)}</strong>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
                   <span style={{ color: "#64748b" }}>Resolved / Updated:</span>
                   <strong style={{ color: "#0f172a" }}>{formatDate(incident.updated)}</strong>
                 </div>
 
                 {incident.sync_key && (
-                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                  <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
                     <span style={{ color: "#64748b" }}>Sync Key:</span>
                     <strong style={{ color: "#64748b", fontFamily: "monospace", fontSize: "11.5px" }}>{incident.sync_key}</strong>
                   </div>

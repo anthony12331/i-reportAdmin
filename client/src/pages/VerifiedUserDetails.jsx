@@ -224,8 +224,8 @@ export default function VerifiedUserDetails() {
   if (!user) return null;
 
   const fullName = `${user.first_name || ""} ${user.middle_name || ""} ${user.last_name || ""}`.trim();
-  const selfieUrl = getFileUrl(user, "selfie");
-  const idPhotoUrl = getFileUrl(user, "id_photo");
+  const selfieUrl = getFileUrl(user, "selfie") || getFileUrl(user, "avatar") || getFileUrl(user, "profile_picture");
+  const idPhotoUrl = getFileUrl(user, "id_photo") || getFileUrl(user, "government_id");
   const isSuspended = user.status === "suspended";
 
   return (

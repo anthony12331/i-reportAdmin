@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { getReadableAddress } from "../utils/utils";
@@ -49,27 +49,27 @@ const renderDepartmentBadge = (dept) => {
   const d = (dept || "").toLowerCase();
   if (d.includes("fire")) {
     return (
-      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <span className="dept-badge-fire" style={{ fontSize: "10.5px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
         <Flame size={10} /> BFP
       </span>
     );
   }
   if (d.includes("police")) {
     return (
-      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#6d28d9", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <span className="dept-badge-police" style={{ fontSize: "10.5px", fontWeight: "800", color: "#6d28d9", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
         <Shield size={10} /> PNP
       </span>
     );
   }
   if (d.includes("ambulance") || d.includes("ems") || d.includes("medical")) {
     return (
-      <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#0369a1", backgroundColor: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+      <span className="dept-badge-ems" style={{ fontSize: "10.5px", fontWeight: "800", color: "#0369a1", backgroundColor: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
         <Ambulance size={10} /> EMS
       </span>
     );
   }
   return (
-    <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+    <span className="dept-badge-mdrrmo" style={{ fontSize: "10.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
       <Activity size={10} /> MDRRMO
     </span>
   );
@@ -222,16 +222,18 @@ export default function PendingIncidents() {
     };
   }, [fetchAvailableResponders]);
 
-  const filteredIncidents = incidents.filter((incident) => {
-    const reporter = incident.expand?.users;
-    const barangay = reporter?.baranggay || reporter?.barangay || "";
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter((incident) => {
+      const reporter = incident.expand?.users || incident.expand?.user;
+      const barangay = reporter?.baranggay || reporter?.barangay || "";
 
-    if (filters.type && incident.type?.toLowerCase() !== filters.type) return false;
-    if (filters.barangay && !barangay.toLowerCase().includes(filters.barangay.toLowerCase())) return false;
-    if (filters.priority && getPriorityLabel(incident) !== filters.priority) return false;
+      if (filters.type && incident.type?.toLowerCase() !== filters.type.toLowerCase()) return false;
+      if (filters.barangay && !barangay.toLowerCase().includes(filters.barangay.toLowerCase())) return false;
+      if (filters.priority && getPriorityLabel(incident) !== filters.priority) return false;
 
-    return true;
-  });
+      return true;
+    });
+  }, [incidents, filters]);
 
   const reviewIncident = useCallback((id) => {
     markIncidentReviewed(id);
@@ -333,26 +335,40 @@ export default function PendingIncidents() {
   };
 
   // Reporters count calculation: starts with database reporters_count field + spatial clustering
-  const duplicateMap = {};
-  incidents.forEach((incident) => {
-    const baseReporters = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
-    let nearbyReports = 0;
+  const duplicateMap = useMemo(() => {
+    const map = {};
+    incidents.forEach((incident) => {
+      const baseReporters = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
+      let nearbyReports = 0;
 
-    if (incident.latitude != null && incident.longitude != null) {
-      incidents.forEach((other) => {
-        if (other.id === incident.id) return;
-        if (other.latitude != null && other.longitude != null) {
-          const distKm = getDistanceKm(incident.latitude, incident.longitude, other.latitude, other.longitude);
-          if (distKm <= 0.35) {
-            const otherCount = Number(other.reporters_count) > 0 ? Number(other.reporters_count) : 1;
-            nearbyReports += otherCount;
+      if (incident.latitude != null && incident.longitude != null) {
+        incidents.forEach((other) => {
+          if (other.id === incident.id) return;
+          if (other.latitude != null && other.longitude != null) {
+            const distKm = getDistanceKm(incident.latitude, incident.longitude, other.latitude, other.longitude);
+            if (distKm <= 0.35) {
+              const otherCount = Number(other.reporters_count) > 0 ? Number(other.reporters_count) : 1;
+              nearbyReports += otherCount;
+            }
           }
-        }
-      });
-    }
+        });
+      }
 
-    duplicateMap[incident.id] = baseReporters + nearbyReports;
-  });
+      map[incident.id] = baseReporters + nearbyReports;
+    });
+    return map;
+  }, [incidents]);
+
+  const typeOptions = useMemo(() => {
+    const types = [...new Set(incidents.map((i) => i.type?.toLowerCase()).filter(Boolean))];
+    return [
+      { value: "", label: "All Incident Types" },
+      ...types.map((type) => ({
+        value: type,
+        label: type.toUpperCase(),
+      })),
+    ];
+  }, [incidents]);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -376,6 +392,7 @@ export default function PendingIncidents() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             <button
               type="button"
+              className="pending-audio-btn"
               onClick={() => setSoundMuted(!soundMuted)}
               style={{
                 display: "inline-flex",
@@ -398,6 +415,7 @@ export default function PendingIncidents() {
             </button>
 
             <span
+              className="pending-feed-badge"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -417,6 +435,7 @@ export default function PendingIncidents() {
 
             <button
               type="button"
+              className="pending-refresh-btn"
               onClick={fetchIncidents}
               style={{
                 display: "inline-flex",
@@ -460,13 +479,7 @@ export default function PendingIncidents() {
             value={filters.type}
             onChange={(type) => setFilters({ ...filters, type })}
             placeholder="All Incident Types"
-            options={[
-              { value: "", label: "All Incident Types" },
-              ...[...new Set(incidents.map((i) => i.type?.toLowerCase()).filter(Boolean))].map((type) => ({
-                value: type,
-                label: type.toUpperCase(),
-              })),
-            ]}
+            options={typeOptions}
           />
 
           <CustomDropdown
@@ -506,6 +519,7 @@ export default function PendingIncidents() {
           {(filters.type || filters.priority || filters.barangay) && (
             <button
               type="button"
+              className="pending-clear-filters-btn"
               onClick={() => setFilters({ type: "", priority: "", barangay: "" })}
               style={{
                 padding: "8px 12px",
@@ -577,6 +591,12 @@ export default function PendingIncidents() {
               const priority = getPriorityBadge(incident);
               const selectedResponders = selectedResponderIds[incident.id] || [];
               const sameLocationCount = duplicateMap[incident.id] || (Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1);
+              const reporter = incident.expand?.users || incident.expand?.user;
+              const reporterAvatarUrl = reporter ? (
+                (reporter.selfie ? pb.files.getURL(reporter, reporter.selfie) : null) ||
+                (reporter.avatar ? pb.files.getURL(reporter, reporter.avatar) : null) ||
+                (reporter.profile_picture ? pb.files.getURL(reporter, reporter.profile_picture) : null)
+              ) : null;
 
               return (
                 <div
@@ -629,6 +649,7 @@ export default function PendingIncidents() {
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                       {/* Reporters Count Badge */}
                       <span
+                        className="pending-reporter-count-badge"
                         style={{
                           fontSize: "11px",
                           fontWeight: "800",
@@ -690,6 +711,7 @@ export default function PendingIncidents() {
 
                   {/* Incident Location & Address Strip */}
                   <div
+                    className="pending-location-strip"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -793,6 +815,7 @@ export default function PendingIncidents() {
 
                   {/* Citizen Reporter Card */}
                   <div
+                    className="pending-citizen-card"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -817,9 +840,18 @@ export default function PendingIncidents() {
                         fontWeight: "800",
                         fontSize: "13px",
                         flexShrink: 0,
+                        overflow: "hidden",
                       }}
                     >
-                      <User size={18} />
+                      {reporterAvatarUrl ? (
+                        <img
+                          src={reporterAvatarUrl}
+                          alt="Citizen"
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <User size={18} />
+                      )}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <strong style={{ display: "block", fontSize: "13.5px", color: "#0f172a" }}>
@@ -831,6 +863,7 @@ export default function PendingIncidents() {
                     </div>
                     <button
                       type="button"
+                      className="pending-inspect-btn"
                       onClick={() => openIncidentDetails(incident)}
                       style={{
                         padding: "4px 10px",
@@ -929,7 +962,10 @@ export default function PendingIncidents() {
                     </div>
 
                     {/* Responder List Checkboxes */}
-                    <div style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: "#f8fafc", padding: "6px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                    <div
+                      className="pending-responder-list-wrap"
+                      style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: "#f8fafc", padding: "6px", borderRadius: "10px", border: "1px solid #e2e8f0" }}
+                    >
                       {availableResponders.length === 0 ? (
                         <span style={{ fontSize: "11.5px", color: "#94a3b8", textAlign: "center", padding: "8px" }}>
                           No Standby Responders Online
@@ -946,6 +982,7 @@ export default function PendingIncidents() {
                           return (
                             <div
                               key={r.id}
+                              className={`pending-responder-item ${isSelected ? "selected" : ""}`}
                               onClick={() => {
                                 setSelectedResponderIds((prev) => {
                                   const current = prev[incident.id] || [];
@@ -972,6 +1009,7 @@ export default function PendingIncidents() {
                               <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                                 {/* Custom Checkbox */}
                                 <div
+                                  className={`pending-custom-checkbox ${isSelected ? "checked" : ""}`}
                                   style={{
                                     width: "16px",
                                     height: "16px",
@@ -1001,6 +1039,7 @@ export default function PendingIncidents() {
 
                                 {/* Responder Name */}
                                 <span
+                                  className={`pending-responder-name ${isSelected ? "selected" : ""}`}
                                   style={{
                                     fontSize: "12px",
                                     fontWeight: isSelected ? "800" : "700",
@@ -1027,6 +1066,7 @@ export default function PendingIncidents() {
                   <div style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
                     <button
                       type="button"
+                      className={`pending-dispatch-btn ${selectedResponders.length > 0 ? "active" : "disabled"}`}
                       onClick={() => updateStatus(incident, "ongoing", selectedResponders)}
                       disabled={processingId === incident.id || selectedResponders.length === 0}
                       style={{
@@ -1053,6 +1093,7 @@ export default function PendingIncidents() {
 
                     <button
                       type="button"
+                      className="pending-reject-btn"
                       onClick={async () => {
                         const shouldReject = await confirm("Permanently reject this emergency report or mark as false alarm?", {
                           title: "Reject Emergency Report",
@@ -1126,7 +1167,7 @@ export default function PendingIncidents() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
+            <div className="lightbox-modal-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                 <MapPin size={17} color="#15803d" /> {selectedMap.address}
               </h3>
@@ -1184,7 +1225,7 @@ export default function PendingIncidents() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "16px", borderBottom: "1px solid #f1f5f9", marginBottom: "20px" }}>
+            <div className="lightbox-modal-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "16px", borderBottom: "1px solid #f1f5f9", marginBottom: "20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: "#f0fdf4", color: "#15803d", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <ShieldAlert size={20} />
@@ -1212,6 +1253,7 @@ export default function PendingIncidents() {
             {/* Multi-Resident Confirmation if applicable */}
             {(duplicateMap[selectedIncident.id] || Number(selectedIncident.reporters_count) || 1) > 1 && (
               <div
+                className="modal-reliability-banner"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -1234,7 +1276,7 @@ export default function PendingIncidents() {
             )}
 
             {/* Reporter Full Data */}
-            <div style={{ backgroundColor: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0", marginBottom: "18px" }}>
+            <div className="pending-reporter-box" style={{ backgroundColor: "#f8fafc", padding: "16px", borderRadius: "14px", border: "1px solid #e2e8f0", marginBottom: "18px" }}>
               <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
                 Reporter Profile
               </h4>
@@ -1251,7 +1293,7 @@ export default function PendingIncidents() {
               <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
                 Incident Details & Notes
               </h4>
-              <div style={{ padding: "14px", borderRadius: "12px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#14532d", fontSize: "13.5px", lineHeight: "1.5" }}>
+              <div className="pending-notes-box" style={{ padding: "14px", borderRadius: "12px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#14532d", fontSize: "13.5px", lineHeight: "1.5" }}>
                 {selectedIncident.description || selectedIncident.remarks || "No additional text description provided by citizen."}
               </div>
             </div>
@@ -1259,6 +1301,7 @@ export default function PendingIncidents() {
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
               <button
                 type="button"
+                className="modal-close-btn"
                 onClick={() => setSelectedIncident(null)}
                 style={{ padding: "10px 18px", borderRadius: "10px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
               >
@@ -1301,7 +1344,7 @@ export default function PendingIncidents() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
+            <div className="lightbox-modal-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
               <span style={{ fontSize: "14px", fontWeight: "800", color: "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
                 <Shield size={16} /> Incident Evidence Inspector
               </span>
