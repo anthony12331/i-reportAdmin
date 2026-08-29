@@ -31,6 +31,11 @@ import {
   RotateCcw,
   Copy,
   Check,
+  CheckCheck,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  Users,
   Home,
   Building2,
   ZoomIn,
@@ -130,6 +135,7 @@ const QUICK_FEEDBACK_CHIPS = [
 export default function PendingUserRegistration() {
   const { isDark } = useTheme();
   const [users, setUsers] = useState([]);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -177,14 +183,12 @@ export default function PendingUserRegistration() {
         requestKey: null,
       });
 
-      // Sort in-memory by date_time or created date descending
       records.sort((a, b) => {
         const timeA = new Date(a.date_time || a.created || 0).getTime();
         const timeB = new Date(b.date_time || b.created || 0).getTime();
         return timeB - timeA;
       });
 
-      // In-memory filter handles 'pending', 'Pending', null, and empty string statuses
       const pendingItems = records.filter((u) => {
         const s = (u.status || "").toLowerCase().trim();
         return s === "pending" || s === "" || (s !== "verified" && s !== "suspended" && s !== "rejected");
@@ -270,15 +274,60 @@ export default function PendingUserRegistration() {
     setOperationState({ open: false, title: "", message: "" });
   };
 
-  const handleApprove = async (user) => {
-    if (!user) return showAlert("Error: User data is missing.", { title: "Error" });
+  const filteredUsers = users.filter((u) => {
+    const name = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
+    const email = (u.email || "").toLowerCase();
+    const term = searchTerm.toLowerCase();
+    return name.includes(term) || email.includes(term);
+  });
 
-    const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "this resident";
+  const isAllSelected =
+    filteredUsers.length > 0 &&
+    filteredUsers.every((u) => selectedUserIds.includes(u.id));
+
+  const isSomeSelected =
+    filteredUsers.some((u) => selectedUserIds.includes(u.id)) && !isAllSelected;
+
+  const toggleSelectUser = (id, e) => {
+    if (e) e.stopPropagation();
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedUserIds((prev) =>
+        prev.filter((id) => !filteredUsers.some((u) => u.id === id))
+      );
+    } else {
+      const currentSet = new Set(selectedUserIds);
+      filteredUsers.forEach((u) => currentSet.add(u.id));
+      setSelectedUserIds(Array.from(currentSet));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUserIds([]);
+  };
+
+  const handleApproveBatch = async (customIds = null) => {
+    const idsToApprove = customIds || (selectedUserIds.length > 0 ? selectedUserIds : filteredUsers.map((u) => u.id));
+    if (!idsToApprove || idsToApprove.length === 0) {
+      return showAlert("No pending applicants selected for approval.", { title: "No Selection" });
+    }
+
+    const targetUsersList = users.filter((u) => idsToApprove.includes(u.id));
+    if (targetUsersList.length === 0) return;
+
+    const count = targetUsersList.length;
     const shouldApprove = await confirm(
-      `Approve ${fullName} and issue official Citizen ID in the emergency network?`,
+      count === 1
+        ? `Approve ${(targetUsersList[0].first_name || "").trim() || "this resident"} and issue official Citizen ID in the emergency network?`
+        : `Approve and verify all ${count} citizen application(s) at once?\n\nThis will issue consecutive official Citizen IDs, update accounts to verified, and dispatch verification notices.`,
       {
-        title: "Confirm Citizen Approval",
-        primaryLabel: "Approve & Issue ID",
+        title: count === 1 ? "Confirm Citizen Approval" : `Confirm Bulk Approval (${count} Citizens)`,
+        primaryLabel: count === 1 ? "Approve & Issue ID" : `Approve All (${count})`,
         secondaryLabel: "Cancel",
       }
     );
@@ -286,46 +335,86 @@ export default function PendingUserRegistration() {
 
     setIsProcessing(true);
     showOperation(
-      "Approving User",
-      `Verifying ${fullName}...`
+      "Approving Citizens",
+      `Preparing verification for ${count} citizen application(s)...`
     );
+
     try {
-      const currentMax = await getLatestUserId();
-      const nextId = currentMax + 1;
-
-      await pb.collection("users").update(user.id, {
-        status: "verified",
-        user_id: nextId,
-      });
-
+      let currentMax = await getLatestUserId();
       const currentAdmin = pb.authStore.model;
       const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
 
-      addAuditLog({
-        action: "CITIZEN_VERIFIED",
-        target: `${fullName} (${user.email || `App ID: ${user.id}`})`,
-        details: `Administrator ${adminName} approved citizen registration application for ${fullName} (${user.email}). Assigned official Citizen ID #${nextId}.`,
-        actor: adminName,
-      });
+      let successCount = 0;
+      const processedIds = new Set();
 
-      if (user.email) {
-        fetch("https://api.ireportsystem.com/express-api/send-verification", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: user.email, name: user.first_name }),
-        }).catch((err) => console.warn("Email service not reachable:", err));
+      for (let i = 0; i < targetUsersList.length; i++) {
+        const user = targetUsersList[i];
+        const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Applicant";
+        currentMax += 1;
+        const nextId = currentMax;
+
+        showOperation(
+          "Approving Citizens",
+          `[${i + 1}/${count}] Verifying ${fullName} — Assigning Citizen ID #${nextId}...`
+        );
+
+        await pb.collection("users").update(user.id, {
+          status: "verified",
+          user_id: nextId,
+        });
+
+        addAuditLog({
+          action: "CITIZEN_VERIFIED",
+          target: `${fullName} (${user.email || `App ID: ${user.id}`})`,
+          details: `Administrator ${adminName} approved citizen registration application for ${fullName} (${user.email}). Assigned official Citizen ID #${nextId}.`,
+          actor: adminName,
+        });
+
+        if (user.email) {
+          fetch("https://api.ireportsystem.com/express-api/send-verification", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: user.email, name: user.first_name }),
+          }).catch((err) => console.warn("Email service not reachable:", err));
+        }
+
+        processedIds.add(user.id);
+        successCount++;
       }
 
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      if (users.length <= 1) fetchBatch();
-      await showAlert(`Successfully approved ${fullName} with assigned Citizen ID #${nextId}.`, { title: "Citizen Verified" });
+      setUsers((prev) => prev.filter((u) => !processedIds.has(u.id)));
+      setSelectedUserIds((prev) => prev.filter((id) => !processedIds.has(id)));
+
+      setPreviewUser((currentUser) => {
+        if (currentUser && processedIds.has(currentUser.id)) {
+          const remaining = users.filter((u) => !processedIds.has(u.id));
+          return remaining[0] || null;
+        }
+        return currentUser;
+      });
+
+      if (users.length - successCount <= 1) {
+        fetchBatch();
+      }
+
+      await showAlert(
+        count === 1
+          ? `Successfully approved ${(targetUsersList[0].first_name || "").trim() || "citizen"} with assigned Citizen ID #${currentMax}.`
+          : `Successfully approved all ${successCount} selected citizen(s) with assigned official Citizen IDs!`,
+        { title: "Citizens Verified" }
+      );
     } catch (error) {
       console.error("Verification Error:", error);
-      await showAlert("Failed to verify citizen: " + (error.message || "Unknown error"), { title: "Error" });
+      await showAlert("Failed to complete verification: " + (error.message || "Unknown error"), { title: "Error" });
     } finally {
       hideOperation();
       setIsProcessing(false);
     }
+  };
+
+  const handleApprove = async (user) => {
+    if (!user) return showAlert("Error: User data is missing.", { title: "Error" });
+    await handleApproveBatch([user.id]);
   };
 
   const submitRejection = async () => {
@@ -380,6 +469,7 @@ export default function PendingUserRegistration() {
       });
 
       setUsers((prev) => prev.filter((user) => user.id !== rejectionModal.userId));
+      setSelectedUserIds((prev) => prev.filter((id) => id !== rejectionModal.userId));
       setRejectionModal({
         isOpen: false,
         userId: null,
@@ -429,13 +519,6 @@ export default function PendingUserRegistration() {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    const name = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
-    const email = (u.email || "").toLowerCase();
-    const term = searchTerm.toLowerCase();
-    return name.includes(term) || email.includes(term);
-  });
-
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", color: isDark ? "#f1f5f9" : "#0f172a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
@@ -455,7 +538,42 @@ export default function PendingUserRegistration() {
             </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            {users.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleApproveBatch()}
+                disabled={isProcessing}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "7px 16px",
+                  borderRadius: "9px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                  color: "#ffffff",
+                  fontSize: "13px",
+                  fontWeight: "800",
+                  cursor: isProcessing ? "not-allowed" : "pointer",
+                  boxShadow: isDark ? "0 4px 14px rgba(22, 163, 74, 0.4)" : "0 3px 10px rgba(21, 128, 61, 0.25)",
+                  transition: "all 0.15s ease",
+                }}
+                title={
+                  selectedUserIds.length > 0
+                    ? `Approve ${selectedUserIds.length} selected applicant(s)`
+                    : `Approve all ${filteredUsers.length} applicant(s) at once`
+                }
+              >
+                <CheckCheck size={16} />
+                <span>
+                  {selectedUserIds.length > 0
+                    ? `Approve Selected (${selectedUserIds.length})`
+                    : `Approve All (${filteredUsers.length})`}
+                </span>
+              </button>
+            )}
+
             <span
               style={{
                 display: "inline-flex",
@@ -549,7 +667,7 @@ export default function PendingUserRegistration() {
             {/* Left Column: Applicants Queue (Hidden when maximized) */}
             {!isMaximized && (
               <div className="premium-table-card" style={{ padding: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <UserCheck size={18} color={isDark ? "#4ade80" : "#15803d"} />
                     <h2 style={{ fontSize: "15px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", margin: 0 }}>
@@ -562,7 +680,7 @@ export default function PendingUserRegistration() {
                 </div>
 
                 {/* Search Box */}
-                <div className="search-box-premium" style={{ width: "100%", marginBottom: "14px", minWidth: "100%", boxSizing: "border-box" }}>
+                <div className="search-box-premium" style={{ width: "100%", marginBottom: "12px", minWidth: "100%", boxSizing: "border-box" }}>
                   <Search size={16} color="#94a3b8" />
                   <input
                     type="text"
@@ -582,10 +700,98 @@ export default function PendingUserRegistration() {
                   )}
                 </div>
 
+                {/* Select All / Batch Control Bar */}
+                {filteredUsers.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px 12px",
+                      marginBottom: "12px",
+                      borderRadius: "10px",
+                      backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f1f5f9",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.07)" : "1px solid #e2e8f0",
+                      fontSize: "12.5px",
+                    }}
+                  >
+                    <label
+                      onClick={handleToggleSelectAll}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        cursor: "pointer",
+                        fontWeight: "700",
+                        color: isDark ? "#f8fafc" : "#1e293b",
+                        userSelect: "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          borderRadius: "5px",
+                          border: isAllSelected || isSomeSelected
+                            ? "2px solid #22c55e"
+                            : (isDark ? "2px solid rgba(255, 255, 255, 0.35)" : "2px solid #94a3b8"),
+                          backgroundColor: isAllSelected
+                            ? "#22c55e"
+                            : isSomeSelected
+                            ? (isDark ? "rgba(34, 197, 94, 0.3)" : "#bbf7d0")
+                            : "transparent",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isAllSelected && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                        {isSomeSelected && <div style={{ width: "8px", height: "2px", backgroundColor: isDark ? "#4ade80" : "#15803d", borderRadius: "1px" }} />}
+                      </div>
+                      <span>Select All ({filteredUsers.length})</span>
+                    </label>
+
+                    {selectedUserIds.length > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: "800",
+                            color: isDark ? "#4ade80" : "#15803d",
+                            backgroundColor: isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4",
+                            padding: "2px 6px",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          {selectedUserIds.length} selected
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleClearSelection}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: "0",
+                            color: isDark ? "#94a3b8" : "#64748b",
+                            fontSize: "11.5px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Queue List */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "680px", overflowY: "auto" }}>
                   {filteredUsers.map((user) => {
-                    const isSelected = previewUser?.id === user.id;
+                    const isPreviewed = previewUser?.id === user.id;
+                    const isChecked = selectedUserIds.includes(user.id);
                     const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Applicant";
                     const initials = getInitials(user);
                     const avatarStyle = getAvatarStyle(fullName);
@@ -593,7 +799,7 @@ export default function PendingUserRegistration() {
                     return (
                       <div
                         key={user.id}
-                        className={`pending-citizen-card ${isSelected ? "selected" : ""}`}
+                        className={`pending-citizen-card ${isPreviewed ? "selected" : ""}`}
                         onClick={() => {
                           setPreviewUser(user);
                           setReviewMessage(user.description || "");
@@ -601,27 +807,63 @@ export default function PendingUserRegistration() {
                         style={{
                           padding: "14px",
                           borderRadius: "14px",
-                          border: isSelected
+                          border: isPreviewed
                             ? (isDark ? "2px solid #22c55e" : "2px solid #15803d")
+                            : isChecked
+                            ? (isDark ? "1.5px solid rgba(34, 197, 94, 0.6)" : "1.5px solid #86efac")
                             : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
-                          backgroundColor: isSelected
+                          backgroundColor: isPreviewed
                             ? (isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4")
+                            : isChecked
+                            ? (isDark ? "rgba(34, 197, 94, 0.08)" : "#f0fdf4")
                             : (isDark ? "#172338" : "#ffffff"),
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           display: "flex",
                           flexDirection: "column",
                           gap: "10px",
-                          boxShadow: isSelected
+                          boxShadow: isPreviewed
                             ? (isDark ? "0 4px 20px -2px rgba(34, 197, 94, 0.25)" : "0 4px 20px -2px rgba(21, 128, 61, 0.14)")
                             : (isDark ? "0 2px 6px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.02)"),
                           position: "relative",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          {/* Dedicated Checkbox */}
+                          <div
+                            onClick={(e) => toggleSelectUser(user.id, e)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              padding: "2px",
+                              flexShrink: 0,
+                            }}
+                            title={isChecked ? "Deselect applicant" : "Select applicant"}
+                          >
+                            <div
+                              style={{
+                                width: "19px",
+                                height: "19px",
+                                borderRadius: "6px",
+                                border: isChecked
+                                  ? "2px solid #22c55e"
+                                  : (isDark ? "2px solid rgba(255, 255, 255, 0.3)" : "2px solid #cbd5e1"),
+                                backgroundColor: isChecked ? "#22c55e" : (isDark ? "#0f172a" : "#ffffff"),
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              {isChecked && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                            </div>
+                          </div>
+
                           <UserAvatar user={user} size={42} fontSize={14} />
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <span style={{ display: "block", fontWeight: "800", color: isSelected ? (isDark ? "#4ade80" : "#14532d") : (isDark ? "#f8fafc" : "#0f172a"), fontSize: "14.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <span style={{ display: "block", fontWeight: "800", color: isPreviewed ? (isDark ? "#4ade80" : "#14532d") : (isDark ? "#f8fafc" : "#0f172a"), fontSize: "14.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {fullName}
                             </span>
                             <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
@@ -1302,6 +1544,64 @@ export default function PendingUserRegistration() {
               >
                 {isProcessing ? "Rejecting..." : "Confirm Rejection"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OPERATION PROGRESS MODAL */}
+      {operationState.open && (
+        <div
+          className="lightboxModalBackdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.85)",
+            backdropFilter: "blur(10px)",
+            zIndex: 10000,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e2e8f0",
+              borderRadius: "20px",
+              width: "100%",
+              maxWidth: "420px",
+              padding: "32px 24px",
+              textAlign: "center",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.7)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "16px",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "16px",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                color: isDark ? "#4ade80" : "#15803d",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Loader className="animate-spin" size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
+                {operationState.title || "Processing Request"}
+              </h3>
+              <p style={{ margin: 0, fontSize: "14px", color: isDark ? "#94a3b8" : "#64748b", lineHeight: "1.5" }}>
+                {operationState.message || "Please wait while we update citizen records..."}
+              </p>
             </div>
           </div>
         </div>

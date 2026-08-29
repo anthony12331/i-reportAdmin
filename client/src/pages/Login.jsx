@@ -46,7 +46,7 @@ function FloatingInput({
               transition: "color 0.2s ease",
             }}
           >
-            <Icon size={18} />
+            <Icon size={22} />
           </div>
         )}
         <input
@@ -62,15 +62,15 @@ function FloatingInput({
           required={required}
           style={{
             ...styles.inputElement,
-            paddingLeft: Icon ? "42px" : "14px",
-            paddingRight: rightElement ? "40px" : "14px",
+            paddingLeft: Icon ? "50px" : "18px",
+            paddingRight: rightElement ? "48px" : "18px",
             borderColor: error
               ? (isDark ? "#f87171" : "#ef4444")
               : focused
                 ? (isDark ? "#22c55e" : "#15803d")
                 : hovered
                   ? (isDark ? "#4ade80" : "#16a34a")
-                  : (isDark ? "rgba(255, 255, 255, 0.14)" : "#e2e8f0"),
+                  : (isDark ? "rgba(255, 255, 255, 0.14)" : "#cbd5e1"),
             boxShadow: error
               ? (isDark ? "0 0 0 3px rgba(248, 113, 113, 0.2)" : "0 0 0 3px rgba(239, 68, 68, 0.12)")
               : focused
@@ -87,7 +87,7 @@ function FloatingInput({
           htmlFor={id}
           style={{
             ...styles.floatingLabel,
-            left: Icon ? "40px" : "14px",
+            left: Icon ? "48px" : "18px",
             ...(isActive ? styles.floatingLabelActive : {}),
             color: error
               ? (isDark ? "#f87171" : "#ef4444")
@@ -162,15 +162,15 @@ export default function Login() {
   // Preload Dashboard bundle + pre-warm API connection on mount
   useEffect(() => {
     // Preload next page and components in background for instant navigation
-    import("./Dashboard").catch(() => {});
-    import("../components/Sidebar").catch(() => {});
+    import("./Dashboard").catch(() => { });
+    import("../components/Sidebar").catch(() => { });
 
     // Pre-warm TCP/TLS connection to the auth API
     try {
       fetch("https://api.ireportsystem.com/express-api/admin-login", {
         method: "OPTIONS",
         mode: "cors",
-      }).catch(() => {});
+      }).catch(() => { });
     } catch {
       // ignore
     }
@@ -391,7 +391,6 @@ export default function Login() {
       <header style={styles.header}>
         <div style={{ width: "36px" }} />
         <div style={styles.headerBrand}>
-          <img src="/icon.ico" alt="Lagonglong seal" style={styles.headerLogo} />
           <span style={styles.headerTitle}>Lagonglong Incident System</span>
         </div>
         <div style={styles.headerActions}>
@@ -413,7 +412,7 @@ export default function Login() {
               </h1>
               <p style={styles.subtitle}>
                 {resetStep === 0
-                  ? "Barangay Lagonglong Incident Reporting System Management"
+                  ? "Lagonglong Incident Reporting System Management"
                   : resetStep === 1
                     ? "Enter your email to receive an OTP verification code"
                     : "Enter the OTP code and your new password"}
@@ -469,7 +468,7 @@ export default function Login() {
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       style={{ cursor: "pointer", display: "flex", color: isDark ? "#94a3b8" : "#64748b" }}
                     >
-                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                      {showPassword ? <Eye size={22} /> : <EyeOff size={22} />}
                     </div>
                   }
                 />
@@ -485,7 +484,7 @@ export default function Login() {
                         if (!checked) {
                           try {
                             localStorage.removeItem("admin_remember_email");
-                          } catch {}
+                          } catch { }
                         }
                       }}
                       style={styles.customCheckbox}
@@ -594,7 +593,7 @@ export default function Login() {
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       style={{ cursor: "pointer", display: "flex", color: isDark ? "#94a3b8" : "#64748b" }}
                     >
-                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                      {showPassword ? <Eye size={22} /> : <EyeOff size={22} />}
                     </div>
                   }
                 />

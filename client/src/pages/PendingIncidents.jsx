@@ -36,6 +36,7 @@ import {
   Search,
   RotateCcw,
   Shield,
+  ShieldCheck,
   Maximize2,
   ExternalLink,
   ShieldAlert,
