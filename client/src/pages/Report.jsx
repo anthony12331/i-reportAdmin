@@ -2,7 +2,10 @@ import React, { useState, useRef, useMemo } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import CustomDropdown from "../components/CustomDropdown";
+import PremiumDateRangePicker from "../components/PremiumDateRangePicker";
+import PremiumSearchBar from "../components/PremiumSearchBar";
 import { useTheme } from "../themes/ThemeContext";
+import { addAuditLog } from "../utils/auditLog";
 import {
   Download,
   Loader,
@@ -465,6 +468,13 @@ export default function Report() {
     }
 
     doc.save(`MDRRMO_Executive_Report_${startDate}_to_${endDate}.pdf`);
+
+    addAuditLog({
+      action: "EXECUTIVE_REPORT_EXPORTED",
+      target: `Dossier (${reportSource === "incident" ? "Incident Reports" : "SOS Distress Alerts"})`,
+      details: `Exported official PDF Executive Analytics Dossier covering ${startDate} to ${endDate} (${reports.length} records analyzed).`,
+      actor: pb.authStore.model?.username || "Admin",
+    });
   };
 
   const customCanvasBackgroundColor = {
@@ -552,10 +562,10 @@ export default function Report() {
               </span>
             </div>
             <h1 style={{ fontSize: "clamp(24px, 3.2vw, 32px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
-              Operations Analytics & Reporting Center
+              Incident Reports & Analytics
             </h1>
             <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px", fontWeight: "500" }}>
-              Aggregate real-time emergency telemetry, audit response efficacy, analyze geographic hotspots, and generate executive dossiers.
+              View emergency charts, incident statistics, barangay summaries, and download PDF or Excel reports.
             </p>
           </div>
 
@@ -580,7 +590,7 @@ export default function Report() {
               }}
             >
               <Download size={16} />
-              <span>Export Executive PDF Dossier</span>
+              <span>Export PDF Report</span>
             </button>
           )}
         </header>
@@ -589,6 +599,8 @@ export default function Report() {
         <div
           className="premium-table-card"
           style={{
+            position: "relative",
+            zIndex: 100,
             padding: "24px",
             marginBottom: "28px",
             borderTop: isDark ? "4px solid #4ade80" : "4px solid #15803d",
@@ -597,7 +609,7 @@ export default function Report() {
             boxShadow: isDark ? "0 4px 20px -2px rgba(0, 0, 0, 0.5)" : "0 4px 20px -2px rgba(15, 23, 42, 0.06)",
           }}
         >
-          {/* Top Quick-Preset Buttons & Source Selector */}
+          {/* Top Source Selector Toolbar */}
           <div
             style={{
               display: "flex",
@@ -605,54 +617,16 @@ export default function Report() {
               alignItems: "center",
               flexWrap: "wrap",
               gap: "14px",
-              paddingBottom: "18px",
+              paddingBottom: "16px",
               borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
               marginBottom: "18px",
             }}
           >
-            {/* Quick Range Presets */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", marginRight: "4px", letterSpacing: "0.04em" }}>
-                Range Presets:
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Filter size={16} color={isDark ? "#4ade80" : "#15803d"} />
+              <span style={{ fontSize: "13.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
+                Filter Parameters
               </span>
-              {[
-                { id: "today", label: "Today" },
-                { id: "7days", label: "Last 7 Days" },
-                { id: "30days", label: "Last 30 Days" },
-                { id: "thisMonth", label: "This Month" },
-                { id: "ytd", label: "Year-to-Date" },
-              ].map((p) => {
-                const isSelected = activePreset === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => applyDatePreset(p.id)}
-                    style={{
-                      padding: "6px 13px",
-                      borderRadius: "8px",
-                      border: isSelected
-                        ? (isDark ? "1px solid #4ade80" : "1px solid #15803d")
-                        : (isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0"),
-                      backgroundColor: isSelected
-                        ? (isDark ? "rgba(34, 197, 94, 0.22)" : "#e7f5eb")
-                        : (isDark ? "#172338" : "#f8fafc"),
-                      color: isSelected
-                        ? (isDark ? "#4ade80" : "#15803d")
-                        : (isDark ? "#cbd5e1" : "#475569"),
-                      fontSize: "12px",
-                      fontWeight: isSelected ? "800" : "700",
-                      cursor: "pointer",
-                      boxShadow: isSelected
-                        ? (isDark ? "0 2px 8px rgba(34, 197, 94, 0.2)" : "0 2px 6px rgba(21, 128, 61, 0.12)")
-                        : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
             </div>
 
             {/* Source Segmented Toggle */}
@@ -722,53 +696,23 @@ export default function Report() {
           >
             <div>
               <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: isDark ? "#cbd5e1" : "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                <Calendar size={13} color={isDark ? "#4ade80" : "#15803d"} /> Start Date
+                <Calendar size={13} color={isDark ? "#4ade80" : "#15803d"} /> Analytics Date Range
               </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
+              <PremiumDateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                align="left"
+                onChange={({ startDate: s, endDate: e }) => {
+                  setStartDate(s);
+                  setEndDate(e);
                   setActivePreset(null);
                 }}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "10px",
-                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
-                  backgroundColor: isDark ? "#172338" : "#ffffff",
-                  color: isDark ? "#f8fafc" : "#0f172a",
-                  fontSize: "13.5px",
-                  fontWeight: "700",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: isDark ? "#cbd5e1" : "#334155", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                <Calendar size={13} color={isDark ? "#4ade80" : "#15803d"} /> End Date
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
+                onClear={() => {
+                  setStartDate("");
+                  setEndDate("");
                   setActivePreset(null);
                 }}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "10px",
-                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
-                  backgroundColor: isDark ? "#172338" : "#ffffff",
-                  color: isDark ? "#f8fafc" : "#0f172a",
-                  fontSize: "13.5px",
-                  fontWeight: "700",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
+                placeholder="Select Date Range"
               />
             </div>
 
@@ -1191,16 +1135,13 @@ export default function Report() {
                 </div>
 
                 {/* Table Search Bar */}
-                <div className="search-box-premium" style={{ width: "280px" }}>
-                  <Search size={15} color="#94a3b8" />
-                  <input
-                    type="text"
-                    placeholder="Search logs by keyword, location, or unit..."
-                    value={tableSearch}
-                    onChange={(e) => setTableSearch(e.target.value)}
-                    style={{ fontSize: "12.5px" }}
-                  />
-                </div>
+                <PremiumSearchBar
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
+                  onClear={() => setTableSearch("")}
+                  placeholder="Search logs by keyword, location, or unit..."
+                  expandedWidth="300px"
+                />
               </div>
 
               <div style={{ overflowX: "auto" }}>

@@ -2,6 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import CustomDropdown from "../components/CustomDropdown";
+import AdvancedImageModal from "../components/AdvancedImageModal";
+import PremiumPagination from "../components/PremiumPagination";
+import PremiumDateRangePicker from "../components/PremiumDateRangePicker";
+import PremiumSearchBar from "../components/PremiumSearchBar";
 import { getReadableAddress } from "../utils/utils";
 import { getUnitStyles } from "../themes/resolvedStyles"; 
 import { pendingIncidentsStyles as detailStyles } from "../themes/pendingIncidentsStyles";
@@ -111,6 +116,8 @@ export default function ResolvedIncidents() {
   const [addresses, setAddresses] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -166,7 +173,7 @@ export default function ResolvedIncidents() {
             }),
       ]);
 
-      const combinedRecords = [
+      let combinedRecords = [
         ...incidentRecords.map((record) => ({ ...record, recordType: "incident" })),
         ...sosRecords.map((record) => ({ ...record, recordType: "sos" })),
       ]
@@ -176,8 +183,20 @@ export default function ResolvedIncidents() {
           const reporter = record.expand?.users || record.expand?.user;
           return [reporter?.user_id, reporter?.first_name, reporter?.last_name, reporter?.baranggay]
             .some((value) => String(value || "").toLowerCase().includes(search));
-        })
-        .sort((a, b) => new Date(b.updated || b.created) - new Date(a.updated || a.created));
+        });
+
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        combinedRecords = combinedRecords.filter((r) => new Date(r.updated || r.created) >= start);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        combinedRecords = combinedRecords.filter((r) => new Date(r.updated || r.created) <= end);
+      }
+
+      combinedRecords.sort((a, b) => new Date(b.updated || b.created) - new Date(a.updated || a.created));
 
       const totalItemsForPage = combinedRecords.length;
       const pageStart = (currentPage - 1) * perPage;
@@ -211,7 +230,7 @@ export default function ResolvedIncidents() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, perPage, searchTerm, typeFilter, addresses]);
+  }, [currentPage, perPage, searchTerm, typeFilter, startDate, endDate, addresses]);
 
   useEffect(() => {
     const load = async () => { await fetchIncidents(); };
@@ -237,11 +256,11 @@ export default function ResolvedIncidents() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
             <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#15803d" }} />
             <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-              Resolved History
+              Resolved Incidents
             </h1>
           </div>
           <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
-            Official incident resolution history and emergency dispatch records for Barangay Lagonglong.
+            Archive of all resolved emergencies, responder assignments, and completion logs in Lagonglong.
           </p>
         </header>
 
@@ -249,67 +268,54 @@ export default function ResolvedIncidents() {
         <div className="premium-table-card">
           {/* Top Toolbar */}
           <div className="table-toolbar" style={{ flexWrap: "wrap", gap: "14px" }}>
-            <div className="search-box-premium" style={{ minWidth: "280px" }}>
-              <Search size={18} color="#94a3b8" />
-              <input
-                type="text"
-                placeholder="Search Citizen ID, Name, or Barangay..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
+            <PremiumSearchBar
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              onClear={() => {
+                setSearchTerm("");
+                setCurrentPage(1);
+              }}
+              placeholder="Search Citizen ID, Name, or Barangay..."
+              minWidth="300px"
+              maxWidth="420px"
+            />
+
+            {/* Custom Type Filter Dropdown */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <CustomDropdown
+                value={typeFilter}
+                onChange={(val) => {
+                  setTypeFilter(val);
                   setCurrentPage(1);
                 }}
+                options={[
+                  { value: "", label: "All Cases" },
+                  { value: "fire", label: "Fire Incidents" },
+                  { value: "accident", label: "Traffic / Accident" },
+                  { value: "landslide", label: "Flood / Landslide" },
+                  { value: "sos", label: "SOS Distress Calls" },
+                ]}
+                minWidth="160px"
               />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setCurrentPage(1);
-                  }}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </div>
 
-            {/* Type Filter Buttons */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-              {[
-                { val: "", label: "All Cases" },
-                { val: "fire", label: "Fire" },
-                { val: "accident", label: "Accident" },
-                { val: "landslide", label: "Landslide" },
-                { val: "sos", label: "SOS Distress" },
-              ].map(({ val, label }) => {
-                const isActive = typeFilter === val;
-                return (
-                  <button
-                    key={val}
-                    type="button"
-                    className={`resolved-filter-tab ${isActive ? "active" : ""}`}
-                    onClick={() => {
-                      setTypeFilter(val);
-                      setCurrentPage(1);
-                    }}
-                    style={{
-                      padding: "8px 14px",
-                      borderRadius: "20px",
-                      border: isActive ? "1px solid #15803d" : "1px solid #e2e8f0",
-                      backgroundColor: isActive ? "#15803d" : "#ffffff",
-                      color: isActive ? "#ffffff" : "#475569",
-                      fontSize: "12.5px",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      boxShadow: isActive ? "0 2px 6px rgba(21, 128, 61, 0.25)" : "none",
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+              <PremiumDateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={({ startDate: s, endDate: e }) => {
+                  setStartDate(s);
+                  setEndDate(e);
+                  setCurrentPage(1);
+                }}
+                onClear={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  setCurrentPage(1);
+                }}
+                placeholder="Filter by Date"
+              />
             </div>
           </div>
 
@@ -439,24 +445,6 @@ export default function ResolvedIncidents() {
                                     </span>
                                   );
                                 })
-                              ) : isSos && incident.expand?.assigned_responder ? (
-                                <span
-                                  className="resolved-unit-badge"
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "5px",
-                                    fontSize: "11.5px",
-                                    fontWeight: "700",
-                                    color: getUnitStyles(incident.expand.assigned_responder.department).color,
-                                    backgroundColor: getUnitStyles(incident.expand.assigned_responder.department).bg,
-                                    padding: "3px 8px",
-                                    borderRadius: "6px",
-                                    width: "fit-content",
-                                  }}
-                                >
-                                  <ShieldCheck size={13} /> {incident.expand.assigned_responder.department.toUpperCase()}
-                                </span>
                               ) : (
                                 <span
                                   className="resolved-unit-badge"
@@ -513,174 +501,31 @@ export default function ResolvedIncidents() {
                 </table>
               </div>
 
-              {/* Table Footer / Pagination */}
-              <div className="premium-table-footer">
+              {/* Table Footer / Premium Pagination */}
+              <div className="premium-table-footer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "16px 20px" }}>
                 <div className="premium-pagination-info">
                   Showing <strong>{(currentPage - 1) * perPage + 1}</strong>–
                   <strong>{Math.min(currentPage * perPage, totalItems)}</strong> of <strong>{totalItems}</strong> Resolved Cases
                 </div>
 
-                <div className="premium-pagination-controls">
-                  <button
-                    type="button"
-                    className="premium-page-nav-btn"
-                    onClick={() => {
-                      setCurrentPage((p) => Math.max(1, p - 1));
-                      window.scrollTo(0, 0);
-                    }}
-                    disabled={currentPage === 1 || loading}
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, index) => index + 1)
-                    .slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))
-                    .map((pageNum) => (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        className={`premium-page-num-btn ${currentPage === pageNum ? "active" : ""}`}
-                        onClick={() => {
-                          setCurrentPage(pageNum);
-                          window.scrollTo(0, 0);
-                        }}
-                      >
-                        {pageNum}
-                      </button>
-                    ))}
-
-                  <button
-                    type="button"
-                    className="premium-page-nav-btn"
-                    onClick={() => {
-                      setCurrentPage((p) => Math.min(totalPages, p + 1));
-                      window.scrollTo(0, 0);
-                    }}
-                    disabled={currentPage === totalPages || loading}
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+                <PremiumPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => {
+                    setCurrentPage(newPage);
+                    window.scrollTo(0, 0);
+                  }}
+                  pageSize={perPage}
+                  onPageSizeChange={(newSize) => {
+                    setPerPage(newSize);
+                    setCurrentPage(1);
+                  }}
+                />
               </div>
             </>
           )}
         </div>
       </main>
-
-      {/* Detail Modal */}
-      {selectedIncident && (
-        <div style={detailStyles.detailBackdrop} onClick={() => setSelectedIncident(null)}>
-          <div style={detailStyles.detailWindow} onClick={(event) => event.stopPropagation()}>
-            <header style={detailStyles.detailHeader}>
-              <button type="button" className="animatedCloseButton" style={detailStyles.backButton} onClick={() => setSelectedIncident(null)}>
-                <X size={16} /> Back to History
-              </button>
-              <div style={detailStyles.detailHeaderTitle}>
-                <span>Resolved Incident</span>
-                <strong>#{selectedIncident.id}</strong>
-              </div>
-              <span style={detailStyles.detailStatus}>Resolved</span>
-            </header>
-
-            <div style={{ ...detailStyles.detailBody, gridTemplateColumns: "1fr" }}>
-              <div style={detailStyles.detailMainColumn}>
-                <section style={detailStyles.detailPanel}>
-                  <h3 style={detailStyles.detailSectionTitle}>Reporter Information</h3>
-                  <div style={detailStyles.reporterDetail}>
-                    <div style={detailStyles.reporterAvatar}>
-                      {(() => {
-                        const rep = selectedIncident.expand?.users || selectedIncident.expand?.user;
-                        const repAvatar = getUserAvatarUrl(rep);
-                        return repAvatar ? (
-                          <img
-                            src={repAvatar}
-                            alt="Reporter"
-                            style={detailStyles.reporterAvatarImage}
-                          />
-                        ) : (
-                          <ShieldCheck size={20} />
-                        );
-                      })()}
-                    </div>
-                    <div style={detailStyles.reporterSummary}>
-                      <strong style={detailStyles.reporterName}>
-                        {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.first_name || "Unknown"} {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.last_name || "Resident"}
-                      </strong>
-                      <span style={detailStyles.reporterSub}>Verified Resident</span>
-                      <span style={detailStyles.reporterSub}>ID: {(selectedIncident.expand?.users || selectedIncident.expand?.user)?.user_id || "Not available"}</span>
-                    </div>
-                  </div>
-                  <div style={detailStyles.detailContactRow}>
-                    <div style={detailStyles.contactItem}>
-                      <span style={detailStyles.detailContactLabel}>Phone</span>
-                      <strong style={detailStyles.contactValue}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong>
-                    </div>
-                    <div style={detailStyles.contactItem}>
-                      <span style={detailStyles.detailContactLabel}>Email</span>
-                      <strong style={detailStyles.contactValue}>{selectedIncident.expand?.users?.email || "N/A"}</strong>
-                    </div>
-                  </div>
-                </section>
-
-                <section style={detailStyles.detailPanel}>
-                  <h3 style={detailStyles.detailSectionTitle}>Incident Data</h3>
-                  <div style={detailStyles.metadataGrid}>
-                    <span style={detailStyles.metadataLabel}>Type</span><strong style={detailStyles.metadataValue}>{selectedIncident.type || "Unknown"}</strong>
-                    <span style={detailStyles.metadataLabel}>Reported</span><strong style={detailStyles.metadataValue}>{new Date(selectedIncident.created).toLocaleString()}</strong>
-                    <span style={detailStyles.metadataLabel}>Resolved</span><strong style={detailStyles.metadataValue}>{new Date(selectedIncident.updated).toLocaleString()}</strong>
-                    <span style={detailStyles.metadataLabel}>Location</span><strong style={detailStyles.metadataValue}>{addresses[selectedIncident.id] || "GPS Telemetry Locating..."}</strong>
-                  </div>
-                </section>
-
-                <section style={detailStyles.detailPanel}>
-                  <h3 style={detailStyles.detailSectionTitle}>Assigned Responders</h3>
-                  {selectedIncident.dispatches?.length > 0 ? (
-                    <div style={{ display: "grid", gap: "8px" }}>
-                      {selectedIncident.dispatches.map((dispatch) => {
-                        const responder = dispatch.expand?.responder_id;
-                        const department = responder?.department || dispatch.department || "Response Unit";
-                        return (
-                          <div
-                            key={dispatch.id}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              gap: "12px",
-                              padding: "10px 12px",
-                              border: "1px solid #dfeae3",
-                              borderRadius: "8px",
-                              backgroundColor: "#f6faf7",
-                            }}
-                          >
-                            <div style={{ minWidth: 0 }}>
-                              <strong style={{ display: "block", color: "#177a4a", fontSize: "13px" }}>
-                                {responder
-                                  ? `${responder.first_name || ""} ${responder.last_name || ""}`.trim()
-                                  : `${department} Unit`}
-                              </strong>
-                              <span style={{ color: "#5f7b69", fontSize: "11px" }}>
-                                {department}
-                              </span>
-                            </div>
-                            <span style={{ color: "#5f7b69", fontSize: "10px", fontWeight: "800", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                              {dispatch.status || "Resolved"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p style={{ margin: 0, color: "#5f7b69", fontSize: "13px" }}>
-                      No responder assignment recorded.
-                    </p>
-                  )}
-                </section>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Map Modal */}
       {selectedMap && (
@@ -705,20 +550,14 @@ export default function ResolvedIncidents() {
         </div>
       )}
 
-      {/* Image Modal */}
+      {/* Advanced Fullscreen Image Modal */}
       {selectedImage && (
-        <div style={detailStyles.modalBackdrop} onClick={() => setSelectedImage(null)}>
-          <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }} onClick={(event) => event.stopPropagation()}>
-            {selectedImage.match(/\.(mp4|mov|avi|webm|ogg)(\?.*)?$/i) ? (
-              <video src={selectedImage} controls autoPlay style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "10px" }} />
-            ) : (
-              <img src={selectedImage} alt="Incident media preview" style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "10px" }} />
-            )}
-            <button type="button" className="animatedCloseButton" onClick={() => setSelectedImage(null)} style={detailStyles.closeFloatBtn}>
-              <X size={20} />
-            </button>
-          </div>
-        </div>
+        <AdvancedImageModal
+          src={selectedImage}
+          title="Incident Evidence Preview"
+          alt="Incident Evidence"
+          onClose={() => setSelectedImage(null)}
+        />
       )}
     </div>
   );

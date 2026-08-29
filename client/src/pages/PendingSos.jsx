@@ -7,6 +7,7 @@ import { getReadableAddress } from "../utils/utils";
 import SosRoutingTracker from "../components/SosRoutingTracker";
 import CustomDropdown from "../components/CustomDropdown";
 import { useTheme } from "../themes/ThemeContext";
+import { addAuditLog } from "../utils/auditLog";
 import {
   MapPin,
   User,
@@ -266,6 +267,23 @@ export default function PendingSos() {
         dispatch_status: "assigned",
       });
 
+      const user = sosSignal.expand?.user;
+      const citizenName = user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "Citizen";
+      const unitDescriptions = selectedResponders
+        .map((r) => r.unit_name || `${r.first_name || ""} ${r.last_name || ""}`.trim() || r.department || "Unit")
+        .join(", ");
+      const locDisplay = addresses[sosSignal.id] || sosSignal.barangay || "Barangay Lagonglong";
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "SOS_RESPONDER_DISPATCHED",
+        target: `SOS #${sosSignal.id} [${citizenName}]`,
+        details: `Administrator ${adminName} dispatched ${selectedResponders.length} responder unit(s) [${unitDescriptions}] to emergency SOS distress signal #${sosSignal.id} for ${citizenName} at ${locDisplay}.`,
+        actor: adminName,
+      });
+
       setSelectedResponderIds((prev) => ({ ...prev, [sosSignal.id]: [] }));
       await fetchSosSignals();
       await showAlert(`Successfully dispatched ${selectedResponders.length} unit(s) to emergency SOS signal.`, { title: "Units Dispatched" });
@@ -310,6 +328,18 @@ export default function PendingSos() {
       await pb.collection("sos_tracking").update(sosSignal.id, {
         status: "resolved",
         dispatch_status: "resolved",
+      });
+
+      const user = sosSignal.expand?.user;
+      const citizenName = user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() : "Citizen";
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "SOS_RESOLVED",
+        target: `SOS #${sosSignal.id} [${citizenName}]`,
+        details: `Administrator ${adminName} concluded and resolved emergency SOS distress signal #${sosSignal.id} for ${citizenName}. Released ${sosDispatches.length} active responder unit(s).`,
+        actor: adminName,
       });
 
       setSosSignals((prev) => prev.filter((s) => s.id !== sosSignal.id));
@@ -361,11 +391,11 @@ export default function PendingSos() {
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
               <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ef4444", display: "inline-block" }} />
               <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-                Live SOS Distress Feeds
+                Live SOS Emergency Calls
               </h1>
             </div>
             <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-              Real-time emergency distress telemetry, citizen live camera feeds, and priority responder dispatch routing.
+              View emergency SOS distress signals from citizens, monitor live video streams, and dispatch responders.
             </p>
           </div>
 

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import { getLoginStyles } from "../themes/loginStyles";
 import { useTheme, ThemeSwitch } from "../themes/ThemeContext";
-import { AlertTriangle, Eye, EyeOff, Loader, Mail, Lock, KeyRound } from "lucide-react";
+import { AlertTriangle, ShieldOff, Eye, EyeOff, Loader, Mail, Lock, KeyRound } from "lucide-react";
+import { addAuditLog } from "../utils/auditLog";
 
 function FloatingInput({
   id,
@@ -196,14 +197,16 @@ export default function Login() {
   const [loginAlertMessage, setLoginAlertMessage] = useState("");
   const [loginAlertVisible, setLoginAlertVisible] = useState(false);
   const [loginAlertClosing, setLoginAlertClosing] = useState(false);
+  const [loginAlertType, setLoginAlertType] = useState("error"); // "error" | "suspended"
 
   const navigate = useNavigate();
   const unlockAlarmAudio = () => {
     window.dispatchEvent(new Event("alarm-audio-unlock"));
   };
 
-  const showLoginAlert = (message) => {
+  const showLoginAlert = (message, type = "error") => {
     setLoginAlertMessage(String(message || ""));
+    setLoginAlertType(type);
     setLoginAlertClosing(false);
     setLoginAlertVisible(false);
     requestAnimationFrame(() => setLoginAlertVisible(true));
@@ -233,19 +236,19 @@ export default function Login() {
     // Strict validation - prevent any trigger if email is empty or format is invalid
     if (!trimmedEmail) {
       setEmailError("Please enter your email.");
-      showLoginAlert("Security Alert: Email field cannot be empty.");
+      showLoginAlert("Please enter your email.");
       return;
     }
 
     if (!isValidEmail(trimmedEmail)) {
       setEmailError("Please enter a valid email format (e.g. name@gmail.com).");
-      showLoginAlert("Invalid Email: Please enter a valid email format before signing in.");
+      showLoginAlert("Please enter a valid email address (e.g. name@gmail.com).");
       return;
     }
 
     if (!trimmedPassword) {
       setPasswordError("Please enter your password.");
-      showLoginAlert("Security Alert: Password field cannot be empty.");
+      showLoginAlert("Please enter your password.");
       return;
     }
 
@@ -266,12 +269,41 @@ export default function Login() {
 
       const data = await response.json();
 
+      // Server returns HTTP 403 specifically for suspended accounts
+      if (response.status === 403) {
+        pb.authStore.clear();
+        showLoginAlert(
+          "Your account has been suspended. Contact a Super Admin to restore access.",
+          "suspended"
+        );
+        return;
+      }
+
       if (!response.ok || !data.ok) {
         throw new Error(data.error || "Authentication failed");
       }
 
+      // Fallback client-side check (in case server doesn't enforce it)
+      if (data.record?.suspended === true) {
+        pb.authStore.clear();
+        showLoginAlert(
+          "Your account has been suspended. Contact a Super Admin to restore access.",
+          "suspended"
+        );
+        return;
+      }
+
       // Save auth token and account record to PocketBase client session
       pb.authStore.save(data.token, data.record);
+
+      const loggedUser = data.record;
+      const adminName = (`${loggedUser?.first_name || ""} ${loggedUser?.last_name || ""}`.trim()) || loggedUser?.email || "Administrator";
+      addAuditLog({
+        action: "ADMIN_LOGIN",
+        target: "Dashboard",
+        details: `${adminName} logged in.`,
+        actor: adminName,
+      });
 
       // Handle Remember Me (save email only, NEVER save password)
       try {
@@ -287,7 +319,7 @@ export default function Login() {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.warn("Security Block:", err.message);
-      showLoginAlert("Access Denied: Invalid Email or Password.");
+      showLoginAlert("Incorrect email or password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -299,7 +331,7 @@ export default function Login() {
 
     if (!trimmedEmail) {
       setResetEmailError("Please enter your email.");
-      showLoginAlert("Security Alert: Email field cannot be empty.");
+      showLoginAlert("Please enter your email.");
       return;
     }
 
@@ -610,21 +642,41 @@ export default function Login() {
               ...styles.alertDialog,
               opacity: loginAlertVisible ? 1 : 0,
               transform: loginAlertVisible ? "translateY(0) scale(1)" : "translateY(10px) scale(0.97)",
+              ...(loginAlertType === "suspended" && {
+                borderTop: "3px solid #ef4444",
+              }),
             }}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="login-alert-title"
           >
-            <div style={styles.alertIcon}>
-              <AlertTriangle size={26} />
+            <div
+              style={{
+                ...styles.alertIcon,
+                ...(loginAlertType === "suspended" && {
+                  background: "rgba(239,68,68,0.12)",
+                  color: "#ef4444",
+                }),
+              }}
+            >
+              {loginAlertType === "suspended" ? (
+                <ShieldOff size={26} />
+              ) : (
+                <AlertTriangle size={26} />
+              )}
             </div>
             <h2 id="login-alert-title" style={styles.alertTitle}>
-              System Alert
+              {loginAlertType === "suspended" ? "Account Suspended" : "Notice"}
             </h2>
             <p style={styles.alertMessage}>{loginAlertMessage}</p>
             <button
               type="button"
-              style={styles.alertButton}
+              style={{
+                ...styles.alertButton,
+                ...(loginAlertType === "suspended" && {
+                  background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                }),
+              }}
               onClick={closeLoginAlert}
             >
               OK

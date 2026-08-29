@@ -192,12 +192,24 @@ export default function OngoingIncidents() {
         dispatchesCreated.push(dispatch);
       }
 
+      const unitDescriptions = selectedResponders
+        .map((r) => {
+          const name = r.unit_name || `${r.first_name || ""} ${r.last_name || ""}`.trim() || r.name || "Unit";
+          return `${name} (${r.department || "Field Team"})`;
+        })
+        .join(", ");
+
+      const locDisplay = incident.location || incident.barangay || "Barangay Lagonglong";
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
       await pb.collection("incident_reports").update(incident.id, { status: newStatus });
       addAuditLog({
-        action: "Additional Responders Dispatched",
-        target: incident.id,
-        details: `${incident.type} assigned +${responderIds.length} additional unit(s)`,
-        actor: pb.authStore.model?.username || "Admin",
+        action: "BACKUP_RESPONDERS_DISPATCHED",
+        target: `Incident #${incident.id} [${incident.type || "Emergency"}]`,
+        details: `Administrator ${adminName} dispatched +${responderIds.length} additional backup unit(s) [${unitDescriptions}] to reinforce ongoing ${incident.type || "incident"} at ${locDisplay}.`,
+        actor: adminName,
       });
 
       setSelectedResponderIds((prev) => ({ ...prev, [incident.id]: [] }));
@@ -242,11 +254,16 @@ export default function OngoingIncidents() {
       }
 
       await pb.collection("incident_reports").update(incident.id, { status: "resolved" });
+      const locDisplay = incident.location || incident.barangay || "Barangay Lagonglong";
+      
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
       addAuditLog({
-        action: "Incident Resolved",
-        target: incident.id,
-        details: `${incident.type || "Incident"} (#${incident.id}) resolved by admin.`,
-        actor: pb.authStore.model?.username || "Admin",
+        action: "INCIDENT_RESOLVED",
+        target: `Incident #${incident.id} [${incident.type || "Emergency"}]`,
+        details: `Administrator ${adminName} marked ${incident.type || "incident"} (#${incident.id}) at ${locDisplay} as resolved. Discharged and released ${activeDispatches.length} active responder unit(s) back to standby.`,
+        actor: adminName,
       });
 
       setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
@@ -334,11 +351,11 @@ export default function OngoingIncidents() {
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
               <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#f59e0b", display: "inline-block" }} />
               <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-                Active Emergency Operations
+                Ongoing Incidents
               </h1>
             </div>
             <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
-              Real-time field unit telemetry, multi-resident report counters, and incident command resolution.
+              Track responder units in the field and mark incidents as resolved once completed.
             </p>
           </div>
 

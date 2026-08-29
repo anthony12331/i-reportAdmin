@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
 import { Copy, KeyRound, RefreshCw, ShieldAlert, Loader, Check, Search, X } from "lucide-react";
+import { addAuditLog } from "../utils/auditLog";
 
 export default function GenerateResponderPin() {
   const { isDark } = useTheme();
@@ -78,6 +79,17 @@ export default function GenerateResponderPin() {
       await pb.collection("registration_access").update(record.id, {
         pin: newPin,
       });
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "RESPONDER_PIN_GENERATED",
+        target: `${record.department} Access PIN`,
+        details: `Administrator ${adminName} generated a new registration PIN for the ${record.department} department.`,
+        actor: adminName,
+      });
+
       await showAlert(`Successfully generated new PIN for ${record.department}: ${newPin}`, {
         title: "PIN Generated",
       });
@@ -102,8 +114,19 @@ export default function GenerateResponderPin() {
     if (!isConfirmed) return;
 
     try {
+      const newStatus = !record.is_active;
       await pb.collection("registration_access").update(record.id, {
-        is_active: !record.is_active,
+        is_active: newStatus,
+      });
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: newStatus ? "RESPONDER_PIN_ACTIVATED" : "RESPONDER_PIN_DEACTIVATED",
+        target: `${record.department} Access PIN`,
+        details: `Administrator ${adminName} ${newStatus ? "Activated (allowed)" : "Deactivated (blocked)"} registration PIN authorization for ${record.department}.`,
+        actor: adminName,
       });
     } catch (error) {
       console.error("Failed to toggle status:", error);
@@ -138,11 +161,11 @@ export default function GenerateResponderPin() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
             <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
             <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-              Responder PIN Management
+              Responder PINs
             </h1>
           </div>
           <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-            Generate and manage access PINs for responder department registration.
+            Generate and manage access PINs for emergency responder mobile apps.
           </p>
         </header>
 

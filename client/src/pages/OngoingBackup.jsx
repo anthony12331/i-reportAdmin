@@ -3,6 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
+import { addAuditLog } from "../utils/auditLog";
 import {
   ShieldAlert,
   User,
@@ -88,6 +89,21 @@ export default function OngoingBackup() {
         dispatch_status: "completed",
       });
 
+      const responder = backup?.expand?.assigned_responder;
+      const responderName = responder?.unit_name || `${responder?.first_name || ""} ${responder?.last_name || ""}`.trim() || "Backup Unit";
+      const requester = backup?.expand?.requester_id;
+      const requesterName = requester ? `${requester.first_name || ""} ${requester.last_name || ""}`.trim() : "Field Unit";
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "BACKUP_DEPLOYMENT_COMPLETED",
+        target: `Backup Request #${backupId}`,
+        details: `Administrator ${adminName} completed backup deployment for ${responderName} (${responder?.department || "Emergency Unit"}) supporting ${requesterName}. Unit returned to standby.`,
+        actor: adminName,
+      });
+
       await showAlert("Backup deployment marked as completed.", { title: "Backup Completed" });
       setBackups((prev) => prev.filter((b) => b.id !== backupId));
     } catch (error) {
@@ -109,11 +125,11 @@ export default function OngoingBackup() {
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
               <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#f59e0b", display: "inline-block" }} />
               <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-                Active Backup Deployments
+                Ongoing Backup
               </h1>
             </div>
             <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-              Monitor dispatched backup units currently active in the field and complete assignments.
+              Track dispatched backup units currently assisting on scene in Lagonglong.
             </p>
           </div>
 

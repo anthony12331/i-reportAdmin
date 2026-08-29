@@ -26,9 +26,11 @@ const GenerateResponderPin   = lazy(() => import("./pages/GenerateResponderPin")
 const RequestBackup          = lazy(() => import("./pages/RequestBackup"));
 const OngoingBackup          = lazy(() => import("./pages/OngoingBackup"));
 const Calamities             = lazy(() => import("./pages/Calamities"));
+const IncidentMap            = lazy(() => import("./pages/IncidentMap"));
 
 // Components
 import { MessageBoxProvider } from "./components/MessageBox";
+import { SnackbarProvider } from "./components/PremiumSnackbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NetworkStatusDetector from "./components/NetworkStatusDetector";
 
@@ -52,7 +54,12 @@ function PageLoader() {
 
 const alertedIncidentIds = new Set();
 const alertedSosIds = new Set();
+const alertedBackupIds = new Set();
 const AUDIO_ARMED_KEY = "lagonglong-alarm-armed";
+
+// Deduplication: prevent the same event from showing a snackbar twice within 2 seconds
+// (guards against React Strict Mode double-subscription race conditions)
+const snackbarCooldown = new Map();
 
 function App() {
   const [audioEnabled, setAudioEnabled] = useState(() => {
@@ -63,7 +70,9 @@ function App() {
     }
   });
   const [settings, setSettings] = useState(getSystemSettings());
-  const [incidentAlerts, setIncidentAlerts] = useState([]);
+  const settingsRef = useRef(settings); // ref so subscriptions don't need to re-mount on settings change
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+
   const [alarmActive, setAlarmActive] = useState(false);
   const [alarmPulse, setAlarmPulse] = useState(0);
   const [authState, setAuthState] = useState(pb.authStore.isValid);
@@ -271,6 +280,55 @@ function App() {
         alertSet.add(record.id);
         setAlarmPulse((pulse) => pulse + 1);
         playAlarmSound(); // Instantly trigger the alarm sound!
+
+        // Guard: skip if same record already showed a snackbar within 2 seconds
+        const cooldownKey = `${collectionName}:${record.id}`;
+        const now = Date.now();
+        if (snackbarCooldown.has(cooldownKey) && now - snackbarCooldown.get(cooldownKey) < 2000) {
+          // duplicate — skip silently
+        } else {
+          snackbarCooldown.set(cooldownKey, now);
+          // Dispatch Premium Snackbar with matching category theme
+          if (collectionName === "incident_reports") {
+            const rawType = String(record.type || "").toLowerCase();
+            let categoryType = "emergency";
+            if (rawType.includes("fire")) categoryType = "fire";
+            else if (rawType.includes("accident") || rawType.includes("traffic") || rawType.includes("vehicular") || rawType.includes("car")) categoryType = "accident";
+            else if (rawType.includes("medical") || rawType.includes("health") || rawType.includes("ambulance")) categoryType = "medical";
+            else if (rawType.includes("flood") || rawType.includes("landslide") || rawType.includes("calamity") || rawType.includes("weather") || rawType.includes("storm") || rawType.includes("typhoon")) categoryType = "calamity";
+            else if (rawType.includes("crime") || rawType.includes("police") || rawType.includes("theft") || rawType.includes("violence") || rawType.includes("disturbance")) categoryType = "police";
+
+            window.dispatchEvent(new CustomEvent("show-premium-snackbar", {
+              detail: {
+                title: "New Incident Reported",
+                message: `${(record.type || "Incident").toUpperCase()} • Barangay ${record.baranggay || "Lagonglong"}`,
+                type: categoryType,
+                actionLabel: "View Details",
+                onAction: () => { window.location.href = "/pending-incidents"; },
+              }
+            }));
+          } else if (collectionName === "sos_tracking") {
+            window.dispatchEvent(new CustomEvent("show-premium-snackbar", {
+              detail: {
+                title: "SOS Alert",
+                message: `Citizen in distress • ${record.baranggay || "Lagonglong"}`,
+                type: "sos",
+                actionLabel: "View Details",
+                onAction: () => { window.location.href = "/pending-sos"; },
+              }
+            }));
+          } else if (collectionName === "backup_requests") {
+            window.dispatchEvent(new CustomEvent("show-premium-snackbar", {
+              detail: {
+                title: "Backup Requested",
+                message: `Responder needs backup assistance.`,
+                type: "warning",
+                actionLabel: "View Details",
+                onAction: () => { window.location.href = "/request-backup"; },
+              }
+            }));
+          }
+        }
       }
 
       return shouldPulse;
@@ -374,34 +432,7 @@ function App() {
       if (!shouldAlert) return;
 
       try {
-        addAuditLog({
-          action: "New Incident Reported",
-          target: record.id,
-          details: `${record.type || "Incident"} reported`,
-          actor: "System",
-        });
-
-        if (settings.visualAlertsEnabled) {
-          const alertKey = getAlertKey("incident_reports", record.id);
-          setIncidentAlerts((prev) =>
-            [
-              {
-                id: createUniqueId(),
-                alertKey,
-                label: `${getPriorityLabel(record)} ${String(record.type || "Incident").toUpperCase()}`,
-                message: "New incident report requires review.",
-              },
-              ...prev.filter((alert) => alert.alertKey !== alertKey),
-            ].slice(0, 3)
-          );
-          setTimeout(() => {
-            setIncidentAlerts((prev) =>
-              prev.filter((alert) => alert.alertKey !== alertKey)
-            );
-          }, 9000);
-        }
-
-        if (settings.browserNotificationsEnabled && "Notification" in window) {
+        if (settingsRef.current.browserNotificationsEnabled && "Notification" in window) {
           if (Notification.permission === "granted") {
             new Notification("New emergency report", {
               body: `${record.type || "Incident"} needs review.`,
@@ -424,34 +455,9 @@ function App() {
       if (!shouldAlert) return;
 
       try {
-        addAuditLog({
-          action: "New SOS Received",
-          target: record.id,
-          details: "SOS distress call reported",
-          actor: "System",
-        });
+        
 
-        if (settings.visualAlertsEnabled) {
-          const alertKey = getAlertKey("sos_tracking", record.id);
-          setIncidentAlerts((prev) =>
-            [
-              {
-                id: createUniqueId(),
-                alertKey,
-                label: "SOS ALERT",
-                message: "New SOS distress call requires response.",
-              },
-              ...prev.filter((alert) => alert.alertKey !== alertKey),
-            ].slice(0, 3)
-          );
-          setTimeout(() => {
-            setIncidentAlerts((prev) =>
-              prev.filter((alert) => alert.alertKey !== alertKey)
-            );
-          }, 9000);
-        }
-
-        if (settings.browserNotificationsEnabled && "Notification" in window) {
+        if (settingsRef.current.browserNotificationsEnabled && "Notification" in window) {
           if (Notification.permission === "granted") {
             new Notification("New SOS alert", {
               body: "A new SOS distress call needs response.",
@@ -509,13 +515,18 @@ function App() {
       if (incidentUnsubscribe) incidentUnsubscribe().catch(() => {});
       if (sosUnsubscribe) sosUnsubscribe().catch(() => {});
       if (backupUnsubscribe) backupUnsubscribe().catch(() => {});
+      try {
+        pb.collection("incident_reports").unsubscribe("*").catch(() => {});
+        pb.collection("sos_tracking").unsubscribe("*").catch(() => {});
+        pb.collection("backup_requests").unsubscribe("*").catch(() => {});
+      } catch {
+        // ignore unsubscribe errors
+      }
     };
   }, [
-    settings,
     isAuthorizedAdmin,
     reconcileAlarmState,
     syncSignalStateFromRecord,
-    getAlertKey,
     authState,
   ]);
 
@@ -619,8 +630,8 @@ function App() {
       console.log("Security Violation Detected! Logging to database...");
       addAuditLog({
         action: "SECURITY_VIOLATION",
-        target: "Command Center Terminal",
-        details: "User attempted to bypass the system via Ctrl+Alt+Delete or Windows Key.",
+        target: "System",
+        details: "Blocked key combination detected (Ctrl+Alt+Delete or Windows Key).",
         actor: "System",
       });
     };
@@ -638,170 +649,172 @@ function App() {
         ref={alarmAudioRef}
       />
 
-      <div style={styles.alertStack}>
-        {incidentAlerts.map((alert) => (
-          <div key={alert.alertKey || alert.id} className="global-incident-alert-toast" style={styles.incidentAlert}>
-            <strong>{alert.label}</strong>
-            <span>{alert.message}</span>
-          </div>
-        ))}
-      </div>
 
       <NetworkStatusDetector />
 
-      <MessageBoxProvider>
-        <Router>
-          <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rbac-settings"
-              element={
-                <ProtectedRoute requiredModule="super_admin_only">
-                  <RBACManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/manage-admins"
-              element={
-                <ProtectedRoute requiredModule="super_admin_only">
-                  <ManageAdmins />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pending-users"
-              element={
-                <ProtectedRoute requiredModule="users">
-                  <PendingUserRegistration />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/verified-users"
-              element={
-                <ProtectedRoute requiredModule="users">
-                  <VerifiedUsers />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/verified-users/:userId"
-              element={
-                <ProtectedRoute requiredModule="users">
-                  <VerifiedUserDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/calamities"
-              element={
-                <ProtectedRoute requiredModule="dashboard">
-                  <Calamities />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pending-incidents"
-              element={
-                <ProtectedRoute requiredModule="incidents">
-                  <PendingIncidents />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ongoing-incidents"
-              element={
-                <ProtectedRoute requiredModule="incidents">
-                  <OngoingIncidents />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/resolved-incidents"
-              element={
-                <ProtectedRoute requiredModule="incidents">
-                  <ResolvedIncidents />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/resolved-incidents/sos/:incidentId"
-              element={
-                <ProtectedRoute requiredModule="incidents">
-                  <ResolvedIncidentDetails recordType="sos" />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/resolved-incidents/:incidentId"
-              element={
-                <ProtectedRoute requiredModule="incidents">
-                  <ResolvedIncidentDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pending-sos"
-              element={
-                <ProtectedRoute requiredModule="sos">
-                  <PendingSos />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute requiredModule="reports">
-                  <Report />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/audit-logs"
-              element={
-                <ProtectedRoute requiredModule="audit">
-                  <AuditLogs />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/responder-pins"
-              element={
-                <ProtectedRoute requiredModule="pins">
-                  <GenerateResponderPin />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/request-backup"
-              element={
-                <ProtectedRoute requiredModule="incidents">
-                  <RequestBackup />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ongoing-backup"
-              element={
-                <ProtectedRoute requiredModule="incidents">
-                  <OngoingBackup />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-          </Suspense>
-        </Router>
-      </MessageBoxProvider>
+      <SnackbarProvider>
+        <MessageBoxProvider>
+          <Router>
+            <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/rbac-settings"
+                element={
+                  <ProtectedRoute requiredModule="super_admin_only">
+                    <RBACManager />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manage-admins"
+                element={
+                  <ProtectedRoute requiredModule="super_admin_only">
+                    <ManageAdmins />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pending-users"
+                element={
+                  <ProtectedRoute requiredModule="users">
+                    <PendingUserRegistration />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/verified-users"
+                element={
+                  <ProtectedRoute requiredModule="users">
+                    <VerifiedUsers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/verified-users/:userId"
+                element={
+                  <ProtectedRoute requiredModule="users">
+                    <VerifiedUserDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/calamities"
+                element={
+                  <ProtectedRoute requiredModule="dashboard">
+                    <Calamities />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pending-incidents"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <PendingIncidents />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ongoing-incidents"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <OngoingIncidents />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/resolved-incidents"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <ResolvedIncidents />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/incident-map"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <IncidentMap />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/resolved-incidents/sos/:incidentId"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <ResolvedIncidentDetails recordType="sos" />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/resolved-incidents/:incidentId"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <ResolvedIncidentDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pending-sos"
+                element={
+                  <ProtectedRoute requiredModule="sos">
+                    <PendingSos />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute requiredModule="reports">
+                    <Report />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/audit-logs"
+                element={
+                  <ProtectedRoute requiredModule="audit">
+                    <AuditLogs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/responder-pins"
+                element={
+                  <ProtectedRoute requiredModule="pins">
+                    <GenerateResponderPin />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/request-backup"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <RequestBackup />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ongoing-backup"
+                element={
+                  <ProtectedRoute requiredModule="incidents">
+                    <OngoingBackup />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+            </Suspense>
+          </Router>
+        </MessageBoxProvider>
+      </SnackbarProvider>
     </div>
   );
 }

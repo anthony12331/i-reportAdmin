@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
+import { addAuditLog } from "../utils/auditLog";
 
 const getInitials = (admin) => {
   const first = admin.first_name ? admin.first_name.trim().charAt(0).toUpperCase() : "";
@@ -118,6 +119,23 @@ export default function RBACManager() {
         `${selectedAdmin.first_name || ""} ${selectedAdmin.last_name || ""}`.trim() ||
         selectedAdmin.email;
 
+      const activeModuleLabels = (selectedAdmin.permissions || [])
+        .map((pId) => {
+          const mod = AVAILABLE_MODULES.find((m) => m.id === pId);
+          return mod ? mod.name : pId;
+        })
+        .join(", ");
+
+      const currentAdmin = pb.authStore.model;
+      const currentAdminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "RBAC_PERMISSIONS_UPDATED",
+        target: `${adminName} (${selectedAdmin.email})`,
+        details: `Administrator ${currentAdminName} updated module access permissions for ${adminName}. Active modules (${(selectedAdmin.permissions || []).length}): [${activeModuleLabels || "No access granted"}].`,
+        actor: currentAdminName,
+      });
+
       await showAlert(`Permissions updated successfully for ${adminName}`, { title: "Success" });
       setHasChanges(false);
       fetchAdmins();
@@ -146,11 +164,11 @@ export default function RBACManager() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
             <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
             <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-              Role-Based Access Control (RBAC)
+              Role & Access Permissions
             </h1>
           </div>
           <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-            Configure granular administrative privileges and module access rules.
+            Control which pages and features each admin can access.
           </p>
         </header>
 
@@ -195,7 +213,7 @@ export default function RBACManager() {
               </div>
             ) : filteredAdmins.length === 0 ? (
               <div style={{ padding: "30px 10px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px" }}>
-                No administrator accounts found.
+                No admins found.
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "620px", overflowY: "auto" }}>
@@ -494,7 +512,7 @@ export default function RBACManager() {
               <div style={{ padding: "60px 20px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b" }}>
                 <Lock size={36} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginBottom: "12px" }} />
                 <h3 style={{ margin: "0 0 6px 0", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "16px" }}>No Administrator Selected</h3>
-                <p style={{ margin: 0, fontSize: "13.5px" }}>Select an administrator account from the left panel to configure module access.</p>
+                <p style={{ margin: 0, fontSize: "13.5px" }}>Select an admin from the left to configure their access.</p>
               </div>
             )}
           </div>

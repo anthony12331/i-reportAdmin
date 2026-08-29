@@ -11,9 +11,14 @@ import {
   Loader,
   X,
   ShieldAlert,
+  Calendar,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import CustomDropdown from "../components/CustomDropdown";
+import PremiumPagination from "../components/PremiumPagination";
+import PremiumDateRangePicker from "../components/PremiumDateRangePicker";
+import PremiumSearchBar from "../components/PremiumSearchBar";
 import { useTheme } from "../themes/ThemeContext";
 import { getActionStyle } from "../themes/auditStyles";
 
@@ -51,6 +56,10 @@ export default function Audit() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [expandedLogId, setExpandedLogId] = useState(null);
   const [page, setPage] = useState(1);
 
@@ -101,9 +110,74 @@ export default function Audit() {
 
   // 3. Client-side Search and Filter with useMemo
   const filteredLogs = useMemo(() => {
-    if (!searchTerm.trim()) return logs;
+    let result = logs;
+
+    // Action filter
+    if (actionFilter && actionFilter !== "all") {
+      result = result.filter((log) => {
+        const actionLower = (log.action || "").toLowerCase();
+        const detailsLower = (log.details || "").toLowerCase();
+        if (actionFilter === "auth") return actionLower.includes("login") || actionLower.includes("logout") || actionLower.includes("auth");
+        if (actionFilter === "user") return actionLower.includes("user") || actionLower.includes("citizen") || actionLower.includes("verify") || actionLower.includes("reject") || detailsLower.includes("citizen");
+        if (actionFilter === "dispatch") return actionLower.includes("dispatch") || actionLower.includes("responder") || actionLower.includes("backup");
+        if (actionFilter === "incident") return actionLower.includes("incident") || actionLower.includes("sos") || actionLower.includes("resolve");
+        if (actionFilter === "admin") return actionLower.includes("admin") || actionLower.includes("rbac") || actionLower.includes("pin") || actionLower.includes("permission");
+        return true;
+      });
+    }
+
+    // Date filter
+    if (dateFilter && dateFilter !== "all") {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      result = result.filter((log) => {
+        if (!log.created) return true;
+        const logDate = new Date(log.created);
+
+        if (dateFilter === "today") {
+          return logDate >= startOfToday;
+        }
+        if (dateFilter === "yesterday") {
+          const startOfYesterday = new Date(startOfToday);
+          startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+          return logDate >= startOfYesterday && logDate < startOfToday;
+        }
+        if (dateFilter === "last7days") {
+          const past7 = new Date(startOfToday);
+          past7.setDate(past7.getDate() - 7);
+          return logDate >= past7;
+        }
+        if (dateFilter === "last30days") {
+          const past30 = new Date(startOfToday);
+          past30.setDate(past30.getDate() - 30);
+          return logDate >= past30;
+        }
+        if (dateFilter === "thisMonth") {
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          return logDate >= startOfMonth;
+        }
+        if (dateFilter === "custom") {
+          if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            if (logDate < start) return false;
+          }
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (logDate > end) return false;
+          }
+          return true;
+        }
+        return true;
+      });
+    }
+
+    // Search query
+    if (!searchTerm.trim()) return result;
     const searchLower = searchTerm.toLowerCase();
-    return logs.filter((log) => {
+    return result.filter((log) => {
       return (
         (log.admin_name || log.actor || "").toLowerCase().includes(searchLower) ||
         (log.target || "").toLowerCase().includes(searchLower) ||
@@ -111,7 +185,7 @@ export default function Audit() {
         (log.details || "").toLowerCase().includes(searchLower)
       );
     });
-  }, [logs, searchTerm]);
+  }, [logs, actionFilter, dateFilter, startDate, endDate, searchTerm]);
 
   const totalPages = useMemo(() => Math.ceil(filteredLogs.length / LOGS_PER_PAGE) || 1, [filteredLogs.length]);
   const paginatedLogs = useMemo(() => {
@@ -128,44 +202,72 @@ export default function Audit() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
             <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
             <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-              Central Audit Trail
+              Audit Logs
             </h1>
           </div>
           <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-            Review recorded administrative actions, system events, and security access logs.
+            Record of all administrator activities, dispatches, account updates, and logins.
           </p>
         </header>
 
         {/* Premium Table Card */}
         <div className="premium-table-card">
           {/* Top Toolbar */}
-          <div className="table-toolbar">
-            <div className="search-box-premium">
-              <Search size={18} color="#94a3b8" />
-              <input
-                type="text"
-                placeholder="Search by administrator name, target ID, or action..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
+          <div className="table-toolbar" style={{ flexWrap: "wrap", gap: "12px" }}>
+            <PremiumSearchBar
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
+              onClear={() => {
+                setSearchTerm("");
+                setPage(1);
+              }}
+              placeholder="Search by admin name, target ID, or action..."
+              minWidth="300px"
+              maxWidth="420px"
+            />
+
+            <div className="table-toolbar-actions" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              {/* Action Filter Dropdown */}
+              <CustomDropdown
+                value={actionFilter}
+                onChange={(val) => {
+                  setActionFilter(val);
                   setPage(1);
                 }}
+                options={[
+                  { value: "all", label: "All Actions" },
+                  { value: "auth", label: "Logins / Logouts" },
+                  { value: "user", label: "Citizen Verification" },
+                  { value: "dispatch", label: "Dispatches & Responders" },
+                  { value: "incident", label: "Incidents & Resolution" },
+                  { value: "admin", label: "Admins & Permissions" },
+                ]}
+                minWidth="170px"
+                size="sm"
               />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setPage(1);
-                  }}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </div>
 
-            <div className="table-toolbar-actions">
+              {/* Premium Date Range Picker */}
+              <PremiumDateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={({ startDate: s, endDate: e }) => {
+                  setStartDate(s);
+                  setEndDate(e);
+                  setDateFilter(s ? "custom" : "all");
+                  setPage(1);
+                }}
+                onClear={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  setDateFilter("all");
+                  setPage(1);
+                }}
+                placeholder="Filter by Date"
+              />
+
               <span style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#94a3b8" : "#64748b" }}>
                 Total Records: <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredLogs.length}</strong>
               </span>
@@ -350,46 +452,18 @@ export default function Audit() {
                 </table>
               </div>
 
-              {/* Table Footer / Pagination */}
-              <div className="premium-table-footer">
-                <div className="premium-pagination-info">
-                  Showing <strong>{Math.min((page - 1) * LOGS_PER_PAGE + 1, filteredLogs.length)}</strong>–
-                  <strong>{Math.min(page * LOGS_PER_PAGE, filteredLogs.length)}</strong> of <strong>{filteredLogs.length}</strong> Logs
+              {/* Table Footer / Premium Pagination */}
+              <div className="premium-table-footer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "16px 20px" }}>
+                <div className="premium-pagination-info" style={{ fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+                  Showing <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min((page - 1) * LOGS_PER_PAGE + 1, filteredLogs.length)}</strong>–
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min(page * LOGS_PER_PAGE, filteredLogs.length)}</strong> of <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredLogs.length}</strong> Logs
                 </div>
 
-                <div className="premium-pagination-controls">
-                  <button
-                    type="button"
-                    className="premium-page-nav-btn"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, index) => index + 1).slice(
-                    Math.max(0, page - 3),
-                    Math.min(totalPages, page + 2)
-                  ).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      className={`premium-page-num-btn ${page === pageNum ? "active" : ""}`}
-                      onClick={() => setPage(pageNum)}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    className="premium-page-nav-btn"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+                <PremiumPagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => setPage(newPage)}
+                />
               </div>
             </>
           )}

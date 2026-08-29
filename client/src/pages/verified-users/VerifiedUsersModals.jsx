@@ -17,6 +17,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useTheme } from "../../themes/ThemeContext";
+import AdvancedImageModal from "../../components/AdvancedImageModal";
 import { getVerifiedUserDetails } from "./verifiedUsersUtils";
 
 function DetailsGrid({ user, isDark }) {
@@ -56,125 +57,14 @@ export const UserImagePreviewModal = memo(function UserImagePreviewModal({
   src,
   onClose,
 }) {
-  const { isDark } = useTheme();
   if (!src) return null;
-
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.85)",
-        backdropFilter: "blur(12px)",
-        zIndex: 99999,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "24px",
-        animation: "messageBoxOverlayIn 0.2s ease forwards",
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: "680px",
-          backgroundColor: isDark ? "#131c2e" : "#ffffff",
-          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
-          borderRadius: "20px",
-          overflow: "hidden",
-          boxShadow: isDark
-            ? "0 30px 80px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)"
-            : "0 30px 80px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15)",
-          display: "flex",
-          flexDirection: "column",
-          animation: "messageBoxDialogIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        {/* Modal Top Bar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "16px 22px",
-            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
-            backgroundColor: isDark ? "#0f172a" : "#f8fafc",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "4px 12px",
-                borderRadius: "14px",
-                backgroundColor: isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4",
-                border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0",
-                color: isDark ? "#4ade80" : "#15803d",
-                fontSize: "12.5px",
-                fontWeight: "700",
-              }}
-            >
-              Citizen Profile Photo
-            </span>
-          </div>
-
-          <button
-            type="button"
-            className="animatedCloseButton"
-            onClick={onClose}
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
-              backgroundColor: isDark ? "#1e293b" : "#ffffff",
-              color: isDark ? "#f8fafc" : "#475569",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.18s ease",
-            }}
-            aria-label="Close photo preview"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Large Image Canvas */}
-        <div
-          style={{
-            width: "100%",
-            height: "540px",
-            maxHeight: "78vh",
-            backgroundColor: "#090d16",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-            padding: "16px",
-          }}
-        >
-          <img
-            src={src}
-            alt="Citizen Profile"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              borderRadius: "10px",
-              aspectRatio: "auto",
-              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.5)",
-            }}
-          />
-        </div>
-      </div>
-    </div>
+    <AdvancedImageModal
+      src={src}
+      title="Citizen Profile Photo"
+      alt="Citizen Profile"
+      onClose={onClose}
+    />
   );
 });
 

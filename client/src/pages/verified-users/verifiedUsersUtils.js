@@ -109,10 +109,6 @@ export function buildVerifiedUsersFilter(searchTerm = "", filters = {}) {
     filterString += `${filterString ? " && " : ""}municipality ~ "${municipalityEscaped}"`;
   }
 
-  if (registrationDate) {
-    filterString += `${filterString ? " && " : ""}date_time >= "${registrationDate} 00:00:00" && date_time <= "${registrationDate} 23:59:59"`;
-  }
-
   return filterString;
 }
 

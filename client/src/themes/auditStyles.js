@@ -6,7 +6,9 @@ export const getActionStyle = (action = "", isDark = false) => {
     act.includes("delete") ||
     act.includes("remove") ||
     act.includes("revoke") ||
-    act.includes("suspend")
+    act.includes("suspend") ||
+    act.includes("reject") ||
+    act.includes("violation")
   ) {
     return {
       bg: isDark ? "rgba(239, 68, 68, 0.18)" : "#fef2f2",
@@ -20,7 +22,9 @@ export const getActionStyle = (action = "", isDark = false) => {
     act.includes("grant") ||
     act.includes("restore") ||
     act.includes("verified") ||
-    act.includes("reported")
+    act.includes("resolve") ||
+    act.includes("approved") ||
+    act.includes("activate")
   ) {
     return {
       bg: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
@@ -29,15 +33,48 @@ export const getActionStyle = (action = "", isDark = false) => {
     };
   }
   if (
+    act.includes("rbac") ||
+    act.includes("permission") ||
+    act.includes("role") ||
+    act.includes("promote")
+  ) {
+    return {
+      bg: isDark ? "rgba(139, 92, 246, 0.18)" : "#f5f3ff",
+      color: isDark ? "#a78bfa" : "#6d28d9",
+      border: isDark ? "1px solid rgba(139, 92, 246, 0.35)" : "1px solid #ddd6fe",
+    };
+  }
+  if (
     act.includes("update") ||
     act.includes("edit") ||
     act.includes("modify") ||
-    act.includes("dispatch")
+    act.includes("dispatch") ||
+    act.includes("backup") ||
+    act.includes("pin")
   ) {
     return {
       bg: isDark ? "rgba(245, 158, 11, 0.18)" : "#fffbeb",
       color: isDark ? "#fbbf24" : "#b45309",
       border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fef3c7",
+    };
+  }
+  if (
+    act.includes("login") ||
+    act.includes("logout") ||
+    act.includes("session") ||
+    act.includes("auth")
+  ) {
+    return {
+      bg: isDark ? "rgba(6, 182, 212, 0.18)" : "#ecfeff",
+      color: isDark ? "#22d3ee" : "#0891b2",
+      border: isDark ? "1px solid rgba(6, 182, 212, 0.35)" : "1px solid #cffafe",
+    };
+  }
+  if (act.includes("report") || act.includes("export") || act.includes("dossier")) {
+    return {
+      bg: isDark ? "rgba(14, 165, 233, 0.18)" : "#f0f9ff",
+      color: isDark ? "#38bdf8" : "#0284c7",
+      border: isDark ? "1px solid rgba(14, 165, 233, 0.35)" : "1px solid #bae6fd",
     };
   }
   return {

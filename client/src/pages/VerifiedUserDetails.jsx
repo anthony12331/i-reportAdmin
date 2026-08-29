@@ -28,9 +28,11 @@ import {
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import AdvancedImageModal from "../components/AdvancedImageModal";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
 import { getReadableAddress } from "../utils/utils";
+import { addAuditLog } from "../utils/auditLog";
 
 const getFileUrl = (record, field) =>
   record?.[field] ? pb.files.getURL(record, record[field]) : null;
@@ -195,6 +197,20 @@ export default function VerifiedUserDetails() {
         description: isSuspending ? reason.trim() : "",
       });
       setUser(updatedUser);
+
+      const citizenFullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email;
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: isSuspending ? "USER_SUSPENDED" : "USER_RESTORED",
+        target: `${citizenFullName} (${user.email || `ID #${user.user_id}`})`,
+        details: isSuspending
+          ? `Administrator ${adminName} suspended citizen account for ${citizenFullName} (Citizen ID #${user.user_id || user.id}) from details dossier. Reason: "${reason.trim()}". Verification revoked.`
+          : `Administrator ${adminName} restored citizen verification for ${citizenFullName} (Citizen ID #${user.user_id || user.id}). Account status set back to verified.`,
+        actor: adminName,
+      });
+
       setReason("");
       await showAlert(
         isSuspending
@@ -451,7 +467,7 @@ export default function VerifiedUserDetails() {
                         <th>Date Reported</th>
                         <th>Status</th>
                         <th>Real Location / Address</th>
-                        <th style={{ textAlign: "center" }}>Satellite Map</th>
+                        <th style={{ textAlign: "center" }}>View Details</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -497,37 +513,35 @@ export default function VerifiedUserDetails() {
                             </div>
                           </td>
                           <td style={{ textAlign: "center" }}>
-                            {report.latitude && report.longitude ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setSelectedMap({
-                                    lat: report.latitude,
-                                    lng: report.longitude,
-                                    address: addresses[report.id] || `Coordinates (${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)})`,
-                                  })
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (report.status === "resolved") {
+                                  navigate(`/resolved-incidents/${report.id}`);
+                                } else if (report.status === "ongoing" || report.status === "dispatched") {
+                                  navigate("/ongoing-incidents");
+                                } else {
+                                  navigate("/pending-incidents");
                                 }
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                  padding: "5px 10px",
-                                  borderRadius: "8px",
-                                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
-                                  backgroundColor: isDark ? "#172338" : "#ffffff",
-                                  color: isDark ? "#4ade80" : "#15803d",
-                                  fontSize: "11.5px",
-                                  fontWeight: "700",
-                                  cursor: "pointer",
-                                  boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                                  transition: "all 0.15s ease",
-                                }}
-                              >
-                                <ExternalLink size={12} /> View Map
-                              </button>
-                            ) : (
-                              <span style={{ color: isDark ? "#64748b" : "#94a3b8", fontSize: "11px" }}>N/A</span>
-                            )}
+                              }}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                padding: "6px 12px",
+                                borderRadius: "8px",
+                                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                                backgroundColor: isDark ? "#172338" : "#ffffff",
+                                color: isDark ? "#4ade80" : "#15803d",
+                                fontSize: "12px",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <ExternalLink size={13} /> View Details
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -789,163 +803,14 @@ export default function VerifiedUserDetails() {
         </div>
       )}
 
-      {/* FULLSCREEN IMAGE LIGHTBOX WITH ZOOM & ADAPTIVE SIZING */}
+      {/* FULLSCREEN IMAGE LIGHTBOX WITH ADVANCED ZOOM, PAN, ROTATE */}
       {previewImage && (
-        <div
-          className="lightboxModalBackdrop"
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.85)",
-            backdropFilter: "blur(14px)",
-            zIndex: 99999,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "24px",
-          }}
-          onClick={() => {
-            setPreviewImage(null);
-            setZoomLevel(1);
-          }}
-        >
-          <div
-            className="lightboxModalCard"
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "840px",
-              backgroundColor: isDark ? "#131c2e" : "#ffffff",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
-              borderRadius: "22px",
-              overflow: "hidden",
-              boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.8)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "14px 22px",
-                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
-                backgroundColor: isDark ? "#0f172a" : "#f8fafc",
-                flexWrap: "wrap",
-                gap: "10px",
-              }}
-            >
-              <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
-                <ImageIcon size={17} /> {previewImage.label}
-              </span>
-
-              {/* Zoom & Action Controls */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", backgroundColor: isDark ? "#172338" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", borderRadius: "8px", padding: "2px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setZoomLevel((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
-                    title="Zoom out"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
-                  >
-                    <ZoomOut size={15} />
-                  </button>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", minWidth: "42px", textAlign: "center" }}>
-                    {Math.round(zoomLevel * 100)}%
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setZoomLevel((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
-                    title="Zoom in"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
-                  >
-                    <ZoomIn size={15} />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setZoomLevel(1)}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: "8px",
-                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
-                    backgroundColor: isDark ? "#172338" : "#ffffff",
-                    color: isDark ? "#cbd5e1" : "#475569",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                  }}
-                >
-                  Reset
-                </button>
-
-                <a
-                  href={previewImage.src}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    padding: "6px 12px",
-                    borderRadius: "8px",
-                    backgroundColor: "#15803d",
-                    color: "#ffffff",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    textDecoration: "none",
-                  }}
-                >
-                  <ExternalLink size={13} /> Open Original
-                </a>
-
-                <button
-                  type="button"
-                  className="animatedCloseButton"
-                  onClick={() => {
-                    setPreviewImage(null);
-                    setZoomLevel(1);
-                  }}
-                  style={{ width: "34px", height: "34px", borderRadius: "50%", border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#1e293b" : "#fff", color: isDark ? "#f8fafc" : "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  <X size={17} />
-                </button>
-              </div>
-            </div>
-
-            <div
-              style={{
-                height: "560px",
-                maxHeight: "75vh",
-                backgroundColor: "#070b14",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "24px",
-                overflow: "auto",
-                position: "relative",
-              }}
-            >
-              <img
-                src={previewImage.src}
-                alt={previewImage.label}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  maxHeight: "100%",
-                  objectFit: "contain",
-                  borderRadius: "10px",
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: "center center",
-                  transition: "transform 0.2s ease-out",
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <AdvancedImageModal
+          src={previewImage.src}
+          title={previewImage.label}
+          alt={previewImage.label}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
     </div>
   );

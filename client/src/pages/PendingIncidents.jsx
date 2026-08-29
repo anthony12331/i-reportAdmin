@@ -12,6 +12,8 @@ import { formatWaitTime } from "../utils/timeUtils";
 import { isIncidentReviewed, markIncidentReviewed } from "../utils/incidentReview";
 import { getResponderOptionLabel } from "../utils/responderOptions";
 import CustomDropdown from "../components/CustomDropdown";
+import AdvancedImageModal from "../components/AdvancedImageModal";
+import PremiumSearchBar from "../components/PremiumSearchBar";
 import {
   MapPin,
   User,
@@ -279,11 +281,24 @@ export default function PendingIncidents() {
       reviewIncident(incident.id);
       window.dispatchEvent(new Event("incident-handled"));
 
+      const unitDescriptions = selectedResponders
+        .map((r) => {
+          const name = r.unit_name || `${r.first_name || ""} ${r.last_name || ""}`.trim() || r.name || "Unit";
+          return `${name} (${r.department || "Field Team"})`;
+        })
+        .join(", ");
+
+      const priority = getPriorityLabel(incident);
+      const locDisplay = incident.location || incident.barangay || "Barangay Lagonglong";
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
       addAuditLog({
-        action: "Incident Dispatched",
-        target: incident.id,
-        details: `${incident.type} assigned to ${responderIds.length} responder(s)`,
-        actor: pb.authStore.model?.username || "Admin",
+        action: "RESPONDER_DISPATCHED",
+        target: `Incident #${incident.id} [${incident.type || "Emergency"}]`,
+        details: `Administrator ${adminName} dispatched ${responderIds.length} responder unit(s) [${unitDescriptions}] to ${incident.type || "incident"} at ${locDisplay}. Priority level: ${priority}.`,
+        actor: adminName,
       });
 
       setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
@@ -385,7 +400,7 @@ export default function PendingIncidents() {
               </h1>
             </div>
             <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
-              Tactical incident queue, multi-resident report counters, evidence inspection, and rapid responder dispatch.
+              Review incoming citizen emergency reports, check location and details, and dispatch responders.
             </p>
           </div>
 
@@ -461,6 +476,8 @@ export default function PendingIncidents() {
         <div
           className="premium-table-card"
           style={{
+            position: "relative",
+            zIndex: 100,
             padding: "16px 20px",
             marginBottom: "24px",
             display: "flex",
@@ -496,25 +513,13 @@ export default function PendingIncidents() {
             ]}
           />
 
-          <div className="search-box-premium" style={{ flex: 1, minWidth: "220px", margin: 0 }}>
-            <Search size={15} color="#94a3b8" />
-            <input
-              type="text"
-              placeholder="Search by Barangay..."
-              value={filters.barangay}
-              onChange={(e) => setFilters({ ...filters, barangay: e.target.value })}
-              style={{ fontSize: "13px" }}
-            />
-            {filters.barangay && (
-              <button
-                type="button"
-                onClick={() => setFilters({ ...filters, barangay: "" })}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#94a3b8", display: "flex" }}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+          <PremiumSearchBar
+            value={filters.barangay}
+            onChange={(e) => setFilters({ ...filters, barangay: e.target.value })}
+            onClear={() => setFilters({ ...filters, barangay: "" })}
+            placeholder="Search by Barangay..."
+            expandedWidth="280px"
+          />
 
           {(filters.type || filters.priority || filters.barangay) && (
             <button
@@ -1102,7 +1107,22 @@ export default function PendingIncidents() {
                         if (shouldReject) {
                           setProcessingId(incident.id);
                           try {
+                            const reporter = incident.expand?.users || incident.expand?.user;
+                            const reporterName = reporter ? `${reporter.first_name || ""} ${reporter.last_name || ""}`.trim() : "Citizen";
+                            const locDisplay = addresses[incident.id] || incident.location || incident.barangay || "Barangay Lagonglong";
+
+                            const currentAdmin = pb.authStore.model;
+                            const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
                             await pb.collection("incident_reports").delete(incident.id);
+
+                            addAuditLog({
+                              action: "REPORT_REJECTED",
+                              target: `Incident #${incident.id} [${incident.type || "Emergency"}]`,
+                              details: `Administrator ${adminName} rejected and deleted emergency incident report #${incident.id} (${(incident.type || "Emergency").toUpperCase()}) submitted by ${reporterName} at ${locDisplay}.`,
+                              actor: adminName,
+                            });
+
                             setIncidents((prev) => prev.filter((i) => i.id !== incident.id));
                             await showAlert("Incident report rejected and removed.", { title: "Report Rejected" });
                           } catch (err) {
@@ -1313,58 +1333,12 @@ export default function PendingIncidents() {
 
       {/* FULLSCREEN EVIDENCE LIGHTBOX */}
       {selectedImage && (
-        <div
-          className="lightboxModalBackdrop"
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.85)",
-            backdropFilter: "blur(14px)",
-            zIndex: 99999,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "24px",
-          }}
-          onClick={() => setSelectedImage(null)}
-        >
-          <div
-            className="lightboxModalCard"
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "760px",
-              backgroundColor: "#ffffff",
-              borderRadius: "22px",
-              overflow: "hidden",
-              boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="lightbox-modal-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
-                <Shield size={16} /> Incident Evidence Inspector
-              </span>
-              <button
-                type="button"
-                className="animatedCloseButton"
-                onClick={() => setSelectedImage(null)}
-                style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-              >
-                <X size={17} />
-              </button>
-            </div>
-            <div style={{ height: "540px", maxHeight: "78vh", backgroundColor: "#070b14", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-              {selectedImage.endsWith(".mp4") || selectedImage.includes("video") ? (
-                <video src={selectedImage} controls autoPlay style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: "10px" }} />
-              ) : (
-                <img src={selectedImage} alt="Evidence inspection" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: "10px" }} />
-              )}
-            </div>
-          </div>
-        </div>
+        <AdvancedImageModal
+          src={selectedImage}
+          title="Incident Evidence Inspector"
+          alt="Incident Evidence"
+          onClose={() => setSelectedImage(null)}
+        />
       )}
     </div>
   );

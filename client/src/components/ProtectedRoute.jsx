@@ -32,7 +32,7 @@ export default function ProtectedRoute({ children, requiredModule }) {
     } else {
       // Unauthorized! Kick them back to the dashboard and notify them.
       alert(
-        `Access Denied: You do not have permission to access the ${requiredModule.toUpperCase()} module.`,
+        `You don't have access to the ${requiredModule} section.`,
       );
       return <Navigate to="/dashboard" replace />;
     }

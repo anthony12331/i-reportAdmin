@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import DashboardMap from "../components/DashboardMap";
+import MetricCardHolder from "../components/MetricCardHolder";
 import { getReadableAddress } from "../utils/utils";
 import { sortIncidentReportsByPriority } from "../utils/incidentPriority";
 import { formatWaitTime } from "../utils/timeUtils";
@@ -397,10 +398,10 @@ export default function Dashboard() {
               </span>
             </div>
             <h1 style={{ fontSize: "clamp(24px, 3.2vw, 30px)", fontWeight: "900", color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
-              Emergency Operations Telemetry
+              Emergency Operations Dashboard
             </h1>
             <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "13.5px", fontWeight: "500" }}>
-              Live emergency telemetry, multi-agency dispatch matrix, and municipal incident monitoring.
+              Live emergency monitoring, citizen reports, and responder status across Lagonglong.
             </p>
           </div>
 
@@ -476,152 +477,64 @@ export default function Dashboard() {
 
         {/* 2. HIGH-IMPACT SCALE-JUMP KPI RIBBON */}
         <div
+          className="dashboard-kpi-ribbon"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: "16px",
-            marginBottom: "24px",
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+            gap: "12px",
+            marginBottom: "20px",
           }}
         >
           {/* Active SOS Card */}
-          <div
-            className="premium-table-card"
+          <MetricCardHolder
+            title="Active SOS Alerts"
+            value={activeSosList.length}
+            subtitle="critical"
+            variant="red"
+            urgent={activeSosList.length > 0}
+            icon={<Radio size={16} className={activeSosList.length > 0 ? "animate-pulse" : ""} />}
             onClick={() => navigate("/pending-sos")}
-            style={{
-              padding: "18px 20px",
-              cursor: "pointer",
-              borderLeft: activeSosList.length > 0 ? "5px solid #dc2626" : "5px solid #cbd5e1",
-              backgroundColor: activeSosList.length > 0 ? "#fef2f2" : "#ffffff",
-              transition: "transform 0.15s ease, box-shadow 0.15s ease",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "800", color: activeSosList.length > 0 ? "#dc2626" : "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Active SOS Alerts
-              </span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: activeSosList.length > 0 ? "#fee2e2" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Radio size={14} color={activeSosList.length > 0 ? "#dc2626" : "#64748b"} className={activeSosList.length > 0 ? "animate-pulse" : ""} />
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: "900", color: activeSosList.length > 0 ? "#dc2626" : "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>
-                {activeSosList.length}
-              </h2>
-              <span style={{ fontSize: "11.5px", fontWeight: "700", color: activeSosList.length > 0 ? "#b91c1c" : "#64748b" }}>critical</span>
-            </div>
-          </div>
+          />
 
           {/* Pending Incidents */}
-          <div
-            className="premium-table-card"
+          <MetricCardHolder
+            title="Pending Queue"
+            value={pendingIncidents.length}
+            subtitle="unassigned"
+            variant="amber"
+            icon={<AlertTriangle size={16} />}
             onClick={() => navigate("/pending-incidents")}
-            style={{
-              padding: "18px 20px",
-              cursor: "pointer",
-              borderLeft: pendingIncidents.length > 0 ? "5px solid #ea580c" : "5px solid #cbd5e1",
-              backgroundColor: "#ffffff",
-              transition: "transform 0.15s ease, box-shadow 0.15s ease",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "800", color: "#d97706", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Pending Queue
-              </span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <AlertTriangle size={14} color="#d97706" />
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#d97706", margin: 0, letterSpacing: "-0.03em" }}>
-                {pendingIncidents.length}
-              </h2>
-              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#b45309" }}>unassigned</span>
-            </div>
-          </div>
+          />
 
           {/* Active Dispatches */}
-          <div
-            className="premium-table-card"
+          <MetricCardHolder
+            title="Active Dispatches"
+            value={ongoingCount}
+            subtitle="in field"
+            variant="sky"
+            icon={<Clock size={16} />}
             onClick={() => navigate("/ongoing-incidents")}
-            style={{
-              padding: "18px 20px",
-              cursor: "pointer",
-              borderLeft: "5px solid #0284c7",
-              backgroundColor: "#ffffff",
-              transition: "transform 0.15s ease, box-shadow 0.15s ease",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "800", color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Active Dispatches
-              </span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Clock size={14} color="#0284c7" />
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#0284c7", margin: 0, letterSpacing: "-0.03em" }}>
-                {ongoingCount}
-              </h2>
-              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1" }}>in field</span>
-            </div>
-          </div>
+          />
 
           {/* Resolved Total */}
-          <div
-            className="premium-table-card"
+          <MetricCardHolder
+            title="Resolved Total"
+            value={resolvedCount}
+            subtitle="cases"
+            variant="emerald"
+            icon={<CheckCircle2 size={16} />}
             onClick={() => navigate("/resolved-incidents")}
-            style={{
-              padding: "18px 20px",
-              cursor: "pointer",
-              borderLeft: "5px solid #15803d",
-              backgroundColor: "#ffffff",
-              transition: "transform 0.15s ease, box-shadow 0.15s ease",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Resolved Total
-              </span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <CheckCircle2 size={14} color="#15803d" />
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#15803d", margin: 0, letterSpacing: "-0.03em" }}>
-                {resolvedCount}
-              </h2>
-              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#166534" }}>cases</span>
-            </div>
-          </div>
+          />
 
           {/* Verification Queue */}
-          <div
-            className="premium-table-card"
+          <MetricCardHolder
+            title="Citizen Registrations"
+            value={data.pendingUsersCount}
+            subtitle="pending"
+            variant="purple"
+            icon={<Users size={16} />}
             onClick={() => navigate("/pending-users")}
-            style={{
-              padding: "18px 20px",
-              cursor: "pointer",
-              borderLeft: "5px solid #7c3aed",
-              backgroundColor: "#ffffff",
-              transition: "transform 0.15s ease, box-shadow 0.15s ease",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Citizen Registrations
-              </span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "8px", backgroundColor: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Users size={14} color="#7c3aed" />
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: "900", color: "#7c3aed", margin: 0, letterSpacing: "-0.03em" }}>
-                {data.pendingUsersCount}
-              </h2>
-              <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#6d28d9" }}>pending</span>
-            </div>
-          </div>
+          />
         </div>
 
         {/* 3. HERO LIVE TACTICAL MAP (FULL WIDTH DIRECTLY IN THE MIDDLE + TV FULLSCREEN SUPPORT) */}

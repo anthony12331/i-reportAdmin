@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import AdvancedImageModal from "../components/AdvancedImageModal";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
 import { addAuditLog } from "../utils/auditLog";
@@ -285,8 +286,8 @@ export default function PendingUserRegistration() {
 
     setIsProcessing(true);
     showOperation(
-      "Approving Citizen",
-      `Generating Citizen ID and issuing verification credential for ${fullName}...`
+      "Approving User",
+      `Verifying ${fullName}...`
     );
     try {
       const currentMax = await getLatestUserId();
@@ -297,10 +298,14 @@ export default function PendingUserRegistration() {
         user_id: nextId,
       });
 
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
       addAuditLog({
-        action: "VERIFY_CITIZEN",
-        target: user.id,
-        details: `Approved application for ${user.first_name || ""} ${user.last_name || ""} and assigned Citizen ID #${nextId}.`,
+        action: "CITIZEN_VERIFIED",
+        target: `${fullName} (${user.email || `App ID: ${user.id}`})`,
+        details: `Administrator ${adminName} approved citizen registration application for ${fullName} (${user.email}). Assigned official Citizen ID #${nextId}.`,
+        actor: adminName,
       });
 
       if (user.email) {
@@ -360,10 +365,18 @@ export default function PendingUserRegistration() {
         description: rejectionModal.reason.trim(),
       });
 
+      const targetUser = users.find((u) => u.id === rejectionModal.userId) || previewUser;
+      const applicantName = targetUser ? `${targetUser.first_name || ""} ${targetUser.last_name || ""}`.trim() : "";
+      const applicantDisplay = applicantName ? `${applicantName} (${rejectionModal.userEmail})` : (rejectionModal.userEmail || `User #${rejectionModal.userId}`);
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
       addAuditLog({
-        action: "REJECT_CITIZEN",
-        target: rejectionModal.userId,
-        details: `Rejected citizen application for ${rejectionModal.userEmail || "user"}. Reason: ${rejectionModal.reason}`,
+        action: "CITIZEN_REJECTED",
+        target: applicantDisplay,
+        details: `Administrator ${adminName} rejected citizen application for ${applicantDisplay}. Reason: "${rejectionModal.reason.trim()}". Rejection notice dispatched via email.`,
+        actor: adminName,
       });
 
       setUsers((prev) => prev.filter((user) => user.id !== rejectionModal.userId));
@@ -394,10 +407,16 @@ export default function PendingUserRegistration() {
       await pb.collection("users").update(previewUser.id, {
         description: reviewMessage.trim(),
       });
+
+      const citizenName = `${previewUser.first_name || ""} ${previewUser.last_name || ""}`.trim() || previewUser.email;
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
       addAuditLog({
-        action: "REQUEST_CITIZEN_CLARIFICATION",
-        target: previewUser.id,
-        details: `Requested clarification from ${previewUser.email || "user"}. Message: ${reviewMessage.trim()}`,
+        action: "CITIZEN_CLARIFICATION_REQUESTED",
+        target: `${citizenName} (${previewUser.email || `App ID: ${previewUser.id}`})`,
+        details: `Administrator ${adminName} requested clarification from applicant ${citizenName} (${previewUser.email}). Note sent: "${reviewMessage.trim()}".`,
+        actor: adminName,
       });
       setReviewMessage("");
       await fetchBatch();
@@ -432,7 +451,7 @@ export default function PendingUserRegistration() {
               </h1>
             </div>
             <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-              Audit submitted government credentials and civilian identity documents for emergency system registration.
+              Review submitted government IDs and approve citizen registrations for Lagonglong.
             </p>
           </div>
 
@@ -1288,163 +1307,14 @@ export default function PendingUserRegistration() {
         </div>
       )}
 
-      {/* High-Resolution Document Lightbox Modal with Zoom Toolbar */}
+      {/* FULLSCREEN IMAGE LIGHTBOX WITH ADVANCED ZOOM, PAN, ROTATE */}
       {previewImage && (
-        <div
-          className="lightboxModalBackdrop"
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.85)",
-            backdropFilter: "blur(14px)",
-            zIndex: 99999,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "24px",
-          }}
-          onClick={() => {
-            setPreviewImage(null);
-            setZoomLevel(1);
-          }}
-        >
-          <div
-            className="lightboxModalCard"
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "840px",
-              backgroundColor: isDark ? "#131c2e" : "#ffffff",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
-              borderRadius: "22px",
-              overflow: "hidden",
-              boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "14px 22px",
-                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
-                backgroundColor: isDark ? "#0f172a" : "#f8fafc",
-                flexWrap: "wrap",
-                gap: "10px",
-              }}
-            >
-              <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
-                <ShieldCheck size={16} /> {previewImage.alt}
-              </span>
-
-              {/* Zoom Controls */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", backgroundColor: isDark ? "#172338" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0", borderRadius: "8px", padding: "2px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setZoomLevel((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
-                    title="Zoom out"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
-                  >
-                    <ZoomOut size={15} />
-                  </button>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", minWidth: "42px", textAlign: "center" }}>
-                    {Math.round(zoomLevel * 100)}%
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setZoomLevel((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
-                    title="Zoom in"
-                    style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", display: "flex", color: isDark ? "#cbd5e1" : "#475569" }}
-                  >
-                    <ZoomIn size={15} />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setZoomLevel(1)}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: "8px",
-                    border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
-                    backgroundColor: isDark ? "#172338" : "#ffffff",
-                    color: isDark ? "#cbd5e1" : "#475569",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                  }}
-                >
-                  Reset
-                </button>
-
-                <a
-                  href={previewImage.src}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    padding: "6px 12px",
-                    borderRadius: "8px",
-                    backgroundColor: isDark ? "#16a34a" : "#15803d",
-                    color: "#ffffff",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    textDecoration: "none",
-                  }}
-                >
-                  <ExternalLink size={13} /> Open Original
-                </a>
-
-                <button
-                  type="button"
-                  className="animatedCloseButton"
-                  onClick={() => {
-                    setPreviewImage(null);
-                    setZoomLevel(1);
-                  }}
-                  style={{ width: "34px", height: "34px", borderRadius: "50%", border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#1e293b" : "#fff", color: isDark ? "#cbd5e1" : "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  <X size={17} />
-                </button>
-              </div>
-            </div>
-
-            <div
-              style={{
-                height: "560px",
-                maxHeight: "75vh",
-                backgroundColor: "#070b14",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "24px",
-                overflow: "auto",
-                position: "relative",
-              }}
-            >
-              <img
-                src={previewImage.src}
-                alt={previewImage.alt}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  maxHeight: "100%",
-                  objectFit: "contain",
-                  borderRadius: "10px",
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: "center center",
-                  transition: "transform 0.2s ease-out",
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <AdvancedImageModal
+          src={previewImage.src}
+          title={previewImage.alt}
+          alt={previewImage.alt}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
     </div>
   );

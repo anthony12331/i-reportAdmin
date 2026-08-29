@@ -46,6 +46,7 @@ export default function CustomDropdown({
         position: "relative",
         display: "inline-block",
         minWidth: minWidth,
+        zIndex: open ? 99999 : "auto",
         ...style,
       }}
     >
@@ -106,7 +107,7 @@ export default function CustomDropdown({
             left: 0,
             right: 0,
             minWidth: "100%",
-            zIndex: 9999,
+            zIndex: 99999,
             padding: "5px",
             border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cfe3d5",
             borderRadius: "9px",

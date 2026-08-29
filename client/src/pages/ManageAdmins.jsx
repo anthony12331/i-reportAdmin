@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import { Loader, Search, UserPlus, Shield, ShieldCheck, ShieldAlert, UserX, UserCheck, ArrowUpRight, X } from "lucide-react";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
+import { addAuditLog } from "../utils/auditLog";
 
 const getInitials = (admin) => {
   const first = admin.first_name ? admin.first_name.trim().charAt(0).toUpperCase() : "";
@@ -85,9 +86,19 @@ export default function ManageAdmins() {
         emailVisibility: true,
         suspended: false,
       });
+      const currentAdmin = pb.authStore.model;
+      const currentAdminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "ADMIN_CREATED",
+        target: `${newFirstName.trim()} ${newLastName.trim()} (${newEmail.trim()})`,
+        details: `Administrator ${currentAdminName} created a new Administrator account for ${newFirstName.trim()} ${newLastName.trim()} (${newEmail.trim()}) with temporary default credentials.`,
+        actor: currentAdminName,
+      });
+
       await showMsgAlert(
-        "Administrator account created successfully. The initial temporary password is set to 12345678.",
-        { title: "Account Created" }
+        `${newFirstName.trim()} ${newLastName.trim()} has been added. Temporary password: 12345678`,
+        { title: "Admin Added" }
       );
       setNewEmail("");
       setNewFirstName("");
@@ -111,8 +122,8 @@ export default function ManageAdmins() {
         ? `Are you sure you want to suspend ${adminName}? They will not be able to log in until their access is restored.`
         : `Are you sure you want to restore access for ${adminName}?`,
       {
-        title: isSuspending ? "Confirm Suspension" : "Restore Access",
-        primaryLabel: isSuspending ? "Suspend Administrator" : "Restore Access",
+        title: isSuspending ? "Suspend Admin" : "Restore Access",
+        primaryLabel: isSuspending ? "Suspend" : "Restore",
         secondaryLabel: "Cancel",
       }
     );
@@ -122,6 +133,17 @@ export default function ManageAdmins() {
       await pb.collection(collectionName).update(admin.id, {
         suspended: isSuspending,
       });
+
+      const currentAdmin = pb.authStore.model;
+      const currentAdminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: isSuspending ? "ADMIN_SUSPENDED" : "ADMIN_RESTORED",
+        target: `${adminName} (${admin.email})`,
+        details: `Administrator ${currentAdminName} ${isSuspending ? "suspended" : "restored access for"} administrator account ${adminName} (${admin.email}).`,
+        actor: currentAdminName,
+      });
+
       fetchUsers();
     } catch (err) {
       console.error(`Failed to update administrator status:`, err);
@@ -132,10 +154,10 @@ export default function ManageAdmins() {
   const handlePromote = async (admin) => {
     const adminName = (`${admin.first_name || ""} ${admin.last_name || ""}`.trim()) || admin.email || "this administrator";
     const shouldContinue = await confirm(
-      `Are you sure you want to promote ${adminName} to Super Administrator? This grants full system permissions.`,
+      `Promote ${adminName} to Super Admin? This gives them full access to all system settings.`,
       {
-        title: "Confirm Role Promotion",
-        primaryLabel: "Promote to Super Admin",
+        title: "Promote to Super Admin",
+        primaryLabel: "Promote",
         secondaryLabel: "Cancel",
       }
     );
@@ -156,9 +178,19 @@ export default function ManageAdmins() {
       });
 
       await pb.collection("admins").delete(admin.id);
-      fetchUsers();
+
+      const currentAdmin = pb.authStore.model;
+      const currentAdminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "ADMIN_PROMOTED_SUPER",
+        target: `${adminName} (${admin.email})`,
+        details: `Administrator ${currentAdminName} elevated administrator account ${adminName} (${admin.email}) to Super Administrator role with full root permissions.`,
+        actor: currentAdminName,
+      });
+
       await showMsgAlert(
-        `Successfully promoted ${adminName} to Super Administrator. Their credentials are now active.`,
+        `${adminName} has been promoted to Super Admin.`,
         { title: "Promotion Complete" }
       );
     } catch (err) {
@@ -187,10 +219,10 @@ export default function ManageAdmins() {
         {/* Header */}
         <header style={{ marginBottom: "28px" }}>
           <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-            Admin Management Console
+          Admin Management
           </h1>
           <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-            Manage privileged administrator and super administrator credentials.
+          Manage admin accounts and permissions.
           </p>
         </header>
 

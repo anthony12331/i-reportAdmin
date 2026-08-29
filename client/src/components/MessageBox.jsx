@@ -156,7 +156,13 @@ export function MessageBoxProvider({ children }) {
     };
   }, [alert]);
 
-  const contextValue = useMemo(() => ({ alert, confirm }), [alert, confirm]);
+  const snackbar = useCallback((options) => {
+    window.dispatchEvent(
+      new CustomEvent("show-premium-snackbar", { detail: options })
+    );
+  }, []);
+
+  const contextValue = useMemo(() => ({ alert, confirm, snackbar }), [alert, confirm, snackbar]);
 
   return (
     <MessageBoxContext.Provider value={contextValue}>

@@ -17,9 +17,11 @@ import {
   ClipboardList,
   Shield,
   Menu,
+  Map,
 } from "lucide-react";
 import { useMessageBox } from "./MessageBox";
 import { ThemeSwitch } from "../themes/ThemeContext";
+import { addAuditLog } from "../utils/auditLog";
 
 const ONGOING_STATUSES = ["ongoing", "accepted", "en_route", "at_scene", "dispatched"];
 
@@ -258,9 +260,9 @@ export default function Sidebar({
   };
 
   const handleLogout = async () => {
-    const shouldLogout = await confirm("Are you sure you want to log out of the admin dashboard?", {
+    const shouldLogout = await confirm("Ready to log out?", {
       title: "Log Out",
-      primaryLabel: "Logout",
+      primaryLabel: "Log Out",
       secondaryLabel: "Cancel",
       tone: "app",
     });
@@ -268,6 +270,13 @@ export default function Sidebar({
     if (!shouldLogout) return;
     
     try {
+      const adminFullName = (`${admin?.first_name || ""} ${admin?.last_name || ""}`.trim()) || admin?.email || "Administrator";
+      addAuditLog({
+        action: "ADMIN_LOGOUT",
+        target: "Dashboard",
+        details: `${adminFullName} logged out.`,
+        actor: pb.authStore.model?.username || adminFullName,
+      });
       pb.realtime.unsubscribe();
     } catch (err) {
       console.log("Realtime unsubscribe error:", err);
@@ -391,6 +400,16 @@ export default function Sidebar({
               <div style={styles.navLinkGroup}>
                 <CheckCircle2 size={17} color={location.pathname === "/resolved-incidents" ? "#15803d" : "#64748b"} />
                 <span>Resolved Incidents</span>
+              </div>
+            </div>
+
+            <div
+              style={isActive("/incident-map") ? styles.navItemActive : styles.navItem}
+              onClick={() => navigate("/incident-map")}
+            >
+              <div style={styles.navLinkGroup}>
+                <Map size={17} color={isActive("/incident-map") ? "#15803d" : "#64748b"} />
+                <span>Incidents Map</span>
               </div>
             </div>
             {location.pathname.startsWith("/resolved-incidents/") && (

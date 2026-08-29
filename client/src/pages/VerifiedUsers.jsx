@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import CustomDropdown from "../components/CustomDropdown";
+import PremiumPagination from "../components/PremiumPagination";
+import PremiumDateRangePicker from "../components/PremiumDateRangePicker";
+import PremiumSearchBar from "../components/PremiumSearchBar";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
 import { addAuditLog } from "../utils/auditLog";
@@ -105,29 +109,6 @@ function RegistrationDatePicker({ value, onChange, styles }) {
   );
 }
 
-function FilterDropdown({ label, value, options, onChange, styles }) {
-  const [open, setOpen] = useState(false);
-  const selectedLabel = options.find((option) => option.value === value)?.label || label;
-
-  return (
-    <div style={styles.filterDropdown}>
-      <button type="button" className="verifiedUsersButton" style={styles.filterDropdownTrigger} onClick={() => setOpen((isOpen) => !isOpen)}>
-        <span>{selectedLabel}</span>
-        <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }} />
-      </button>
-      {open && (
-        <div style={styles.filterDropdownMenu}>
-          {options.map((option) => (
-            <button key={option.value} type="button" className="verifiedUsersButton" style={styles.filterDropdownOption(option.value === value)} onClick={() => { onChange(option.value); setOpen(false); }}>
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function VerifiedUsers() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -140,6 +121,8 @@ export default function VerifiedUsers() {
   const [filters, setFilters] = useState({
     barangay: "",
     municipality: "",
+    startDate: "",
+    endDate: "",
     registrationDate: "",
     status: "verified",
   });
@@ -157,6 +140,15 @@ export default function VerifiedUsers() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const { confirm } = useMessageBox();
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.barangay) count++;
+    if (filters.municipality) count++;
+    if (filters.startDate || filters.endDate || filters.registrationDate) count++;
+    if (filters.status && filters.status !== "verified") count++;
+    return count;
+  }, [filters]);
 
   const barangayOptions = useMemo(() => {
     const unique = [...new Set(users.map((user) => user.baranggay).filter(Boolean))];
@@ -190,17 +182,54 @@ export default function VerifiedUsers() {
 
       try {
         const filterString = buildVerifiedUsersFilter(debouncedSearch, filters);
-        const records = await pb
-          .collection("users")
-          .getList(page, USERS_PER_PAGE, {
+
+        // If date range filter is active, fetch all matching base filter and filter dates robustly
+        if (filters.startDate || filters.endDate) {
+          let records = await pb.collection("users").getFullList({
             filter: filterString,
             sort: "-user_id",
             requestKey: null,
           });
 
-        setUsers(records.items);
-        setTotalPages(records.totalPages || 1);
-        setTotalItems(records.totalItems || 0);
+          if (filters.startDate) {
+            const start = new Date(filters.startDate);
+            start.setHours(0, 0, 0, 0);
+            records = records.filter((u) => {
+              const d = new Date(u.date_time || u.created);
+              return !isNaN(d.getTime()) && d >= start;
+            });
+          }
+
+          if (filters.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            records = records.filter((u) => {
+              const d = new Date(u.date_time || u.created);
+              return !isNaN(d.getTime()) && d <= end;
+            });
+          }
+
+          const totalItemsCount = records.length;
+          const totalPagesCount = Math.max(1, Math.ceil(totalItemsCount / USERS_PER_PAGE));
+          const pageStart = (page - 1) * USERS_PER_PAGE;
+          const pageItems = records.slice(pageStart, pageStart + USERS_PER_PAGE);
+
+          setUsers(pageItems);
+          setTotalPages(totalPagesCount);
+          setTotalItems(totalItemsCount);
+        } else {
+          const records = await pb
+            .collection("users")
+            .getList(page, USERS_PER_PAGE, {
+              filter: filterString,
+              sort: "-user_id",
+              requestKey: null,
+            });
+
+          setUsers(records.items);
+          setTotalPages(records.totalPages || 1);
+          setTotalItems(records.totalItems || 0);
+        }
       } catch (fetchError) {
         console.error("Error fetching verified users:", fetchError);
         if (!fetchError.isAbort) {
@@ -308,11 +337,15 @@ export default function VerifiedUsers() {
           description: message,
         });
 
+        const citizenFullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email;
+        const currentAdmin = pb.authStore.model;
+        const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
         addAuditLog({
-          action: "Verification Suspended",
-          target: user.email,
-          details: `Admin suspended verification for citizen ID #${user.user_id}. Reason: ${message}`,
-          actor: pb.authStore.model?.username || "Admin",
+          action: "USER_SUSPENDED",
+          target: `${citizenFullName} (${user.email || `ID #${user.user_id}`})`,
+          details: `Administrator ${adminName} suspended citizen account for ${citizenFullName} (Citizen ID #${user.user_id || user.id}). Reason: "${message.trim()}". Verification revoked.`,
+          actor: adminName,
         });
 
         closeUserDetails();
@@ -357,11 +390,15 @@ export default function VerifiedUsers() {
           description: "",
         });
 
+        const citizenFullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email;
+        const currentAdmin = pb.authStore.model;
+        const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
         addAuditLog({
-          action: "Verification Restored",
-          target: user.email,
-          details: `Admin restored verification for citizen ID #${user.user_id}.`,
-          actor: pb.authStore.model?.username || "Admin",
+          action: "USER_RESTORED",
+          target: `${citizenFullName} (${user.email || `ID #${user.user_id}`})`,
+          details: `Administrator ${adminName} restored verification for ${citizenFullName} (Citizen ID #${user.user_id || user.id}). Account status set back to verified.`,
+          actor: adminName,
         });
 
         closeUserDetails();
@@ -394,13 +431,6 @@ export default function VerifiedUsers() {
     });
   };
 
-  const activeFilterCount = [
-    filters.barangay,
-    filters.municipality,
-    filters.registrationDate,
-    filters.status !== "verified" ? filters.status : null,
-  ].filter(Boolean).length;
-
   return (
     <div style={styles.container}>
       <Sidebar />
@@ -411,11 +441,11 @@ export default function VerifiedUsers() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
             <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: isDark ? "#4ade80" : "#15803d" }} />
             <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-              Registered Users Management
+              Registered Citizens
             </h1>
           </div>
           <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-            Monitor and manage verified civilian resident records, contact info, and account statuses.
+            View and manage verified citizen accounts, resident details, and contact numbers.
           </p>
         </header>
 
@@ -423,32 +453,14 @@ export default function VerifiedUsers() {
         <div className="premium-table-card">
           {/* Top Toolbar */}
           <div className="table-toolbar">
-            <div className="search-box-premium">
-              <Search size={18} color="#94a3b8" />
-              <input
-                type="text"
-                placeholder="Search by citizen name, ID, or phone number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    display: "flex",
-                    color: "#94a3b8",
-                  }}
-                  aria-label="Clear search"
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </div>
+            <PremiumSearchBar
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClear={() => setSearchTerm("")}
+              placeholder="Search by citizen name, ID, or phone number..."
+              minWidth="300px"
+              maxWidth="420px"
+            />
 
             <div className="table-toolbar-actions">
               <button
@@ -516,38 +528,52 @@ export default function VerifiedUsers() {
                 borderRadius: "12px",
               }}
             >
-              <FilterDropdown
+              <CustomDropdown
                 label="All Barangays"
                 value={filters.barangay}
                 options={barangayOptions}
-                styles={styles}
                 onChange={(barangay) => {
                   setPage(1);
                   setFilters((current) => ({ ...current, barangay }));
                 }}
+                minWidth="150px"
               />
-              <FilterDropdown
+              <CustomDropdown
                 label="All Municipalities"
                 value={filters.municipality}
                 options={municipalityOptions}
-                styles={styles}
                 onChange={(municipality) => {
                   setPage(1);
                   setFilters((current) => ({ ...current, municipality }));
                 }}
+                minWidth="160px"
               />
-              <RegistrationDatePicker
-                value={filters.registrationDate}
-                styles={styles}
-                onChange={(registrationDate) => {
+              <PremiumDateRangePicker
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+                onChange={({ startDate: s, endDate: e }) => {
                   setPage(1);
-                  setFilters((current) => ({ ...current, registrationDate }));
+                  setFilters((current) => ({
+                    ...current,
+                    startDate: s,
+                    endDate: e,
+                    registrationDate: "",
+                  }));
                 }}
+                onClear={() => {
+                  setPage(1);
+                  setFilters((current) => ({
+                    ...current,
+                    startDate: "",
+                    endDate: "",
+                    registrationDate: "",
+                  }));
+                }}
+                placeholder="Registration Date"
               />
-              <FilterDropdown
+              <CustomDropdown
                 label="Verified"
                 value={filters.status}
-                styles={styles}
                 options={[
                   { value: "verified", label: "Verified" },
                   { value: "suspended", label: "Suspended" },
@@ -557,6 +583,7 @@ export default function VerifiedUsers() {
                   setPage(1);
                   setFilters((current) => ({ ...current, status }));
                 }}
+                minWidth="130px"
               />
               <button
                 type="button"
@@ -577,7 +604,7 @@ export default function VerifiedUsers() {
                 }}
                 onClick={() => {
                   setSearchTerm("");
-                  setFilters({ barangay: "", municipality: "", registrationDate: "", status: "verified" });
+                  setFilters({ barangay: "", municipality: "", startDate: "", endDate: "", registrationDate: "", status: "verified" });
                   setPage(1);
                 }}
               >
@@ -732,46 +759,18 @@ export default function VerifiedUsers() {
                 </table>
               </div>
 
-              {/* Table Footer with Pagination matching reference */}
-              <div className="premium-table-footer">
-                <div className="premium-pagination-info">
-                  Showing <strong>{Math.min((page - 1) * USERS_PER_PAGE + 1, totalItems)}</strong>–
-                  <strong>{Math.min(page * USERS_PER_PAGE, totalItems)}</strong> of <strong>{totalItems}</strong> Users
+              {/* Table Footer with Premium Pagination */}
+              <div className="premium-table-footer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "16px 20px" }}>
+                <div className="premium-pagination-info" style={{ fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+                  Showing <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min((page - 1) * USERS_PER_PAGE + 1, totalItems)}</strong>–
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min(page * USERS_PER_PAGE, totalItems)}</strong> of <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{totalItems}</strong> Users
                 </div>
 
-                <div className="premium-pagination-controls">
-                  <button
-                    type="button"
-                    className="premium-page-nav-btn"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1 || loading}
-                    aria-label="Previous Page"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      className={`premium-page-num-btn ${page === pageNum ? "active" : ""}`}
-                      onClick={() => setPage(pageNum)}
-                      disabled={loading}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    className="premium-page-nav-btn"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages || loading}
-                    aria-label="Next Page"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+                <PremiumPagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => setPage(newPage)}
+                />
               </div>
             </>
           )}

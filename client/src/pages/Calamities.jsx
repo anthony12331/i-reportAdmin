@@ -191,10 +191,10 @@ export default function Calamities() {
         <header style={{ marginBottom: '24px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <AlertTriangle color="#ef4444" size={32} />
-            Calamities & Hazards Monitor
+            Weather & Hazard Alerts
           </h1>
           <p style={{ margin: 0, color: isDark ? '#94a3b8' : '#64748b' }}>
-            Live tracking for earthquakes and weather anomalies localized to Lagonglong, Misamis Oriental.
+            Live weather updates, flood & landslide hazard maps, and earthquake alerts for Lagonglong.
           </p>
         </header>
 

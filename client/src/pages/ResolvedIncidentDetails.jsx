@@ -13,7 +13,6 @@ import {
   PlayCircle,
   User,
   X,
-  Printer,
   ExternalLink,
   ShieldCheck,
   ShieldAlert,
@@ -165,7 +164,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
         <main style={{ flex: 1, marginLeft: "216px", padding: "40px", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", color: "#15803d" }}>
             <Loader className="animate-spin" size={36} />
-            <span style={{ fontSize: "15px", fontWeight: "700" }}>Loading Case Dossier #{incidentId}...</span>
+            <span style={{ fontSize: "15px", fontWeight: "700" }}>Loading incident details...</span>
           </div>
         </main>
       </div>
@@ -200,7 +199,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           <div className="premium-table-card" style={{ padding: "40px", textAlign: "center" }}>
             <AlertOctagon size={48} color="#ef4444" style={{ marginBottom: "16px" }} />
             <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", margin: "0 0 8px 0" }}>
-              Incident Dossier Not Found
+              Incident Details Not Found
             </h2>
             <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
               The requested incident record (#{incidentId}) could not be retrieved from the database.
@@ -269,27 +268,6 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
               }}
             >
               <RotateCcw size={14} /> Refresh
-            </button>
-
-            <button
-              type="button"
-              onClick={() => window.print()}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 16px",
-                borderRadius: "10px",
-                border: "none",
-                background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
-                color: "#ffffff",
-                fontSize: "13px",
-                fontWeight: "800",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(21, 128, 61, 0.25)",
-              }}
-            >
-              <Printer size={15} /> Print Official Case Dossier
             </button>
           </div>
         </div>

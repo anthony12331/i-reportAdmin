@@ -3,6 +3,7 @@ import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
+import { addAuditLog } from "../utils/auditLog";
 import {
   ShieldAlert,
   User,
@@ -115,6 +116,22 @@ export default function RequestBackup() {
         is_available: false,
       });
 
+      const unitName = responder?.unit_name || `${responder?.first_name || ""} ${responder?.last_name || ""}`.trim() || responder?.name || "Backup Unit";
+      const targetBackup = backups.find((b) => b.id === backupId);
+      const requesterName = targetBackup?.expand?.requester_id
+        ? `${targetBackup.expand.requester_id.first_name || ""} ${targetBackup.expand.requester_id.last_name || ""}`.trim()
+        : "Field Responder";
+
+      const currentAdmin = pb.authStore.model;
+      const adminName = (`${currentAdmin?.first_name || ""} ${currentAdmin?.last_name || ""}`.trim()) || currentAdmin?.email || "Administrator";
+
+      addAuditLog({
+        action: "BACKUP_RESPONDER_DISPATCHED",
+        target: `Backup Request #${backupId}`,
+        details: `Administrator ${adminName} dispatched backup unit ${unitName} (${responder?.department || "Emergency Unit"}) in response to reinforcement request from ${requesterName}.`,
+        actor: adminName,
+      });
+
       showAlert("Backup unit successfully dispatched.", { title: "Backup Dispatched" });
       setBackups((prev) => prev.filter((b) => b.id !== backupId));
     } catch (err) {
@@ -136,11 +153,11 @@ export default function RequestBackup() {
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
               <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#ef4444", display: "inline-block" }} />
               <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: isDark ? "#f8fafc" : "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
-                Pending Backup Requests
+                Backup Requests
               </h1>
             </div>
             <p style={{ margin: "6px 0 0", color: isDark ? "#94a3b8" : "#64748b", fontSize: "14px" }}>
-              Field responder reinforcement requests requiring rapid secondary unit dispatch.
+              Review backup and reinforcement calls from on-scene responders and assign additional units.
             </p>
           </div>
 
