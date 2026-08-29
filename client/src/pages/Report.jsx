@@ -343,21 +343,21 @@ export default function Report() {
     doc.setFillColor(21, 128, 61);
     doc.rect(0, 0, 210, 26, "F");
 
-    doc.setFontSize(15);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     doc.text("MUNICIPALITY OF LAGONGLONG - EMERGENCY OPERATIONS CENTER", 14, 11);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(`Official Executive Incident Analytics & Audit Dossier • Range: ${startDate} to ${endDate}`, 14, 18);
+    doc.text(`Official Executive Incident Analytics & Audit Dossier • Range: ${startDate} to ${endDate}`, 14, 17.5);
     doc.text(`Report Source: ${reportSource === "incident" ? "Incident Reports" : "SOS Emergency Alerts"} • Generated on ${new Date().toLocaleString()}`, 14, 22);
 
     // Summary Metric Box
     doc.setTextColor(15, 23, 42);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("EXECUTIVE PERFORMANCE INDICATORS", 14, 35);
+    doc.text("EXECUTIVE PERFORMANCE INDICATORS", 14, 34);
 
     const summaryData = [
       ["Total Logged Incidents", reports.length.toString()],
@@ -368,31 +368,35 @@ export default function Report() {
     ];
 
     autoTable(doc, {
-      startY: 39,
+      startY: 38,
       head: [["Operational Indicator", "Telemetry Metric"]],
       body: summaryData,
       theme: "grid",
-      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255], fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+      styles: { fontSize: 8.5, cellPadding: 2.2 },
+      margin: { left: 14, right: 14 },
     });
 
-    // Capture Charts
+    // Capture Charts and place with dynamic offset after summary table
+    const summaryTableEndY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 88;
     const typeImg = typeChartRef.current?.toBase64Image("image/png", 1.0);
     const statusImg = statusChartRef.current?.toBase64Image("image/png", 1.0);
 
-    let nextY = 82;
     if (typeImg && statusImg) {
+      const chartHeaderY = summaryTableEndY + 10;
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(15, 23, 42);
-      doc.text("INCIDENT CLASSIFICATION & STATUS BREAKDOWN", 14, nextY);
-      doc.addImage(typeImg, "PNG", 14, nextY + 4, 115, 52);
-      doc.addImage(statusImg, "PNG", 135, nextY + 4, 60, 52);
-      nextY += 62;
+      doc.text("INCIDENT CLASSIFICATION & STATUS BREAKDOWN", 14, chartHeaderY);
+
+      // Printable width = 182mm (14mm left/right margin)
+      const chartTopY = chartHeaderY + 4;
+      doc.addImage(typeImg, "PNG", 14, chartTopY, 110, 60);
+      doc.addImage(statusImg, "PNG", 128, chartTopY, 68, 60);
     }
 
     doc.addPage();
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
     doc.text("INCIDENT LOG AUDIT RECORDS", 14, 16);
@@ -434,7 +438,7 @@ export default function Report() {
           minute: "2-digit",
         }),
         rawType.toUpperCase(),
-        r.resolvedLocation,
+        r.resolvedLocation || "N/A",
         reporterName,
         (r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE")).toUpperCase().replace("_", " "),
         unit,
@@ -442,29 +446,50 @@ export default function Report() {
     });
 
     autoTable(doc, {
-      startY: 22,
+      startY: 21,
       head: [tableHeaders],
       body: tableRows,
       theme: "striped",
-      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255] },
-      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      margin: { left: 14, right: 14 },
     });
 
-    // Signature Block
-    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 16 : 240;
-    if (finalY < 260) {
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text("VERIFIED & AUDITED BY:", 14, finalY);
-      doc.line(14, finalY + 14, 74, finalY + 14);
-      doc.setFont("helvetica", "normal");
-      doc.text("MDRRMO Lead Operations Officer", 14, finalY + 19);
+    // Signature Block with page overflow protection
+    let finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 14 : 220;
+    if (finalY + 28 > 275) {
+      doc.addPage();
+      finalY = 25;
+    }
 
-      doc.setFont("helvetica", "bold");
-      doc.text("NOTED BY:", 130, finalY);
-      doc.line(130, finalY + 14, 190, finalY + 14);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text("VERIFIED & AUDITED BY:", 14, finalY);
+    doc.setDrawColor(148, 163, 184);
+    doc.line(14, finalY + 12, 74, finalY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.text("MDRRMO Lead Operations Officer", 14, finalY + 17);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("NOTED BY:", 130, finalY);
+    doc.line(130, finalY + 12, 190, finalY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Municipal Mayor / DRRMC Chairman", 130, finalY + 17);
+
+    // Page numbers footer on all pages
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.text("Municipal Mayor / DRRMC Chairman", 130, finalY + 19);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        `Municipality of Lagonglong MDRRMO • Executive Incident Dossier • Page ${i} of ${totalPages}`,
+        105,
+        290,
+        { align: "center" }
+      );
     }
 
     doc.save(`MDRRMO_Executive_Report_${startDate}_to_${endDate}.pdf`);

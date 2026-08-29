@@ -515,13 +515,13 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
   }, [dispatches, responders, validReports, validSos]);
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '430px', flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: 0, flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', position: 'relative' }}>
       <style>{`
         .leaflet-container {
           background: ${isDark ? '#0f172a' : '#f8fafc'};
           width: 100% !important;
           height: 100% !important;
-          min-height: 430px !important;
+          min-height: 0 !important;
         }
         @keyframes radar-pulse-map {
           0% { transform: scale(1); opacity: 0.8; }
@@ -572,7 +572,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         key={isDark ? 'map-dark' : 'map-light'}
         center={COMMAND_CENTER}
         zoom={13} 
-        style={{ width: '100%', height: '100%', minHeight: '430px' }}
+        style={{ width: '100%', height: '100%', minHeight: 0 }}
         scrollWheelZoom={true}
         maxBounds={MAP_BOUNDS}
         maxBoundsViscosity={0.8}

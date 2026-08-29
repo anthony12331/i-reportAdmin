@@ -29,10 +29,12 @@ import {
   Video,
   Building2,
   Navigation,
+  Timer,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import { getReadableAddress } from "../utils/utils";
+import { getIncidentResponseTime, getIncidentTimingMetrics } from "../utils/timeUtils";
 
 const formatDate = (value) => {
   if (!value) return "Not available";
@@ -218,6 +220,8 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
   const cat = getCategoryMeta(incident.type, isSos);
   const reportersCount = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
   const isResolved = (incident.status || "").toLowerCase() === "resolved";
+  const responseTime = getIncidentResponseTime(incident);
+  const timing = getIncidentTimingMetrics(incident);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -325,13 +329,17 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "14px", color: "#64748b", fontSize: "13px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#64748b", fontSize: "13px", flexWrap: "wrap" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <CalendarDays size={14} /> Reported: {formatDate(incident.created)}
                 </span>
                 <span>•</span>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <Clock size={14} /> Resolved: {formatDate(incident.updated)}
+                </span>
+                <span>•</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#0f766e", fontWeight: "800", backgroundColor: "#f0fdfa", padding: "2px 8px", borderRadius: "6px", border: "1px solid #99f6e4" }}>
+                  <Timer size={13} color="#0d9488" /> {responseTime}
                 </span>
               </div>
             </div>
@@ -380,8 +388,24 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           </div>
         </div>
 
-        {/* 4-COLUMN KPI TELEMETRY STRIP */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+        {/* 5-COLUMN KPI TELEMETRY STRIP */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+          {/* Card 1: Response & Resolution Time */}
+          <div className="premium-table-card" style={{ padding: "18px 20px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+              Responder Response Time
+            </span>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+              <span style={{ fontSize: "22px", fontWeight: "900", color: "#0f766e" }}>
+                {responseTime}
+              </span>
+              <span style={{ fontSize: "12px", color: incident.response_time ? "#15803d" : "#64748b", fontWeight: "600" }}>
+                {incident.response_time ? "Responder Uploaded" : (timing.dispatchDuration ? `Dispatched: ${timing.dispatchDuration}` : "Turnaround Time")}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Citizen Reporters */}
           <div className="premium-table-card" style={{ padding: "18px 20px" }}>
             <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Citizen Reporters
@@ -396,9 +420,10 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             </div>
           </div>
 
+          {/* Card 3: Response Units Deployed */}
           <div className="premium-table-card" style={{ padding: "18px 20px" }}>
             <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
-              Response Units Deployed
+              Units Deployed
             </span>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
               <span style={{ fontSize: "22px", fontWeight: "900", color: "#15803d" }}>
@@ -410,6 +435,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             </div>
           </div>
 
+          {/* Card 4: Location */}
           <div className="premium-table-card" style={{ padding: "18px 20px" }}>
             <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Incident Location
@@ -421,6 +447,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             </div>
           </div>
 
+          {/* Card 5: Operational Status */}
           <div className="premium-table-card" style={{ padding: "18px 20px" }}>
             <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Case Operational Status
@@ -504,15 +531,18 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   {incident.dispatches.map((dispatch) => {
                     const responder = dispatch.expand?.responder_id;
+                    const dResponseTime = dispatch.response_time
+                      ? (/^\d+$/.test(String(dispatch.response_time).trim()) ? `${dispatch.response_time} mins` : String(dispatch.response_time).trim())
+                      : (incident.response_time ? String(incident.response_time).trim() : (timing.resolutionDuration || "N/A"));
+
                     return (
                       <div
                         key={dispatch.id}
                         className="details-dispatch-item"
                         style={{
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "14px 16px",
+                          flexDirection: "column",
+                          padding: "16px 18px",
                           borderRadius: "12px",
                           backgroundColor: "#ffffff",
                           border: "1px solid #e2e8f0",
@@ -520,56 +550,125 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                           gap: "12px",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <div
-                            style={{
-                              width: "40px",
-                              height: "40px",
-                              borderRadius: "10px",
-                              backgroundColor: "#f0fdf4",
-                              color: "#15803d",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontWeight: "800",
-                              fontSize: "14px",
-                            }}
-                          >
-                            <Building2 size={20} />
+                        {/* Top Dispatch Info & Status Row */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "14px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: "200px" }}>
+                            <div
+                              style={{
+                                width: "42px",
+                                height: "42px",
+                                borderRadius: "10px",
+                                backgroundColor: "#f0fdf4",
+                                color: "#15803d",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: "800",
+                                fontSize: "14px",
+                                border: "1px solid #bbf7d0",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Building2 size={20} />
+                            </div>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <strong style={{ fontSize: "14px", color: "#0f172a" }}>
+                                  {responder ? displayName(responder) : `${dispatch.department || "Response"} Unit`}
+                                </strong>
+                                {dispatch.is_primary_responder && (
+                                  <span style={{ fontSize: "10px", fontWeight: "800", color: "#2563eb", backgroundColor: "#eff6ff", padding: "1px 6px", borderRadius: "4px", border: "1px solid #dbeafe" }}>
+                                    Primary Unit
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{ fontSize: "12px", color: "#64748b", display: "block", marginTop: "2px" }}>
+                                Unit: {responder?.unit_name || dispatch.department || "Field Team"} • {(dispatch.department || "Emergency Services").toUpperCase()}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <strong style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>
-                              {responder ? displayName(responder) : `${dispatch.department || "Response"} Unit`}
-                            </strong>
-                            <span style={{ fontSize: "12px", color: "#64748b" }}>
-                              Unit: {responder?.unit_name || dispatch.department || "Field Team"} • {dispatch.department || "Emergency Services"}
+
+                          {/* Individual Response Time & Status Container */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                            {/* Individual Response Time */}
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  fontSize: "12px",
+                                  fontWeight: "800",
+                                  color: "#0f766e",
+                                  backgroundColor: "#f0fdfa",
+                                  border: "1px solid #99f6e4",
+                                  padding: "4px 10px",
+                                  borderRadius: "8px",
+                                }}
+                              >
+                                <Clock size={13} color="#0d9488" />
+                                Response Time: {dResponseTime}
+                              </span>
+                              {dispatch.response_time && (
+                                <span style={{ fontSize: "10px", color: "#15803d", fontWeight: "700" }}>
+                                  Recorded in Dispatch Database
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Status Badge */}
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: "800",
+                                padding: "4px 10px",
+                                borderRadius: "8px",
+                                backgroundColor: "#f0fdf4",
+                                color: "#15803d",
+                                border: "1px solid #bbf7d0",
+                                textTransform: "uppercase",
+                                display: "inline-block",
+                              }}
+                            >
+                              {dispatch.status || "Resolved"}
                             </span>
                           </div>
                         </div>
 
-                        <div style={{ textAlign: "right" }}>
-                          <span
+                        {/* Responder Resolution Report / Field Notes */}
+                        {dispatch.description ? (
+                          <div
                             style={{
-                              fontSize: "11px",
-                              fontWeight: "800",
-                              padding: "3px 8px",
-                              borderRadius: "8px",
-                              backgroundColor: "#f0fdf4",
-                              color: "#15803d",
-                              border: "1px solid #bbf7d0",
-                              textTransform: "uppercase",
-                              display: "inline-block",
-                              marginBottom: "4px",
+                              width: "100%",
+                              marginTop: "2px",
+                              padding: "12px 16px",
+                              borderRadius: "10px",
+                              backgroundColor: "#f8fafc",
+                              border: "1px solid #f1f5f9",
+                              borderLeft: "4px solid #15803d",
                             }}
                           >
-                            {dispatch.status || "Resolved"}
-                          </span>
-                          {dispatch.response_time && (
-                            <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>
-                              Response: {dispatch.response_time}
-                            </span>
-                          )}
-                        </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", fontSize: "11px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                              <FileText size={13} color="#15803d" />
+                              Responder Resolution Input & Field Summary:
+                            </div>
+                            <div style={{ fontSize: "13.5px", color: "#1e293b", lineHeight: "1.55", whiteSpace: "pre-wrap" }}>
+                              {dispatch.description}
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: "11.5px", color: "#94a3b8", fontStyle: "italic", paddingLeft: "4px" }}>
+                            No individual resolution narrative recorded by this responder.
+                          </div>
+                        )}
                       </div>
                     );
                   })}

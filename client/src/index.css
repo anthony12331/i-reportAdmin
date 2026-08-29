@@ -3,7 +3,7 @@
 }
 
 html,
-body, 
+body,
 #root {
   min-height: 100%;
   margin: 0;
@@ -31,21 +31,22 @@ textarea {
   background: transparent;
 }
 
-.sidebarNavNoScroll > div {
+.sidebarNavNoScroll>div {
   /* Only transition properties that actually change on hover.
      'transition: all' watches every property, wasting browser composite work. */
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   /* will-change removed: applying it to all nav rows simultaneously creates a
      GPU compositing layer for every item, wasting VRAM. Only promote on hover. */
 }
 
-.sidebarNavNoScroll > div:hover:not([style*="background-color: #f0fdf4"]):not([style*="backgroundColor: #f0fdf4"]) {
+.sidebarNavNoScroll>div:hover:not([style*="background-color: #f0fdf4"]):not([style*="backgroundColor: #f0fdf4"]) {
   transform: translateX(2px);
   background-color: #f8fafc;
   color: #0f172a;
-  will-change: transform; /* Promote only on hover, not for all rows at once */
+  will-change: transform;
+  /* Promote only on hover, not for all rows at once */
 }
 
 .sidebarLogoutBtn:hover {
@@ -64,6 +65,7 @@ textarea {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -74,6 +76,7 @@ textarea {
     opacity: 0;
     transform: translateY(10px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -212,6 +215,7 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .messageBoxOverlay,
   .messageBoxDialog,
   .messageBoxPrimaryBtn,
@@ -327,27 +331,32 @@ textarea {
 }
 
 @keyframes ongoingDispatchPulse {
+
   0%,
   100% {
     box-shadow: 0 6px 14px rgba(24, 95, 53, 0.12);
   }
+
   50% {
     box-shadow: 0 9px 22px rgba(24, 95, 53, 0.3);
   }
 }
 
 @keyframes sosDispatchPulse {
+
   0%,
   100% {
     box-shadow: 0 8px 18px rgba(239, 68, 68, 0.18);
   }
+
   50% {
     box-shadow: 0 10px 26px rgba(239, 68, 68, 0.36);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebarNavNoScroll > div,
+
+  .sidebarNavNoScroll>div,
   .sidebarLogoutBtn,
   .adminActionButton,
   .sosDispatchButton,
@@ -356,7 +365,7 @@ textarea {
     transition: none !important;
   }
 
-  .sidebarNavNoScroll > div:hover,
+  .sidebarNavNoScroll>div:hover,
   .sidebarLogoutBtn:hover,
   .sidebarLogoutBtn:active,
   .adminActionButton:not(:disabled):hover,
@@ -433,13 +442,25 @@ textarea {
 }
 
 @keyframes sharedModalOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes sharedModalPanelIn {
-  from { opacity: 0; transform: translateY(6px) scale(0.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 900px) {
@@ -499,11 +520,15 @@ textarea {
 }
 
 /* Fix CLS layout shifting for dynamic cards & maps */
-.address-box, [style*="addressText"] {
+.address-box,
+[style*="addressText"] {
   min-height: 24px;
   display: inline-block;
 }
-.media-tile, img, iframe {
+
+.media-tile,
+img,
+iframe {
   aspect-ratio: 16 / 9;
 }
 
@@ -779,7 +804,7 @@ textarea {
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease,
-              box-shadow 0.18s ease, transform 0.18s ease;
+    box-shadow 0.18s ease, transform 0.18s ease;
   white-space: nowrap;
 }
 
@@ -853,7 +878,7 @@ textarea {
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.18s ease, border-color 0.18s ease,
-              color 0.18s ease, box-shadow 0.18s ease;
+    color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .premium-page-num-btn:hover:not(.active) {
@@ -906,6 +931,7 @@ textarea {
     opacity: 0;
     transform: scale(0.96) translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -950,6 +976,7 @@ html.dark .premium-date-calendar button:hover:not([style*="linear-gradient"]) {
 }
 
 @media (max-width: 640px) {
+
   .premium-table thead th,
   .premium-table tbody td {
     padding: 12px 14px;
@@ -1007,6 +1034,7 @@ html.dark .premium-date-calendar button:hover:not([style*="linear-gradient"]) {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1014,10 +1042,13 @@ html.dark .premium-date-calendar button:hover:not([style*="linear-gradient"]) {
 }
 
 @keyframes livePulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.5);
   }
+
   50% {
     transform: scale(1.08);
     box-shadow: 0 0 0 6px rgba(21, 128, 61, 0);
@@ -1025,10 +1056,13 @@ html.dark .premium-date-calendar button:hover:not([style*="linear-gradient"]) {
 }
 
 @keyframes urgentPulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
   }
+
   50% {
     transform: scale(1.1);
     box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
@@ -1040,6 +1074,7 @@ html.dark .premium-date-calendar button:hover:not([style*="linear-gradient"]) {
     opacity: 0;
     backdrop-filter: blur(0px);
   }
+
   to {
     opacity: 1;
     backdrop-filter: blur(12px);
@@ -1051,6 +1086,7 @@ html.dark .premium-date-calendar button:hover:not([style*="linear-gradient"]) {
     opacity: 0;
     transform: translateY(14px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1133,6 +1169,7 @@ html.dark .premium-date-calendar button:hover:not([style*="linear-gradient"]) {
    Accessibility: Reduced Motion Compliance
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -1224,8 +1261,8 @@ button.premium-theme-switch {
   z-index: 2;
   box-sizing: border-box;
   transition: transform 0.25s cubic-bezier(0.34, 1.3, 0.64, 1),
-              background 0.25s ease,
-              box-shadow 0.25s ease;
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .switch-light .switch-blob {
@@ -1432,7 +1469,7 @@ html.dark aside[style] {
 }
 
 html.dark .brandBox,
-html.dark aside > div:first-child {
+html.dark aside>div:first-child {
   background-color: #0d131f !important;
   border-bottom-color: rgba(255, 255, 255, 0.08) !important;
 }
@@ -1455,20 +1492,20 @@ html.dark aside nav p {
   color: #64748b !important;
 }
 
-html.dark .sidebarNavNoScroll > div:hover:not([style*="background-color: #f0fdf4"]):not([style*="backgroundColor: #f0fdf4"]) {
+html.dark .sidebarNavNoScroll>div:hover:not([style*="background-color: #f0fdf4"]):not([style*="backgroundColor: #f0fdf4"]) {
   background-color: rgba(255, 255, 255, 0.06) !important;
   color: #f8fafc !important;
 }
 
-html.dark .sidebarNavNoScroll > div[style*="#f0fdf4"],
-html.dark .sidebarNavNoScroll > div[style*="rgb(240, 253, 244)"] {
+html.dark .sidebarNavNoScroll>div[style*="#f0fdf4"],
+html.dark .sidebarNavNoScroll>div[style*="rgb(240, 253, 244)"] {
   background-color: rgba(34, 197, 94, 0.18) !important;
   color: #4ade80 !important;
   border-left-color: #22c55e !important;
 }
 
 html.dark .sidebarLogoutSection,
-html.dark aside > div:last-child {
+html.dark aside>div:last-child {
   background-color: #090d16 !important;
   border-top-color: rgba(255, 255, 255, 0.08) !important;
 }
@@ -1763,16 +1800,16 @@ html.dark .premium-btn-filter.active {
 }
 
 /* Category Filter Tabs (e.g. All Active, FIRE, ACCIDENT) */
-html.dark .premium-table-card > button[style*="borderRadius: 10px"],
-html.dark .premium-table-card > button[style*="border-radius: 10px"] {
+html.dark .premium-table-card>button[style*="borderRadius: 10px"],
+html.dark .premium-table-card>button[style*="border-radius: 10px"] {
   background-color: #172338 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: #cbd5e1 !important;
 }
 
-html.dark .premium-table-card > button[style*="backgroundColor: #15803d"],
-html.dark .premium-table-card > button[style*="background-color: #15803d"],
-html.dark .premium-table-card > button[style*="backgroundColor: rgb(21, 128, 61)"] {
+html.dark .premium-table-card>button[style*="backgroundColor: #15803d"],
+html.dark .premium-table-card>button[style*="background-color: #15803d"],
+html.dark .premium-table-card>button[style*="backgroundColor: rgb(21, 128, 61)"] {
   background-color: #15803d !important;
   color: #ffffff !important;
 }
@@ -1953,18 +1990,18 @@ html.dark div[style*="border: 1px solid #f1f5f9"] {
 /* --------------------------------------------------------------------------
    Dispatch Lists & Available Responders (Ongoing / Pending Incidents)
    -------------------------------------------------------------------------- */
-html.dark div[style*="maxHeight: 110px"] > div,
-html.dark div[style*="max-height: 110px"] > div,
-html.dark div[style*="maxHeight: 140px"] > div,
-html.dark div[style*="max-height: 140px"] > div {
+html.dark div[style*="maxHeight: 110px"]>div,
+html.dark div[style*="max-height: 110px"]>div,
+html.dark div[style*="maxHeight: 140px"]>div,
+html.dark div[style*="max-height: 140px"]>div {
   background-color: #131c2e !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
   color: #f8fafc !important;
 }
 
-html.dark div[style*="maxHeight: 110px"] > div[style*="backgroundColor: #f0fdf4"],
-html.dark div[style*="max-height: 110px"] > div[style*="background-color: #f0fdf4"],
-html.dark div[style*="maxHeight: 110px"] > div[style*="backgroundColor: rgb(240, 253, 244)"] {
+html.dark div[style*="maxHeight: 110px"]>div[style*="backgroundColor: #f0fdf4"],
+html.dark div[style*="max-height: 110px"]>div[style*="background-color: #f0fdf4"],
+html.dark div[style*="maxHeight: 110px"]>div[style*="backgroundColor: rgb(240, 253, 244)"] {
   background-color: rgba(34, 197, 94, 0.22) !important;
   border-color: #22c55e !important;
   color: #4ade80 !important;
@@ -2382,17 +2419,17 @@ html.dark .lightboxModalCard {
   color: #f8fafc !important;
 }
 
-html.dark .lightboxModalCard > div:first-child,
+html.dark .lightboxModalCard>div:first-child,
 html.dark .lightbox-modal-header {
   background-color: #172338 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #f8fafc !important;
 }
 
-html.dark .lightboxModalCard > div:first-child span,
-html.dark .lightboxModalCard > div:first-child h2,
-html.dark .lightboxModalCard > div:first-child h3,
-html.dark .lightboxModalCard > div:first-child h4,
+html.dark .lightboxModalCard>div:first-child span,
+html.dark .lightboxModalCard>div:first-child h2,
+html.dark .lightboxModalCard>div:first-child h3,
+html.dark .lightboxModalCard>div:first-child h4,
 html.dark .lightbox-modal-header span,
 html.dark .lightbox-modal-header h2,
 html.dark .lightbox-modal-header h3,
@@ -2885,6 +2922,7 @@ html.dark .sidebar-floating-toggle-btn:hover {
     opacity: 0;
     transform: translateX(-16px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -3049,6 +3087,7 @@ html.dark .verify-btn-reject:hover {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -3079,6 +3118,7 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
    TABLET & DESKTOP COLLAPSE BREAKPOINT (<= 1024px)
    -------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
+
   /* Mobile Backdrop */
   .sidebar-mobile-backdrop {
     display: block;
@@ -3185,9 +3225,16 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
     gap: 18px !important;
   }
 
+  /* Dashboard Main Grid Tablet Wrap */
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   /* Dashboard Master Tactical Map */
-  .dashboard-map-card {
-    height: 440px !important;
+  .dashboard-map-card:not([style*="position: fixed"]) {
+    aspect-ratio: 1.5 / 1 !important;
+    height: auto !important;
+    min-height: 420px !important;
   }
 }
 
@@ -3213,7 +3260,7 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
     margin-bottom: 20px !important;
   }
 
-  header > div:last-child {
+  header>div:last-child {
     width: 100% !important;
     display: flex !important;
     align-items: center !important;
@@ -3235,7 +3282,7 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
     gap: 8px !important;
   }
 
-  .table-toolbar-actions > button {
+  .table-toolbar-actions>button {
     flex: 1 1 auto !important;
     justify-content: center !important;
   }
@@ -3296,20 +3343,16 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
     gap: 12px !important;
   }
 
-  /* Tactical Map Card Height on Phones */
-  .dashboard-map-card {
-    height: 360px !important;
+  /* Tactical Map Card on Phones */
+  .dashboard-map-card:not([style*="position: fixed"]) {
+    aspect-ratio: 1.5 / 1 !important;
+    height: auto !important;
+    min-height: 300px !important;
     margin-bottom: 18px !important;
   }
 
-  .dashboard-map-card > div[style*="height: 430px"],
-  .dashboard-map-card > div[style*="minHeight: 430px"] {
-    height: 280px !important;
-    min-height: 280px !important;
-  }
-
   /* Modals and Popups Responsive Fit */
-  .messageBoxOverlay > div,
+  .messageBoxOverlay>div,
   div[style*="position: fixed"][style*="zIndex: 1000"],
   div[style*="position: fixed"][style*="z-index: 1000"],
   div[style*="position: fixed"][style*="zIndex: 9999"],
@@ -3366,15 +3409,11 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
     border-radius: 12px !important;
   }
 
-  /* Tactical Map Card Height on Small Phones */
-  .dashboard-map-card {
-    height: 310px !important;
-  }
-
-  .dashboard-map-card > div[style*="height: 430px"],
-  .dashboard-map-card > div[style*="minHeight: 430px"] {
-    height: 220px !important;
-    min-height: 220px !important;
+  /* Tactical Map Card on Small Phones */
+  .dashboard-map-card:not([style*="position: fixed"]) {
+    aspect-ratio: 1.15 / 1 !important;
+    height: auto !important;
+    min-height: 290px !important;
   }
 
   /* Buttons & Action Controls */
@@ -3433,6 +3472,7 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
     opacity: 0;
     transform: translateX(40px) scale(0.94);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0) scale(1);
@@ -3444,6 +3484,7 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
     opacity: 1;
     transform: translateX(0) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translateX(40px) scale(0.94);
@@ -3451,10 +3492,13 @@ html.dark .responsive-table-wrapper::-webkit-scrollbar-thumb {
 }
 
 @keyframes particlePulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(0.85);
     opacity: 0.45;
   }
+
   50% {
     transform: scale(1.35);
     opacity: 0.95;
@@ -3482,4 +3526,3 @@ html.dark .metric-card-holder:hover {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
   }
 }
-

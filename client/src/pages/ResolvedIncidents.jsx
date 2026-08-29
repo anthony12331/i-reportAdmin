@@ -8,6 +8,7 @@ import PremiumPagination from "../components/PremiumPagination";
 import PremiumDateRangePicker from "../components/PremiumDateRangePicker";
 import PremiumSearchBar from "../components/PremiumSearchBar";
 import { getReadableAddress } from "../utils/utils";
+import { getIncidentResponseTime, getIncidentTimingMetrics } from "../utils/timeUtils";
 import { getUnitStyles } from "../themes/resolvedStyles"; 
 import { pendingIncidentsStyles as detailStyles } from "../themes/pendingIncidentsStyles";
 import {
@@ -28,6 +29,8 @@ import {
   Radio,
   Car,
   Mountain,
+  Clock,
+  Timer,
 } from "lucide-react";
 
 const getFileUrl = (record, field) =>
@@ -341,6 +344,7 @@ export default function ResolvedIncidents() {
                       <th>Incident Type</th>
                       <th>Location / Barangay</th>
                       <th>Assigned Units</th>
+                      <th>Response Time</th>
                       <th>Resolved Date</th>
                       <th>Status</th>
                       <th style={{ textAlign: "center" }}>Action</th>
@@ -355,6 +359,8 @@ export default function ResolvedIncidents() {
                       const avatarStyle = getAvatarStyle(fullName);
                       const avatarUrl = getUserAvatarUrl(reporter);
                       const typeBadge = getTypeBadge(incident.type, isSos);
+                      const responseTime = getIncidentResponseTime(incident);
+                      const timing = getIncidentTimingMetrics(incident);
 
                       return (
                         <tr key={incident.id}>
@@ -463,6 +469,80 @@ export default function ResolvedIncidents() {
                                 >
                                   <ShieldCheck size={13} /> MDRRMO HQ
                                 </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Response Time */}
+                          <td>
+                            <div className="resolved-timing-cell" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                              {incident.dispatches && incident.dispatches.some((d) => d.response_time) ? (
+                                incident.dispatches.map((d) => {
+                                  const r = d.expand?.responder_id;
+                                  const unitLabel = r ? (r.unit_name || r.first_name) : (d.department || "Unit");
+                                  const dTime = d.response_time
+                                    ? (/^\d+$/.test(String(d.response_time).trim()) ? `${d.response_time} mins` : String(d.response_time).trim())
+                                    : responseTime;
+
+                                  return (
+                                    <div key={d.id} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                      <span
+                                        className="resolved-timing-badge"
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "4px",
+                                          fontSize: "11.5px",
+                                          fontWeight: "800",
+                                          color: "#0f766e",
+                                          backgroundColor: "#f0fdfa",
+                                          border: "1px solid #99f6e4",
+                                          padding: "2px 7px",
+                                          borderRadius: "6px",
+                                          width: "fit-content",
+                                        }}
+                                      >
+                                        <Clock size={11} color="#0d9488" /> {dTime}
+                                      </span>
+                                      {incident.dispatches.length > 1 && (
+                                        <span style={{ fontSize: "10.5px", color: "#64748b", fontWeight: "600" }}>
+                                          ({unitLabel})
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <>
+                                  <span
+                                    className="resolved-timing-badge"
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "4px",
+                                      fontSize: "12px",
+                                      fontWeight: "800",
+                                      color: "#0f766e",
+                                      backgroundColor: "#f0fdfa",
+                                      border: "1px solid #99f6e4",
+                                      padding: "3px 8px",
+                                      borderRadius: "6px",
+                                      width: "fit-content",
+                                    }}
+                                  >
+                                    <Clock size={12} color="#0d9488" /> {responseTime}
+                                  </span>
+                                  {incident.response_time && (
+                                    <span style={{ fontSize: "10.5px", color: "#15803d", fontWeight: "700" }}>
+                                      ✓ Responder Uploaded
+                                    </span>
+                                  )}
+                                  {!incident.response_time && timing.dispatchDuration && (
+                                    <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                                      Dispatched: {timing.dispatchDuration}
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
