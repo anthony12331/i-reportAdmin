@@ -30,7 +30,6 @@ export default function NetworkStatusDetector() {
 
     // 2. Ping reliable public endpoints with timeout
     const testEndpoints = [
-      "https://cloudflare.com/cdn-cgi/trace",
       "https://dns.google/resolve?name=google.com",
       "https://httpbin.org/status/200",
       "https://www.google.com/generate_204"
