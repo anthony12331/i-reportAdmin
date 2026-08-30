@@ -959,28 +959,7 @@ export default function PendingSos() {
                       <span>{assigningId === sos.id ? "Deploying..." : `Dispatch (${selectedIds.length})`}</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => resolveSos(sos)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "none",
-                        backgroundColor: "#10b981",
-                        color: "#ffffff",
-                        fontSize: "13px",
-                        fontWeight: "800",
-                        cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
-                      }}
-                    >
-                      <CheckCircle2 size={16} />
-                      <span>Resolve</span>
-                    </button>
+
 
                     <button
                       type="button"

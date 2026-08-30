@@ -994,32 +994,7 @@ export default function OngoingIncidents() {
 
                   {/* Incident Resolution Action Bar */}
                   <div style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
-                    <button
-                      type="button"
-                      className="ongoing-resolve-btn"
-                      onClick={() => handleResolveIncident(incident)}
-                      disabled={processingId === incident.id}
-                      style={{
-                        flex: 1,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "none",
-                        background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
-                        color: "#ffffff",
-                        fontSize: "13px",
-                        fontWeight: "800",
-                        cursor: "pointer",
-                        boxShadow: "0 4px 12px rgba(21, 128, 61, 0.25)",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {processingId === incident.id ? <Loader className="animate-spin" size={15} /> : <CheckCircle2 size={16} />}
-                      <span>{processingId === incident.id ? "Resolving..." : "Mark as Resolved"}</span>
-                    </button>
+
 
                     <button
                       type="button"
