@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Sidebar from '../components/Sidebar';
 import { useTheme } from '../themes/ThemeContext';
-import { Activity, Wind, AlertTriangle, Info, CloudRain } from 'lucide-react';
+import { Activity, Wind, AlertTriangle, Info, CloudRain, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 
 const COMMAND_CENTER = [8.8066, 124.788];
 const MAP_BOUNDS = [
@@ -118,6 +118,7 @@ export default function Calamities() {
   const [earthquakes, setEarthquakes] = useState([]);
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showHazardLegend, setShowHazardLegend] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,42 +267,100 @@ export default function Calamities() {
           <div style={{ flex: 1, borderRadius: '16px', overflow: 'hidden', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
               
-              {/* BEAUTIFUL FLOATING MAP LEGEND */}
-              <div style={{
-                position: 'absolute',
-                bottom: '30px',
-                right: '10px',
-                zIndex: 1000,
-                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                padding: '16px',
-                borderRadius: '12px',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
-                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
-                width: '280px',
-                backdropFilter: 'blur(4px)'
-              }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 'bold', borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                  Hazard Color Coding
-                </h4>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ width: '20px', height: '20px', backgroundColor: '#3b82f6', opacity: 0.8, border: '2px solid #2563eb', borderRadius: '4px', flexShrink: 0 }}></div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>High Flood & Storm Surge</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Coastal/Riverine: Dampil, Kabulawan, Kauswagan, Lumbo, Manaol, Poblacion, Tabok</div>
-                    </div>
+              {/* BEAUTIFUL FLOATING MAP LEGEND (TOGGLEABLE / HIDABLE) */}
+              {showHazardLegend ? (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '30px',
+                  right: '10px',
+                  zIndex: 1000,
+                  backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                  border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                  width: '280px',
+                  maxWidth: 'calc(100% - 20px)',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'all 0.2s ease',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: isDark ? '#f8fafc' : '#0f172a' }}>
+                      Hazard Color Coding
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowHazardLegend(false)}
+                      title="Hide Hazard Legend"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: isDark ? '#94a3b8' : '#64748b',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <ChevronDown size={16} />
+                    </button>
                   </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                      <div style={{ width: '20px', height: '20px', backgroundColor: '#3b82f6', opacity: 0.8, border: '2px solid #2563eb', borderRadius: '4px', flexShrink: 0 }}></div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>High Flood & Storm Surge</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Coastal/Riverine: Dampil, Kabulawan, Kauswagan, Lumbo, Manaol, Poblacion, Tabok</div>
+                      </div>
+                    </div>
 
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ width: '20px', height: '20px', backgroundColor: '#f59e0b', opacity: 0.8, border: '2px solid #d97706', borderRadius: '4px', flexShrink: 0 }}></div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>Rain-Induced Landslides</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Uplands: Banglay, Dampil, Gaston, Lumbo, Manaol, Umagos</div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                      <div style={{ width: '20px', height: '20px', backgroundColor: '#f59e0b', opacity: 0.8, border: '2px solid #d97706', borderRadius: '4px', flexShrink: 0 }}></div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>Rain-Induced Landslides</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Uplands: Banglay, Dampil, Gaston, Lumbo, Manaol, Umagos</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowHazardLegend(true)}
+                  title="Show Hazard Color Legend"
+                  style={{
+                    position: 'absolute',
+                    bottom: '30px',
+                    right: '10px',
+                    zIndex: 1000,
+                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.25)',
+                    border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                    backdropFilter: 'blur(6px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    color: isDark ? '#f8fafc' : '#0f172a',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '3px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#3b82f6', display: 'inline-block' }} />
+                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#f59e0b', display: 'inline-block' }} />
+                  </div>
+                  <span>Hazard Legend</span>
+                  <ChevronUp size={14} color={isDark ? '#94a3b8' : '#64748b'} />
+                </button>
+              )}
 
               <MapContainer 
                 key={isDark ? 'cal-map-dark' : 'cal-map-light'}

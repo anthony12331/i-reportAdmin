@@ -76,14 +76,22 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
         requestKey: null,
       });
 
-      const dispatches = await pb.collection("dispatches").getFullList({
-        filter: `${recordType === "sos" ? "sos_id" : "incident_id"} = "${record.id}"`,
-        expand: "responder_id",
-        sort: "created",
-        requestKey: null,
-      });
+      const [dispatches, backupRequests] = await Promise.all([
+        pb.collection("dispatches").getFullList({
+          filter: `${recordType === "sos" ? "sos_id" : "incident_id"} = "${record.id}"`,
+          expand: "responder_id",
+          sort: "created",
+          requestKey: null,
+        }).catch(() => []),
+        pb.collection("backup_requests").getFullList({
+          filter: `${recordType === "sos" ? "sos_id" : "incident_id"} = "${record.id}"`,
+          expand: "requester_id,assigned_responder,dispatch_id",
+          sort: "created",
+          requestKey: null,
+        }).catch(() => []),
+      ]);
 
-      setIncident({ ...record, dispatches, recordType });
+      setIncident({ ...record, dispatches, backupRequests, recordType });
 
       if (record.latitude != null && record.longitude != null) {
         const addr = await getReadableAddress(record.latitude, record.longitude);
@@ -105,6 +113,43 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
     navigator.clipboard.writeText(phone);
     setCopiedPhone(true);
     setTimeout(() => setCopiedPhone(false), 2000);
+  };
+
+  const getBackupStatusMeta = (status) => {
+    const s = (status || "pending").toLowerCase();
+    if (s === "completed" || s === "resolved") {
+      return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0", label: "Completed" };
+    }
+    if (s === "at_scene") {
+      return { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe", label: "At Scene" };
+    }
+    if (s === "en_route") {
+      return { bg: "#f0fdfa", color: "#0f766e", border: "#99f6e4", label: "En Route" };
+    }
+    if (s === "accepted") {
+      return { bg: "#fffbeb", color: "#b45309", border: "#fde68a", label: "Accepted" };
+    }
+    if (s === "assigned") {
+      return { bg: "#faf5ff", color: "#7e22ce", border: "#e9d5ff", label: "Assigned" };
+    }
+    if (s === "declined") {
+      return { bg: "#fef2f2", color: "#b91c1c", border: "#fecaca", label: "Declined" };
+    }
+    return { bg: "#f8fafc", color: "#475569", border: "#cbd5e1", label: "Pending Response" };
+  };
+
+  const getBackupDeptBadge = (dept) => {
+    const d = (dept || "").toLowerCase();
+    if (d.includes("fire")) {
+      return { label: "BFP Fire", icon: <Flame size={12} color="#b91c1c" />, bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" };
+    }
+    if (d.includes("police")) {
+      return { label: "PNP Police", icon: <ShieldCheck size={12} color="#1d4ed8" />, bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" };
+    }
+    if (d.includes("ambulance") || d.includes("medical")) {
+      return { label: "Ambulance", icon: <Ambulance size={12} color="#c2410c" />, bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
+    }
+    return { label: "MDRRMO Rescue", icon: <ShieldAlert size={12} color="#15803d" />, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
   };
 
   const getCategoryMeta = (type = "", isSos = false) => {
@@ -227,9 +272,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
-      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
+      <main className="resolved-details-main" style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* TOP BREADCRUMB & ACTIONS BAR */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px", flexWrap: "wrap", gap: "12px" }}>
+        <div className="resolved-details-top-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px", flexWrap: "wrap", gap: "12px" }}>
           <button
             type="button"
             className="details-back-btn"
@@ -278,7 +323,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
 
         {/* CASE HEADER BANNER */}
         <div
-          className="premium-table-card"
+          className="premium-table-card resolved-header-card"
           style={{
             padding: "24px 28px",
             marginBottom: "24px",
@@ -290,7 +335,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             gap: "20px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div className="resolved-header-title-group" style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
             <div
               style={{
                 width: "52px",
@@ -308,8 +353,8 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             </div>
 
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                <h1 style={{ margin: 0, fontSize: "22px", fontWeight: "900", color: "#0f172a", letterSpacing: "-0.02em" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
+                <h1 style={{ margin: 0, fontSize: "clamp(18px, 2.5vw, 22px)", fontWeight: "900", color: "#0f172a", letterSpacing: "-0.02em" }}>
                   Case #{incident.id}
                 </h1>
                 <span
@@ -329,23 +374,23 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#64748b", fontSize: "13px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#64748b", fontSize: "12.5px", flexWrap: "wrap" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <CalendarDays size={14} /> Reported: {formatDate(incident.created)}
+                  <CalendarDays size={13} /> Reported: {formatDate(incident.created)}
                 </span>
                 <span>•</span>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Clock size={14} /> Resolved: {formatDate(incident.updated)}
+                  <Clock size={13} /> Resolved: {formatDate(incident.updated)}
                 </span>
                 <span>•</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#0f766e", fontWeight: "800", backgroundColor: "#f0fdfa", padding: "2px 8px", borderRadius: "6px", border: "1px solid #99f6e4" }}>
-                  <Timer size={13} color="#0d9488" /> {responseTime}
+                  <Timer size={12} color="#0d9488" /> {responseTime}
                 </span>
               </div>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div className="resolved-header-badge-group" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             {reportersCount > 1 && (
               <span
                 style={{
@@ -357,11 +402,11 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   backgroundColor: "#f0fdf4",
                   border: "1px solid #bbf7d0",
                   color: "#15803d",
-                  fontSize: "12.5px",
+                  fontSize: "12px",
                   fontWeight: "800",
                 }}
               >
-                <ShieldCheck size={16} />
+                <ShieldCheck size={15} />
                 +{reportersCount - 1} More Resident • High Reliability
               </span>
             )}
@@ -377,19 +422,19 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 backgroundColor: isResolved ? "#f0fdf4" : "#fff7ed",
                 border: isResolved ? "1px solid #bbf7d0" : "1px solid #fed7aa",
                 color: isResolved ? "#15803d" : "#c2410c",
-                fontSize: "13px",
+                fontSize: "12.5px",
                 fontWeight: "800",
                 textTransform: "uppercase",
               }}
             >
-              <CheckCircle2 size={16} />
+              <CheckCircle2 size={15} />
               {incident.status || "Resolved"}
             </span>
           </div>
         </div>
 
         {/* 5-COLUMN KPI TELEMETRY STRIP */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+        <div className="resolved-kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "16px", marginBottom: "24px" }}>
           {/* Card 1: Response & Resolution Time */}
           <div className="premium-table-card" style={{ padding: "18px 20px" }}>
             <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
@@ -462,7 +507,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
         </div>
 
         {/* 2-COLUMN MAIN CONTENT GRID */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(360px, 0.95fr)", gap: "24px", alignItems: "start" }}>
+        <div className="resolved-details-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(min(100%, 360px), 0.95fr)", gap: "24px", alignItems: "start" }}>
           {/* LEFT COLUMN: Operations, Description, Dispatches & Maps */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Incident Narrative & Resolution Card */}
@@ -676,6 +721,205 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
               ) : (
                 <div style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13.5px" }}>
                   No field dispatch records attached to this case.
+                </div>
+              )}
+            </div>
+
+            {/* Backup & Reinforcement Dispatches Card */}
+            <div className="premium-table-card" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Users size={18} color="#2563eb" /> Backup Dispatches & Reinforcement Activity
+                </h3>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    color: incident.backupRequests?.length > 0 ? "#2563eb" : "#64748b",
+                    backgroundColor: incident.backupRequests?.length > 0 ? "#eff6ff" : "#f1f5f9",
+                    padding: "3px 9px",
+                    borderRadius: "8px",
+                    border: incident.backupRequests?.length > 0 ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                  }}
+                >
+                  {incident.backupRequests?.length || 0} Backup Deployment(s)
+                </span>
+              </div>
+
+              {incident.backupRequests && incident.backupRequests.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  {incident.backupRequests.map((bReq) => {
+                    const requester = bReq.expand?.requester_id;
+                    const assignedResp = bReq.expand?.assigned_responder;
+                    const statusMeta = getBackupStatusMeta(bReq.dispatch_status);
+                    const deptMeta = getBackupDeptBadge(bReq.department);
+
+                    return (
+                      <div
+                        key={bReq.id}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          padding: "16px 18px",
+                          borderRadius: "12px",
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                          gap: "14px",
+                        }}
+                      >
+                        {/* Header Row: Department, Status & Timestamp */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            {/* Requested Department Badge */}
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                padding: "4px 10px",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                fontWeight: "800",
+                                backgroundColor: deptMeta.bg,
+                                color: deptMeta.color,
+                                border: `1px solid ${deptMeta.border}`,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {deptMeta.icon}
+                              Requested: {deptMeta.label}
+                            </span>
+
+                            {/* Status Badge */}
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                padding: "4px 10px",
+                                borderRadius: "8px",
+                                fontSize: "11.5px",
+                                fontWeight: "800",
+                                backgroundColor: statusMeta.bg,
+                                color: statusMeta.color,
+                                border: `1px solid ${statusMeta.border}`,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {statusMeta.label}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                            <Clock size={13} color="#94a3b8" /> Requested: {formatDate(bReq.created)}
+                          </div>
+                        </div>
+
+                        {/* Reason / Urgent Need Callout */}
+                        {bReq.reason && (
+                          <div
+                            style={{
+                              padding: "12px 14px",
+                              borderRadius: "10px",
+                              backgroundColor: "#fef2f2",
+                              border: "1px solid #fee2e2",
+                              borderLeft: "4px solid #ef4444",
+                            }}
+                          >
+                            <span style={{ fontSize: "11px", fontWeight: "800", color: "#b91c1c", textTransform: "uppercase", display: "block", marginBottom: "3px" }}>
+                              Reason for Reinforcement Request:
+                            </span>
+                            <span style={{ fontSize: "13.5px", color: "#991b1b", fontWeight: "600", lineHeight: "1.5" }}>
+                              {bReq.reason}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 2-Column Requester vs Assigned Reinforcement Card */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
+                          {/* Originating Requester */}
+                          <div
+                            style={{
+                              padding: "12px 14px",
+                              borderRadius: "10px",
+                              backgroundColor: "#f8fafc",
+                              border: "1px solid #f1f5f9",
+                            }}
+                          >
+                            <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
+                              Originating Lead Responder
+                            </span>
+                            <strong style={{ fontSize: "13.5px", color: "#0f172a", display: "block" }}>
+                              {requester ? displayName(requester) : "Primary Field Responder"}
+                            </strong>
+                            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                              Unit: {requester?.unit_name || (requester?.department ? `${requester.department.toUpperCase()} Team` : "Field Unit")}
+                              {requester?.contact_number && ` • 📞 ${requester.contact_number}`}
+                            </div>
+                          </div>
+
+                          {/* Assigned Backup Responder */}
+                          <div
+                            style={{
+                              padding: "12px 14px",
+                              borderRadius: "10px",
+                              backgroundColor: assignedResp ? "#f0fdf4" : "#f8fafc",
+                              border: assignedResp ? "1px solid #dcfce7" : "1px solid #f1f5f9",
+                            }}
+                          >
+                            <span style={{ fontSize: "11px", fontWeight: "700", color: assignedResp ? "#15803d" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
+                              Assigned Backup Unit
+                            </span>
+                            {assignedResp ? (
+                              <>
+                                <strong style={{ fontSize: "13.5px", color: "#0f172a", display: "block" }}>
+                                  {displayName(assignedResp)}
+                                </strong>
+                                <div style={{ fontSize: "12px", color: "#15803d", fontWeight: "600", marginTop: "2px" }}>
+                                  Unit: {assignedResp.unit_name || `${assignedResp.department?.toUpperCase()} Backup`}
+                                  {assignedResp.contact_number && ` • 📞 ${assignedResp.contact_number}`}
+                                </div>
+                                {bReq.accepted_at && (
+                                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                                    Accepted at: {bReq.accepted_at}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <span style={{ fontSize: "12.5px", color: "#94a3b8", fontStyle: "italic" }}>
+                                Awaiting responder assignment / acceptance
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Backup Responder After-Action Report */}
+                        {bReq.responder_report && (
+                          <div
+                            style={{
+                              padding: "12px 14px",
+                              borderRadius: "10px",
+                              backgroundColor: "#f8fafc",
+                              border: "1px solid #f1f5f9",
+                              borderLeft: "4px solid #2563eb",
+                            }}
+                          >
+                            <span style={{ fontSize: "11px", fontWeight: "800", color: "#2563eb", textTransform: "uppercase", display: "block", marginBottom: "3px" }}>
+                              Backup Responder Field Notes & Report:
+                            </span>
+                            <div style={{ fontSize: "13px", color: "#1e293b", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+                              {bReq.responder_report}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ padding: "24px 16px", textAlign: "center", color: "#94a3b8", fontSize: "13.5px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px dashed #cbd5e1" }}>
+                  No secondary backup reinforcements were requested for this incident. Handled fully by initial dispatch.
                 </div>
               )}
             </div>

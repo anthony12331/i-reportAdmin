@@ -52,10 +52,10 @@ export default function RequestBackup() {
   const fetchAvailableResponders = async () => {
     try {
       const responders = await pb.collection("responder_accounts").getFullList({
-        filter: "is_available = true",
+        filter: "is_available = true && is_suspended != true",
         sort: "department, first_name",
       });
-      setAvailableResponders(responders);
+      setAvailableResponders(responders.filter((r) => !r.is_suspended));
     } catch (err) {
       console.error("Fetch responders error:", err);
     }

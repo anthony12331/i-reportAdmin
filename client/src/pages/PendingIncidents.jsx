@@ -46,6 +46,7 @@ import {
   Users,
   ChevronDown,
   Check,
+  Eye,
 } from "lucide-react";
 
 const renderDepartmentBadge = (dept) => {
@@ -140,10 +141,10 @@ export default function PendingIncidents() {
   const fetchAvailableResponders = useCallback(async () => {
     try {
       const records = await pb.collection("responder_accounts").getFullList({
-        filter: "is_available = true",
+        filter: "is_available = true && is_suspended != true",
         requestKey: null,
       });
-      setAvailableResponders(records);
+      setAvailableResponders(records.filter((r) => !r.is_suspended));
     } catch (error) {
       if (!error.isAbort) console.error("Error fetching available responders:", error);
     }
@@ -335,45 +336,6 @@ export default function PendingIncidents() {
     if (p === "Elevated") return { bg: "#fefce8", color: "#854d0e", border: "#fef08a" };
     return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
   };
-
-  const getDistanceKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Reporters count calculation: starts with database reporters_count field + spatial clustering
-  const duplicateMap = useMemo(() => {
-    const map = {};
-    incidents.forEach((incident) => {
-      const baseReporters = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
-      let nearbyReports = 0;
-
-      if (incident.latitude != null && incident.longitude != null) {
-        incidents.forEach((other) => {
-          if (other.id === incident.id) return;
-          if (other.latitude != null && other.longitude != null) {
-            const distKm = getDistanceKm(incident.latitude, incident.longitude, other.latitude, other.longitude);
-            if (distKm <= 0.35) {
-              const otherCount = Number(other.reporters_count) > 0 ? Number(other.reporters_count) : 1;
-              nearbyReports += otherCount;
-            }
-          }
-        });
-      }
-
-      map[incident.id] = baseReporters + nearbyReports;
-    });
-    return map;
-  }, [incidents]);
 
   const typeOptions = useMemo(() => {
     const types = [...new Set(incidents.map((i) => i.type?.toLowerCase()).filter(Boolean))];
@@ -595,7 +557,7 @@ export default function PendingIncidents() {
               const cat = getCategoryMeta(incident.type);
               const priority = getPriorityBadge(incident);
               const selectedResponders = selectedResponderIds[incident.id] || [];
-              const sameLocationCount = duplicateMap[incident.id] || (Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1);
+              const sameLocationCount = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
               const reporter = incident.expand?.users || incident.expand?.user;
               const reporterAvatarUrl = reporter ? (
                 (reporter.selfie ? pb.files.getURL(reporter, reporter.selfie) : null) ||
@@ -821,23 +783,27 @@ export default function PendingIncidents() {
                   {/* Citizen Reporter Card */}
                   <div
                     className="pending-citizen-card"
+                    onClick={() => openIncidentDetails(incident)}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: "12px",
-                      padding: "12px 14px",
+                      padding: "10px 14px",
                       borderRadius: "12px",
-                      backgroundColor: "#ffffff",
-                      border: "1px solid #f1f5f9",
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
                     }}
                   >
                     <div
                       style={{
-                        width: "36px",
-                        height: "36px",
+                        width: "38px",
+                        height: "38px",
                         borderRadius: "10px",
                         backgroundColor: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
                         color: "#15803d",
                         display: "flex",
                         alignItems: "center",
@@ -858,30 +824,43 @@ export default function PendingIncidents() {
                         <User size={18} />
                       )}
                     </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <strong style={{ display: "block", fontSize: "13.5px", color: "#0f172a" }}>
-                        {reporter?.first_name || "Citizen"} {reporter?.last_name || "Reporter"}
-                      </strong>
-                      <span style={{ fontSize: "11.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
-                        <Phone size={11} /> {reporter?.contact_number || "No contact"} • Brgy. {reporter?.baranggay || reporter?.barangay || "Lagonglong"}
+                    <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: "5px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <strong style={{ display: "block", fontSize: "13px", color: "#0f172a", textTransform: "capitalize", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {reporter?.first_name || "Citizen"} {reporter?.last_name || "Reporter"}
+                        </strong>
+                        <span style={{ fontSize: "10.5px", fontWeight: "700", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "1px 6px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+                          <ShieldCheck size={11} /> Verified
+                        </span>
+                      </div>
+                      <span style={{ fontSize: "11.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>
+                        <Phone size={11} style={{ flexShrink: 0 }} /> {reporter?.contact_number || "No contact"} • Brgy. {reporter?.baranggay || reporter?.barangay || "Lagonglong"}
                       </span>
                     </div>
                     <button
                       type="button"
                       className="pending-inspect-btn"
-                      onClick={() => openIncidentDetails(incident)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openIncidentDetails(incident);
+                      }}
                       style={{
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        border: "1px solid #e2e8f0",
-                        backgroundColor: "#f8fafc",
-                        color: "#475569",
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#ffffff",
+                        color: "#334155",
                         fontSize: "11.5px",
                         fontWeight: "700",
                         cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        flexShrink: 0,
+                        transition: "all 0.15s ease",
                       }}
                     >
-                      Inspect
+                      <Eye size={12} /> Inspect
                     </button>
                   </div>
 
@@ -1271,7 +1250,7 @@ export default function PendingIncidents() {
             </div>
 
             {/* Multi-Resident Confirmation if applicable */}
-            {(duplicateMap[selectedIncident.id] || Number(selectedIncident.reporters_count) || 1) > 1 && (
+            {(Number(selectedIncident.reporters_count) || 1) > 1 && (
               <div
                 className="modal-reliability-banner"
                 style={{
@@ -1290,7 +1269,7 @@ export default function PendingIncidents() {
               >
                 <ShieldCheck size={18} color="#15803d" />
                 <span>
-                  <strong>High Reliability:</strong> +{(duplicateMap[selectedIncident.id] || Number(selectedIncident.reporters_count) || 1) - 1} more resident has reported this incident, which indicates this is a verified and highly reliable emergency report.
+                  <strong>High Reliability:</strong> +{(Number(selectedIncident.reporters_count) || 1) - 1} more resident has reported this incident, which indicates this is a verified and highly reliable emergency report.
                 </span>
               </div>
             )}
@@ -1303,7 +1282,7 @@ export default function PendingIncidents() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
                 <div><span style={{ color: "#64748b" }}>Name:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.first_name} {selectedIncident.expand?.users?.last_name}</strong></div>
                 <div><span style={{ color: "#64748b" }}>Phone:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong></div>
-                <div><span style={{ color: "#64748b" }}>Reporters Count:</span> <strong style={{ color: "#b45309" }}>{duplicateMap[selectedIncident.id] || selectedIncident.reporters_count || 1} resident(s)</strong></div>
+                <div><span style={{ color: "#64748b" }}>Reporters Count:</span> <strong style={{ color: "#b45309" }}>{Number(selectedIncident.reporters_count) || 1} resident(s)</strong></div>
                 <div><span style={{ color: "#64748b" }}>Barangay:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.baranggay || "Lagonglong"}</strong></div>
               </div>
             </div>

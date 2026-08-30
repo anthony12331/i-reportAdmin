@@ -128,6 +128,7 @@ export default function VerifiedUsers() {
   });
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [usersPerPage, setUsersPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [previewImage, setPreviewImage] = useState(null);
@@ -210,9 +211,9 @@ export default function VerifiedUsers() {
           }
 
           const totalItemsCount = records.length;
-          const totalPagesCount = Math.max(1, Math.ceil(totalItemsCount / USERS_PER_PAGE));
-          const pageStart = (page - 1) * USERS_PER_PAGE;
-          const pageItems = records.slice(pageStart, pageStart + USERS_PER_PAGE);
+          const totalPagesCount = Math.max(1, Math.ceil(totalItemsCount / usersPerPage));
+          const pageStart = (page - 1) * usersPerPage;
+          const pageItems = records.slice(pageStart, pageStart + usersPerPage);
 
           setUsers(pageItems);
           setTotalPages(totalPagesCount);
@@ -220,7 +221,7 @@ export default function VerifiedUsers() {
         } else {
           const records = await pb
             .collection("users")
-            .getList(page, USERS_PER_PAGE, {
+            .getList(page, usersPerPage, {
               filter: filterString,
               sort: "-user_id",
               requestKey: null,
@@ -241,7 +242,7 @@ export default function VerifiedUsers() {
         setLoading(false);
       }
     },
-    [debouncedSearch, page, filters]
+    [debouncedSearch, page, usersPerPage, filters]
   );
 
   useEffect(() => {
@@ -669,7 +670,11 @@ export default function VerifiedUsers() {
                       const selfieUrl = getFileUrl(user, "selfie");
 
                       return (
-                        <tr key={user.id}>
+                        <tr
+                          key={user.id}
+                          onClick={() => openUserDetails(user)}
+                          style={{ cursor: "pointer" }}
+                        >
                           <td>
                             <div className="premium-user-cell">
                               {selfieUrl ? (
@@ -677,7 +682,10 @@ export default function VerifiedUsers() {
                                   src={selfieUrl}
                                   alt={fullName}
                                   className="premium-avatar"
-                                  onClick={() => openImagePreview(selfieUrl)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openImagePreview(selfieUrl);
+                                  }}
                                   style={{ cursor: "pointer" }}
                                 />
                               ) : (
@@ -762,14 +770,21 @@ export default function VerifiedUsers() {
               {/* Table Footer with Premium Pagination */}
               <div className="premium-table-footer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "16px 20px" }}>
                 <div className="premium-pagination-info" style={{ fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
-                  Showing <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min((page - 1) * USERS_PER_PAGE + 1, totalItems)}</strong>–
-                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min(page * USERS_PER_PAGE, totalItems)}</strong> of <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{totalItems}</strong> Users
+                  Showing <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{totalItems === 0 ? 0 : (page - 1) * usersPerPage + 1}</strong>–
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min(page * usersPerPage, totalItems)}</strong> of <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{totalItems}</strong> Users
                 </div>
 
                 <PremiumPagination
                   currentPage={page}
                   totalPages={totalPages}
                   onPageChange={(newPage) => setPage(newPage)}
+                  pageSize={usersPerPage}
+                  pageSizeOptions={[5, 10, 20, 50]}
+                  onPageSizeChange={(newSize) => {
+                    setUsersPerPage(newSize);
+                    setPage(1);
+                  }}
+                  totalItems={totalItems}
                 />
               </div>
             </>

@@ -304,62 +304,26 @@ export default function OngoingIncidents() {
     return { bg: "#fef2f2", color: "#b91c1c", label: "DISPATCHED" };
   };
 
-  const getDistanceKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Multi-resident reporters count: base database reporters_count + spatial clustering
-  const duplicateMap = {};
-  incidents.forEach((incident) => {
-    const baseReporters = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
-    let nearbyReports = 0;
-
-    if (incident.latitude != null && incident.longitude != null) {
-      incidents.forEach((other) => {
-        if (other.id === incident.id) return;
-        if (other.latitude != null && other.longitude != null) {
-          const distKm = getDistanceKm(incident.latitude, incident.longitude, other.latitude, other.longitude);
-          if (distKm <= 0.35) {
-            const otherCount = Number(other.reporters_count) > 0 ? Number(other.reporters_count) : 1;
-            nearbyReports += otherCount;
-          }
-        }
-      });
-    }
-
-    duplicateMap[incident.id] = baseReporters + nearbyReports;
-  });
-
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
-      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
+      <main className="ongoing-incidents-main" style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* HEADER */}
-        <header style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
+        <header className="ongoing-incidents-header" style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
               <span className="urgent-status-pulse" style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#f59e0b", display: "inline-block" }} />
-              <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
+              <h1 style={{ fontSize: "clamp(20px, 3vw, 28px)", fontWeight: "800", color: "#14532d", margin: 0, letterSpacing: "-0.02em" }}>
                 Ongoing Incidents
               </h1>
             </div>
-            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "14px" }}>
+            <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: "13.5px" }}>
               Track responder units in the field and mark incidents as resolved once completed.
             </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <div className="ongoing-header-actions" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             <span
               className="ongoing-ops-badge"
               style={{
@@ -371,7 +335,7 @@ export default function OngoingIncidents() {
                 backgroundColor: filteredIncidents.length > 0 ? "#fffbeb" : "#f0fdf4",
                 border: filteredIncidents.length > 0 ? "1px solid #fde68a" : "1px solid #bbf7d0",
                 color: filteredIncidents.length > 0 ? "#b45309" : "#15803d",
-                fontSize: "13px",
+                fontSize: "12.5px",
                 fontWeight: "800",
               }}
             >
@@ -405,7 +369,7 @@ export default function OngoingIncidents() {
 
         {/* CATEGORY FILTER TABS */}
         <div
-          className="premium-table-card"
+          className="premium-table-card ongoing-filter-ribbon"
           style={{
             padding: "12px 18px",
             marginBottom: "24px",
@@ -461,7 +425,7 @@ export default function OngoingIncidents() {
 
         {/* INCIDENT CARDS GRID */}
         {loading && incidents.length === 0 ? (
-          <div style={{ padding: "80px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#15803d" }}>
+          <div style={{ padding: "80px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", color: "#15803d" }}>
             <Loader className="animate-spin" size={32} />
             <span style={{ fontWeight: "700", fontSize: "15px" }}>Loading ongoing emergency incidents...</span>
           </div>
@@ -503,7 +467,7 @@ export default function OngoingIncidents() {
             </p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: "22px" }}>
+          <div className="ongoing-incidents-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))", gap: "22px" }}>
             {filteredIncidents.map((incident) => {
               const reporter = incident.expand?.users || incident.expand?.user;
               const reporterAvatarUrl = reporter ? (
@@ -516,12 +480,12 @@ export default function OngoingIncidents() {
               const previouslyDispatchedIds = new Set(incidentDispatches.map((d) => d.responder_id));
               const cat = getCategoryMeta(incident.type);
               const selectedResponders = selectedResponderIds[incident.id] || [];
-              const sameLocationCount = duplicateMap[incident.id] || (Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1);
+              const sameLocationCount = Number(incident.reporters_count) > 0 ? Number(incident.reporters_count) : 1;
 
               return (
                 <div
                   key={incident.id}
-                  className="premium-table-card"
+                  className="premium-table-card ongoing-incident-card"
                   style={{
                     padding: "22px",
                     display: "flex",
@@ -532,7 +496,7 @@ export default function OngoingIncidents() {
                   }}
                 >
                   {/* Card Header Bar */}
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+                  <div className="ongoing-card-header-bar" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <div
                         style={{
@@ -727,26 +691,30 @@ export default function OngoingIncidents() {
                     </div>
                   )}
 
-                  {/* Citizen Caller Profile */}
+                  {/* Citizen Reporter Card */}
                   <div
                     className="ongoing-citizen-card"
+                    onClick={() => setSelectedIncident(incident)}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: "12px",
-                      padding: "12px 14px",
+                      padding: "10px 14px",
                       borderRadius: "12px",
-                      backgroundColor: "#ffffff",
-                      border: "1px solid #f1f5f9",
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
                     }}
                   >
                     <div
                       style={{
-                        width: "36px",
-                        height: "36px",
+                        width: "38px",
+                        height: "38px",
                         borderRadius: "10px",
                         backgroundColor: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
                         color: "#15803d",
                         display: "flex",
                         alignItems: "center",
@@ -767,17 +735,17 @@ export default function OngoingIncidents() {
                         <User size={18} />
                       )}
                     </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: "5px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <strong style={{ fontSize: "13.5px", color: "#0f172a" }}>
+                        <strong style={{ display: "block", fontSize: "13px", color: "#0f172a", textTransform: "capitalize", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {reporter?.first_name || "Citizen"} {reporter?.last_name || "Reporter"}
                         </strong>
-                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#15803d", display: "flex", alignItems: "center", gap: "3px" }}>
-                          <ShieldCheck size={12} /> Verified
+                        <span style={{ fontSize: "10.5px", fontWeight: "700", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "1px 6px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+                          <ShieldCheck size={11} /> Verified
                         </span>
                       </div>
-                      <span style={{ fontSize: "11.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
-                        <Phone size={11} /> {reporter?.contact_number || "No contact"} • Brgy. {reporter?.baranggay || reporter?.barangay || "Lagonglong"}
+                      <span style={{ fontSize: "11.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>
+                        <Phone size={11} style={{ flexShrink: 0 }} /> {reporter?.contact_number || "No contact"} • Brgy. {reporter?.baranggay || reporter?.barangay || "Lagonglong"}
                       </span>
                     </div>
                   </div>
@@ -846,7 +814,7 @@ export default function OngoingIncidents() {
 
                   {/* Deploy Additional Responders */}
                   <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <div className="ongoing-dispatch-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
                       <label style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
                         Dispatch Additional Units
                       </label>
@@ -993,39 +961,13 @@ export default function OngoingIncidents() {
                   </div>
 
                   {/* Incident Resolution Action Bar */}
-                  <div style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
-                    <button
-                      type="button"
-                      className="ongoing-resolve-btn"
-                      onClick={() => handleResolveIncident(incident)}
-                      disabled={processingId === incident.id}
-                      style={{
-                        flex: 1,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "none",
-                        background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
-                        color: "#ffffff",
-                        fontSize: "13px",
-                        fontWeight: "800",
-                        cursor: "pointer",
-                        boxShadow: "0 4px 12px rgba(21, 128, 61, 0.25)",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {processingId === incident.id ? <Loader className="animate-spin" size={15} /> : <CheckCircle2 size={16} />}
-                      <span>{processingId === incident.id ? "Resolving..." : "Mark as Resolved"}</span>
-                    </button>
-
+                  <div className="ongoing-action-bar" style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
                     <button
                       type="button"
                       className="ongoing-inspect-btn"
                       onClick={() => setSelectedIncident(incident)}
                       style={{
+                        width: "100%",
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1041,7 +983,7 @@ export default function OngoingIncidents() {
                       }}
                     >
                       <Maximize2 size={15} />
-                      <span>Inspect</span>
+                      <span>Inspect Operation</span>
                     </button>
                   </div>
                 </div>
@@ -1164,7 +1106,7 @@ export default function OngoingIncidents() {
             </div>
 
             {/* Multi-Resident Confirmation if applicable */}
-            {(duplicateMap[selectedIncident.id] || Number(selectedIncident.reporters_count) || 1) > 1 && (
+            {(Number(selectedIncident.reporters_count) || 1) > 1 && (
               <div
                 className="modal-reliability-banner"
                 style={{
@@ -1183,7 +1125,7 @@ export default function OngoingIncidents() {
               >
                 <ShieldCheck size={18} color="#15803d" />
                 <span>
-                  <strong>High Reliability:</strong> +{(duplicateMap[selectedIncident.id] || Number(selectedIncident.reporters_count) || 1) - 1} more resident has reported this incident, which indicates this is a verified and highly reliable emergency operation.
+                  <strong>High Reliability:</strong> +{(Number(selectedIncident.reporters_count) || 1) - 1} more resident has reported this incident, which indicates this is a verified and highly reliable emergency operation.
                 </span>
               </div>
             )}
@@ -1196,7 +1138,7 @@ export default function OngoingIncidents() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
                 <div><span style={{ color: "#64748b" }}>Name:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.first_name} {selectedIncident.expand?.users?.last_name}</strong></div>
                 <div><span style={{ color: "#64748b" }}>Phone:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.contact_number || "N/A"}</strong></div>
-                <div><span style={{ color: "#64748b" }}>Reporters Count:</span> <strong style={{ color: "#b45309" }}>{duplicateMap[selectedIncident.id] || selectedIncident.reporters_count || 1} resident(s)</strong></div>
+                <div><span style={{ color: "#64748b" }}>Reporters Count:</span> <strong style={{ color: "#b45309" }}>{Number(selectedIncident.reporters_count) || 1} resident(s)</strong></div>
                 <div><span style={{ color: "#64748b" }}>Barangay:</span> <strong style={{ color: "#0f172a" }}>{selectedIncident.expand?.users?.baranggay || "Lagonglong"}</strong></div>
               </div>
             </div>

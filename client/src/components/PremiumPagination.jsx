@@ -74,6 +74,12 @@ export default function PremiumPagination({
 
   const pageNumbers = getPageNumbers();
 
+  const effectivePageSizeOptions = React.useMemo(() => {
+    const opts = new Set((pageSizeOptions || [5, 10, 20, 50]).map(Number));
+    if (pageSize) opts.add(Number(pageSize));
+    return Array.from(opts).sort((a, b) => a - b);
+  }, [pageSizeOptions, pageSize]);
+
   return (
     <div
       className="premium-pagination-container"
@@ -228,8 +234,8 @@ export default function PremiumPagination({
               outline: "none",
             }}
           >
-            {pageSizeOptions.map((opt) => (
-              <option key={opt} value={opt}>
+            {effectivePageSizeOptions.map((opt) => (
+              <option key={opt} value={opt} style={{ backgroundColor: isDark ? "#172338" : "#ffffff", color: isDark ? "#f8fafc" : "#0f172a" }}>
                 {opt} / page
               </option>
             ))}

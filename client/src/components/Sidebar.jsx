@@ -351,10 +351,10 @@ export default function Sidebar({
         </div>
 
       {/* Navigation */}
-      <nav ref={navRef} className="sidebarNavNoScroll" style={styles.nav}>
+      <nav className="sidebarNavNoScroll" style={styles.nav}>
         <p style={styles.sectionTitle}>Main</p>
         <div
-          style={isActive("/dashboard") ? styles.navItemActive : styles.navItem}
+          className={`sidebar-nav-item ${isActive("/dashboard") ? "active" : ""}`}
           onClick={() => navigate("/dashboard")}
         >
           <div style={styles.navLinkGroup}>
@@ -368,7 +368,7 @@ export default function Sidebar({
             <p style={styles.sectionTitle}>Incidents</p>
 
             <div
-              style={isActive("/pending-incidents") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/pending-incidents") ? "active" : ""}`}
               onClick={() => navigate("/pending-incidents")}
             >
               <div style={styles.navLinkGroup}>
@@ -381,7 +381,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/ongoing-incidents") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/ongoing-incidents") ? "active" : ""}`}
               onClick={() => navigate("/ongoing-incidents")}
             >
               <div style={styles.navLinkGroup}>
@@ -394,7 +394,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={location.pathname === "/resolved-incidents" ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${location.pathname === "/resolved-incidents" ? "active" : ""}`}
               onClick={() => navigate("/resolved-incidents")}
             >
               <div style={styles.navLinkGroup}>
@@ -404,7 +404,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/incident-map") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/incident-map") ? "active" : ""}`}
               onClick={() => navigate("/incident-map")}
             >
               <div style={styles.navLinkGroup}>
@@ -414,7 +414,7 @@ export default function Sidebar({
             </div>
             {location.pathname.startsWith("/resolved-incidents/") && (
               <div
-                style={styles.subNavItemActive}
+                className="sidebar-sub-nav-item active"
                 onClick={() => navigate("/resolved-incidents")}
               >
                 <div style={styles.navLinkGroup}>
@@ -425,7 +425,7 @@ export default function Sidebar({
             )}
 
             <div
-              style={isActive("/request-backup") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/request-backup") ? "active" : ""}`}
               onClick={() => navigate("/request-backup")}
             >
               <div style={styles.navLinkGroup}>
@@ -436,7 +436,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/ongoing-backup") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/ongoing-backup") ? "active" : ""}`}
               onClick={() => navigate("/ongoing-backup")}
             >
               <div style={styles.navLinkGroup}>
@@ -452,7 +452,7 @@ export default function Sidebar({
           <>
             <p style={styles.sectionTitle}>SOS Alerts</p>
             <div
-              style={isActive("/pending-sos") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/pending-sos") ? "active" : ""}`}
               onClick={() => navigate("/pending-sos")}
             >
               <div style={styles.navLinkGroup}>
@@ -494,7 +494,7 @@ export default function Sidebar({
           <>
             <p style={styles.sectionTitle}>User Registry</p>
             <div
-              style={isActive("/pending-users") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/pending-users") ? "active" : ""}`}
               onClick={() => navigate("/pending-users")}
             >
               <div style={styles.navLinkGroup}>
@@ -507,7 +507,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={location.pathname === "/verified-users" ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${location.pathname === "/verified-users" ? "active" : ""}`}
               onClick={() => navigate("/verified-users")}
             >
               <div style={styles.navLinkGroup}>
@@ -517,7 +517,7 @@ export default function Sidebar({
             </div>
             {location.pathname.startsWith("/verified-users/") && (
               <div
-                style={styles.subNavItemActive}
+                className="sidebar-sub-nav-item active"
                 onClick={() => navigate("/verified-users")}
               >
                 <div style={styles.navLinkGroup}>
@@ -533,7 +533,7 @@ export default function Sidebar({
           <>
             <p style={styles.sectionTitle}>Analytics</p>
             <div
-              style={isActive("/reports") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/reports") ? "active" : ""}`}
               onClick={() => navigate("/reports")}
             >
               <div style={styles.navLinkGroup}>
@@ -542,7 +542,7 @@ export default function Sidebar({
               </div>
             </div>
             <div
-              style={isActive("/calamities") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/calamities") ? "active" : ""}`}
               onClick={() => navigate("/calamities")}
             >
               <div style={styles.navLinkGroup}>
@@ -557,12 +557,12 @@ export default function Sidebar({
           <>
             <p style={styles.sectionTitle}>Access</p>
             <div
-              style={isActive("/responder-pins") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/responder-pins") || isActive("/responders") ? "active" : ""}`}
               onClick={() => navigate("/responder-pins")}
             >
               <div style={styles.navLinkGroup}>
-                <KeyRound size={17} color={isActive("/responder-pins") ? "#15803d" : "#64748b"} />
-                <span>Responder PINs</span>
+                <KeyRound size={17} color={isActive("/responder-pins") || isActive("/responders") ? "#15803d" : "#64748b"} />
+                <span>Responder Management</span>
               </div>
             </div>
           </>
@@ -572,7 +572,7 @@ export default function Sidebar({
           <>
             <p style={styles.sectionTitle}>Administration</p>
             <div
-              style={isActive("/manage-admins") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/manage-admins") ? "active" : ""}`}
               onClick={() => navigate("/manage-admins")}
             >
               <div style={styles.navLinkGroup}>
@@ -582,7 +582,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/rbac-settings") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/rbac-settings") ? "active" : ""}`}
               onClick={() => navigate("/rbac-settings")}
             >
               <div style={styles.navLinkGroup}>
@@ -592,7 +592,7 @@ export default function Sidebar({
             </div>
 
             <div
-              style={isActive("/audit-logs") ? styles.navItemActive : styles.navItem}
+              className={`sidebar-nav-item ${isActive("/audit-logs") ? "active" : ""}`}
               onClick={() => navigate("/audit-logs")}
             >
               <div style={styles.navLinkGroup}>
@@ -753,6 +753,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "600",
+    flexShrink: 0,
   },
   badgeOrange: {
     backgroundColor: "#fffbeb",
@@ -767,6 +768,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "600",
+    flexShrink: 0,
   },
   badgeGreen: {
     backgroundColor: "#f0fdf4",
@@ -781,6 +783,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "600",
+    flexShrink: 0,
   },
   logoutSection: {
     padding: "12px 14px 14px",

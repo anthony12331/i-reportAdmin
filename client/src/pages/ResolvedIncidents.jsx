@@ -128,7 +128,7 @@ export default function ResolvedIncidents() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
 
-  const perPage = 10;
+  const [perPage, setPerPage] = useState(10);
 
   const fetchIncidents = useCallback(async () => {
     setLoading(true);
@@ -337,17 +337,17 @@ export default function ResolvedIncidents() {
           ) : (
             <>
               <div className="premium-table-wrapper" style={{ overflowX: "auto" }}>
-                <table className="premium-table">
+                <table className="premium-table resolved-incidents-table" style={{ width: "100%", tableLayout: "auto" }}>
                   <thead>
                     <tr>
-                      <th>Citizen Reporter</th>
-                      <th>Incident Type</th>
-                      <th>Location / Barangay</th>
-                      <th>Assigned Units</th>
-                      <th>Response Time</th>
-                      <th>Resolved Date</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: "center" }}>Action</th>
+                      <th style={{ width: "15%", minWidth: "120px" }}>Reporter</th>
+                      <th style={{ width: "12%", minWidth: "100px" }}>Incident Type</th>
+                      <th style={{ width: "23%", minWidth: "150px" }}>Location / Barangay</th>
+                      <th style={{ width: "13%", minWidth: "110px" }}>Assigned Units</th>
+                      <th style={{ width: "11%", minWidth: "90px" }}>Response Time</th>
+                      <th style={{ width: "11%", minWidth: "95px" }}>Resolved Date</th>
+                      <th style={{ width: "7%", minWidth: "65px", textAlign: "center" }}>Status</th>
+                      <th style={{ width: "8%", minWidth: "85px", textAlign: "center" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -363,7 +363,11 @@ export default function ResolvedIncidents() {
                       const timing = getIncidentTimingMetrics(incident);
 
                       return (
-                        <tr key={incident.id}>
+                        <tr
+                          key={incident.id}
+                          onClick={() => navigate(isSos ? `/resolved-incidents/sos/${incident.id}` : `/resolved-incidents/${incident.id}`)}
+                          style={{ cursor: "pointer" }}
+                        >
                           {/* Citizen Reporter */}
                           <td>
                             <div className="premium-user-cell">
@@ -412,12 +416,14 @@ export default function ResolvedIncidents() {
 
                           {/* Location */}
                           <td>
-                            <div className="resolved-location-cell" style={{ maxWidth: "260px" }}>
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", fontSize: "13px", color: "#1e293b", fontWeight: "600" }}>
-                                <MapPin size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
-                                <span>{addresses[incident.id] || "Resolving GPS telemetry..."}</span>
+                            <div className="resolved-location-cell">
+                              <div style={{ display: "flex", alignItems: "flex-start", gap: "5px", fontSize: "12px", color: "#1e293b", fontWeight: "600" }}>
+                                <MapPin size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                                <span title={addresses[incident.id] || "Resolving GPS telemetry..."}>
+                                  {addresses[incident.id] || "Resolving GPS telemetry..."}
+                                </span>
                               </div>
-                              <div style={{ fontSize: "12px", color: "#64748b", marginLeft: "21px", marginTop: "2px" }}>
+                              <div style={{ fontSize: "11px", color: "#64748b", marginLeft: "19px", marginTop: "2px" }}>
                                 Brgy. {reporter?.baranggay || "Lagonglong"}
                               </div>
                             </div>

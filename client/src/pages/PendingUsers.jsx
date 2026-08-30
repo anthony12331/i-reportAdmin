@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import AdvancedImageModal from "../components/AdvancedImageModal";
+import PremiumPagination from "../components/PremiumPagination";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
 import { addAuditLog } from "../utils/auditLog";
@@ -265,7 +266,6 @@ export default function PendingUserRegistration() {
       return 0;
     }
   };
-
   const showOperation = (title, message) => {
     setOperationState({ open: true, title, message });
   };
@@ -274,12 +274,29 @@ export default function PendingUserRegistration() {
     setOperationState({ open: false, title: "", message: "" });
   };
 
+  // Pagination for Applicant Queue (Left Choices Holder)
+  const [queuePage, setQueuePage] = useState(1);
+  const [queuePageSize, setQueuePageSize] = useState(6);
+
   const filteredUsers = users.filter((u) => {
     const name = `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase();
     const email = (u.email || "").toLowerCase();
     const term = searchTerm.toLowerCase();
     return name.includes(term) || email.includes(term);
   });
+
+  const totalQueuePages = Math.ceil(filteredUsers.length / queuePageSize) || 1;
+
+  const paginatedQueueUsers = useMemo(() => {
+    const start = (queuePage - 1) * queuePageSize;
+    return filteredUsers.slice(start, start + queuePageSize);
+  }, [filteredUsers, queuePage, queuePageSize]);
+
+  useEffect(() => {
+    if (queuePage > totalQueuePages) {
+      setQueuePage(Math.max(1, totalQueuePages));
+    }
+  }, [totalQueuePages, queuePage]);
 
   const isAllSelected =
     filteredUsers.length > 0 &&
@@ -663,10 +680,10 @@ export default function PendingUserRegistration() {
           </div>
         ) : (
           /* Main Modern 2-Column Workbench (With Maximize Toggle) */
-          <div className="pending-users-workbench responsive-workbench-grid" style={{ display: "grid", gridTemplateColumns: isMaximized ? "1fr" : "360px 1fr", gap: "24px", alignItems: "start" }}>
+          <div className="pending-users-workbench responsive-workbench-grid" style={{ display: "grid", gridTemplateColumns: isMaximized ? "1fr" : "360px 1fr", gap: "24px", alignItems: "stretch" }}>
             {/* Left Column: Applicants Queue (Hidden when maximized) */}
             {!isMaximized && (
-              <div className="premium-table-card" style={{ padding: "20px" }}>
+              <div className="premium-table-card" style={{ padding: "20px", display: "flex", flexDirection: "column", height: "100%", boxSizing: "border-box" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <UserCheck size={18} color={isDark ? "#4ade80" : "#15803d"} />
@@ -686,13 +703,19 @@ export default function PendingUserRegistration() {
                     type="text"
                     placeholder="Search applicant name or email..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setQueuePage(1);
+                    }}
                     style={{ fontSize: "13px" }}
                   />
                   {searchTerm && (
                     <button
                       type="button"
-                      onClick={() => setSearchTerm("")}
+                      onClick={() => {
+                        setSearchTerm("");
+                        setQueuePage(1);
+                      }}
                       style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", color: "#94a3b8" }}
                     >
                       <X size={14} />
@@ -787,9 +810,9 @@ export default function PendingUserRegistration() {
                   </div>
                 )}
 
-                {/* Queue List */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "680px", overflowY: "auto" }}>
-                  {filteredUsers.map((user) => {
+                {/* Queue List (Fills height and scrolls internally) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1, minHeight: 0, overflowY: "auto", paddingRight: "2px", marginBottom: "10px" }}>
+                  {paginatedQueueUsers.map((user) => {
                     const isPreviewed = previewUser?.id === user.id;
                     const isChecked = selectedUserIds.includes(user.id);
                     const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Applicant";
@@ -887,6 +910,37 @@ export default function PendingUserRegistration() {
                     );
                   })}
                 </div>
+
+                {/* Custom Pagination Page Selector */}
+                {filteredUsers.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "auto",
+                      paddingTop: "12px",
+                      borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <div style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+                      Showing <strong>{filteredUsers.length === 0 ? 0 : (queuePage - 1) * queuePageSize + 1}</strong>–<strong>{Math.min(queuePage * queuePageSize, filteredUsers.length)}</strong> of <strong>{filteredUsers.length}</strong> Applicants
+                    </div>
+                    <PremiumPagination
+                      currentPage={queuePage}
+                      totalPages={totalQueuePages}
+                      onPageChange={(p) => setQueuePage(p)}
+                      pageSize={queuePageSize}
+                      pageSizeOptions={[4, 6, 10]}
+                      onPageSizeChange={(newSize) => {
+                        setQueuePageSize(newSize);
+                        setQueuePage(1);
+                      }}
+                      totalItems={filteredUsers.length}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1044,9 +1098,9 @@ export default function PendingUserRegistration() {
                     >
                       <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)", backgroundColor: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <User size={14} color="#38bdf8" /> 1. Civilian Live Selfie
+                          <User size={14} color="#4ade80" /> 1. Civilian Live Selfie
                         </span>
-                        <span style={{ fontSize: "11px", color: "#38bdf8", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(56, 189, 248, 0.12)", padding: "2px 7px", borderRadius: "6px" }}>
+                        <span style={{ fontSize: "11px", color: "#4ade80", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(74, 222, 128, 0.12)", padding: "2px 7px", borderRadius: "6px" }}>
                           <Maximize2 size={11} /> Click to zoom
                         </span>
                       </div>
@@ -1157,7 +1211,7 @@ export default function PendingUserRegistration() {
                   >
                     {/* 1. Full Legal Name */}
                     <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(2, 132, 199, 0.18)" : "#e0f2fe", color: isDark ? "#38bdf8" : "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <User size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1172,7 +1226,7 @@ export default function PendingUserRegistration() {
 
                     {/* 2. Date of Birth & Age */}
                     <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(99, 102, 241, 0.18)" : "#eef2ff", color: isDark ? "#818cf8" : "#4f46e5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Calendar size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1184,7 +1238,7 @@ export default function PendingUserRegistration() {
                             {formatBirthdate(previewUser.birthdate)}
                           </strong>
                           {previewUser.age && (
-                            <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: isDark ? "#1e293b" : "#f1f5f9", color: isDark ? "#cbd5e1" : "#334155", padding: "2px 8px", borderRadius: "12px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: "700", backgroundColor: isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4", color: isDark ? "#86efac" : "#15803d", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", padding: "2px 8px", borderRadius: "12px" }}>
                               {previewUser.age} yrs
                             </span>
                           )}
@@ -1194,7 +1248,7 @@ export default function PendingUserRegistration() {
 
                     {/* 3. Phone Number */}
                     <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Phone size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1228,7 +1282,7 @@ export default function PendingUserRegistration() {
 
                     {/* 4. Email Address */}
                     <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease", position: "relative" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(15, 118, 110, 0.22)" : "#ccfbf1", color: isDark ? "#2dd4bf" : "#0f766e", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Mail size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1262,7 +1316,7 @@ export default function PendingUserRegistration() {
 
                     {/* 5. Barangay Jurisdiction */}
                     <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(217, 119, 6, 0.18)" : "#fef3c7", color: isDark ? "#fbbf24" : "#d97706", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <MapPin size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1277,7 +1331,7 @@ export default function PendingUserRegistration() {
 
                     {/* 6. Municipality & Province */}
                     <div className="verify-info-tile" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(162, 28, 175, 0.18)" : "#fae8ff", color: isDark ? "#c084fc" : "#a21caf", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Building2 size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -1292,7 +1346,7 @@ export default function PendingUserRegistration() {
 
                     {/* 7. Complete Street Address */}
                     <div className="verify-info-tile" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderRadius: "14px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", boxShadow: isDark ? "0 2px 6px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.02)", transition: "all 0.18s ease" }}>
-                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#f1f5f9", color: isDark ? "#94a3b8" : "#475569", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: "42px", height: "42px", borderRadius: "12px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.14)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.25)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <Home size={20} />
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>

@@ -6,11 +6,12 @@ import {
   Target,
   Activity,
   ChevronDown,
+  ChevronUp,
   ChevronLeft,
   ChevronRight,
   Loader,
   X,
-  ShieldAlert,
+  ShieldCheck,
   Calendar,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
@@ -22,10 +23,8 @@ import PremiumSearchBar from "../components/PremiumSearchBar";
 import { useTheme } from "../themes/ThemeContext";
 import { getActionStyle } from "../themes/auditStyles";
 
-const LOGS_PER_PAGE = 12;
-
 const getInitials = (name) => {
-  if (!name) return "SY";
+  if (!name) return "AD";
   const parts = name.trim().split(" ");
   if (parts.length >= 2) {
     return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
@@ -62,6 +61,7 @@ export default function Audit() {
   const [endDate, setEndDate] = useState("");
   const [expandedLogId, setExpandedLogId] = useState(null);
   const [page, setPage] = useState(1);
+  const [logsPerPage, setLogsPerPage] = useState(12);
 
   // 1. Fetch historical logs securely from PocketBase
   const fetchLogs = useCallback(async () => {
@@ -122,7 +122,7 @@ export default function Audit() {
         if (actionFilter === "dispatch") return actionLower.includes("dispatch") || actionLower.includes("responder") || actionLower.includes("backup");
         if (actionFilter === "incident") return actionLower.includes("incident") || actionLower.includes("sos") || actionLower.includes("resolve");
         if (actionFilter === "admin") return actionLower.includes("admin") || actionLower.includes("rbac") || actionLower.includes("pin") || actionLower.includes("permission");
-        return true;
+        return actionLower.includes(actionFilter.toLowerCase());
       });
     }
 
@@ -187,10 +187,10 @@ export default function Audit() {
     });
   }, [logs, actionFilter, dateFilter, startDate, endDate, searchTerm]);
 
-  const totalPages = useMemo(() => Math.ceil(filteredLogs.length / LOGS_PER_PAGE) || 1, [filteredLogs.length]);
+  const totalPages = useMemo(() => Math.ceil(filteredLogs.length / logsPerPage) || 1, [filteredLogs.length, logsPerPage]);
   const paginatedLogs = useMemo(() => {
-    return filteredLogs.slice((page - 1) * LOGS_PER_PAGE, page * LOGS_PER_PAGE);
-  }, [filteredLogs, page]);
+    return filteredLogs.slice((page - 1) * logsPerPage, page * logsPerPage);
+  }, [filteredLogs, page, logsPerPage]);
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -220,17 +220,12 @@ export default function Audit() {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              onClear={() => {
-                setSearchTerm("");
-                setPage(1);
-              }}
-              placeholder="Search by admin name, target ID, or action..."
+              placeholder="Search by admin name, action, target..."
               minWidth="300px"
               maxWidth="420px"
             />
 
             <div className="table-toolbar-actions" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              {/* Action Filter Dropdown */}
               <CustomDropdown
                 value={actionFilter}
                 onChange={(val) => {
@@ -245,60 +240,79 @@ export default function Audit() {
                   { value: "incident", label: "Incidents & Resolution" },
                   { value: "admin", label: "Admins & Permissions" },
                 ]}
+                placeholder="Filter Action"
                 minWidth="170px"
                 size="sm"
               />
 
-              {/* Premium Date Range Picker */}
-              <PremiumDateRangePicker
-                startDate={startDate}
-                endDate={endDate}
-                onChange={({ startDate: s, endDate: e }) => {
-                  setStartDate(s);
-                  setEndDate(e);
-                  setDateFilter(s ? "custom" : "all");
+              <CustomDropdown
+                value={dateFilter}
+                onChange={(val) => {
+                  setDateFilter(val);
                   setPage(1);
                 }}
-                onClear={() => {
-                  setStartDate("");
-                  setEndDate("");
-                  setDateFilter("all");
-                  setPage(1);
-                }}
-                placeholder="Filter by Date"
+                options={[
+                  { value: "all", label: "All Time" },
+                  { value: "today", label: "Today" },
+                  { value: "yesterday", label: "Yesterday" },
+                  { value: "last7days", label: "Last 7 Days" },
+                  { value: "last30days", label: "Last 30 Days" },
+                  { value: "thisMonth", label: "This Month" },
+                  { value: "custom", label: "Custom Range" },
+                ]}
+                placeholder="Date Range"
+                minWidth="150px"
+                size="sm"
               />
 
-              <span style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#94a3b8" : "#64748b" }}>
-                Total Records: <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredLogs.length}</strong>
-              </span>
+              {dateFilter === "custom" && (
+                <PremiumDateRangePicker
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={(d) => {
+                    setStartDate(d);
+                    setPage(1);
+                  }}
+                  onEndDateChange={(d) => {
+                    setEndDate(d);
+                    setPage(1);
+                  }}
+                />
+              )}
             </div>
           </div>
 
-          {/* Table Content */}
+          {/* Table Area */}
           {loading && logs.length === 0 ? (
-            <div style={{ padding: "50px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", color: isDark ? "#4ade80" : "#15803d" }}>
-              <Loader className="animate-spin" size={26} />
-              <span>Loading audit logs from database...</span>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "360px", gap: "12px" }}>
+              <Loader size={32} className="spin-animation" color={isDark ? "#4ade80" : "#15803d"} />
+              <span style={{ fontSize: "14px", fontWeight: "600", color: isDark ? "#94a3b8" : "#64748b" }}>
+                Loading activity audit trail...
+              </span>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div style={{ padding: "60px 20px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b" }}>
-              <ShieldAlert size={42} color={isDark ? "#64748b" : "#94a3b8"} style={{ marginBottom: "12px" }} />
-              <h3 style={{ margin: "0 0 6px 0", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "16px" }}>No Audit Logs Found</h3>
-              <p style={{ margin: 0, fontSize: "13.5px" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "340px", padding: "40px 20px", textAlign: "center" }}>
+              <div style={{ width: "64px", height: "64px", borderRadius: "20px", backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
+                <ShieldCheck size={32} color={isDark ? "#4ade80" : "#15803d"} />
+              </div>
+              <h3 style={{ fontSize: "16px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", margin: "0 0 6px" }}>
+                No Activity Records Found
+              </h3>
+              <p style={{ fontSize: "13.5px", color: isDark ? "#94a3b8" : "#64748b", margin: 0, maxWidth: "340px" }}>
                 {searchTerm ? "No log entries match your search query." : "No administrative audit events recorded yet."}
               </p>
             </div>
           ) : (
             <>
-              <div className="premium-table-wrapper" style={{ overflowX: "auto" }}>
+              <div className="premium-table-container">
                 <table className="premium-table">
                   <thead>
                     <tr>
-                      <th>Timestamp</th>
-                      <th>Admin Actor</th>
-                      <th>Action</th>
-                      <th>Target Ref</th>
-                      <th>Event Details</th>
+                      <th style={{ width: "190px" }}>Timestamp</th>
+                      <th style={{ width: "220px" }}>Admin Actor</th>
+                      <th style={{ width: "160px" }}>Action</th>
+                      <th>Target & Summary</th>
+                      <th style={{ width: "90px", textAlign: "center" }}>Details</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -311,7 +325,8 @@ export default function Audit() {
 
                       return (
                         <React.Fragment key={log.id}>
-                          <tr>
+                          <tr onClick={() => setExpandedLogId(isExpanded ? null : log.id)} style={{ cursor: "pointer" }}>
+                            {/* Timestamp */}
                             <td>
                               <div>
                                 <span style={{ fontWeight: "700", color: isDark ? "#f8fafc" : "#1e293b", fontSize: "13px", display: "block" }}>
@@ -331,18 +346,37 @@ export default function Audit() {
                               </div>
                             </td>
 
+                            {/* Administrator */}
                             <td>
-                              <div className="premium-user-cell">
-                                <div className="premium-avatar" style={{ background: avatarStyle.bg, color: avatarStyle.color }}>
+                              <div className="premium-user-cell" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <div
+                                  style={{
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "11px",
+                                    fontWeight: "800",
+                                    flexShrink: 0,
+                                    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                                    background: avatarStyle.bg,
+                                    color: avatarStyle.color,
+                                  }}
+                                >
                                   {initials}
                                 </div>
-                                <div className="premium-user-info">
-                                  <span className="premium-user-name">{actorName}</span>
-                                  <span className="premium-user-sub">Authorized Actor</span>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {actorName}
+                                  </div>
+                                  <span style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#64748b" }}>Authorized Actor</span>
                                 </div>
                               </div>
                             </td>
 
+                            {/* Action Tag */}
                             <td>
                               <span
                                 style={{
@@ -361,52 +395,54 @@ export default function Audit() {
                               </span>
                             </td>
 
+                            {/* Target & Summary */}
                             <td>
-                              <span
-                                style={{
-                                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                                  fontSize: "12px",
-                                  fontWeight: "600",
-                                  color: isDark ? "#4ade80" : "#475569",
-                                  backgroundColor: isDark ? "#172338" : "#f1f5f9",
-                                  border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
-                                  padding: "3px 8px",
-                                  borderRadius: "6px",
-                                  display: "inline-block",
-                                }}
-                              >
-                                {log.target || "N/A"}
-                              </span>
+                              <div>
+                                {log.target && (
+                                  <span
+                                    style={{
+                                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                                      fontSize: "12px",
+                                      fontWeight: "600",
+                                      color: isDark ? "#4ade80" : "#475569",
+                                      backgroundColor: isDark ? "#172338" : "#f1f5f9",
+                                      border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                                      padding: "2px 6px",
+                                      borderRadius: "4px",
+                                      display: "inline-block",
+                                      marginBottom: "4px",
+                                    }}
+                                  >
+                                    {log.target}
+                                  </span>
+                                )}
+                                <div style={{ fontSize: "12.5px", color: isDark ? "#cbd5e1" : "#334155" }}>
+                                  {log.details || "Action recorded."}
+                                </div>
+                              </div>
                             </td>
 
-                            <td>
-                              <div style={{ maxWidth: "340px", fontSize: "13px", color: isDark ? "#cbd5e1" : "#334155" }}>
-                                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: isExpanded ? "normal" : "nowrap" }}>
-                                  {log.details || "No additional context recorded."}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                                  style={{
-                                    background: "none",
-                                    border: "none",
-                                    padding: "4px 0 0 0",
-                                    color: isDark ? "#4ade80" : "#15803d",
-                                    fontSize: "12px",
-                                    fontWeight: "700",
-                                    cursor: "pointer",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                  }}
-                                >
-                                  <ChevronDown size={13} style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.18s" }} />
-                                  {isExpanded ? "Hide Details" : "View Details"}
-                                </button>
-                              </div>
+                            {/* Details Toggle Icon */}
+                            <td style={{ textAlign: "center" }}>
+                              <button
+                                type="button"
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: "4px",
+                                  color: isDark ? "#94a3b8" : "#64748b",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </button>
                             </td>
                           </tr>
 
+                          {/* Collapsible Details Drawer */}
                           {isExpanded && (
                             <tr style={{ backgroundColor: isDark ? "#0c1322" : "#f8fafc" }}>
                               <td colSpan="5" style={{ padding: "16px 20px" }}>
@@ -455,14 +491,21 @@ export default function Audit() {
               {/* Table Footer / Premium Pagination */}
               <div className="premium-table-footer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "16px 20px" }}>
                 <div className="premium-pagination-info" style={{ fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
-                  Showing <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min((page - 1) * LOGS_PER_PAGE + 1, filteredLogs.length)}</strong>–
-                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min(page * LOGS_PER_PAGE, filteredLogs.length)}</strong> of <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredLogs.length}</strong> Logs
+                  Showing <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredLogs.length === 0 ? 0 : (page - 1) * logsPerPage + 1}</strong>–
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{Math.min(page * logsPerPage, filteredLogs.length)}</strong> of <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{filteredLogs.length}</strong> Logs
                 </div>
 
                 <PremiumPagination
                   currentPage={page}
                   totalPages={totalPages}
                   onPageChange={(newPage) => setPage(newPage)}
+                  pageSize={logsPerPage}
+                  pageSizeOptions={[6, 12, 24, 48]}
+                  onPageSizeChange={(newSize) => {
+                    setLogsPerPage(newSize);
+                    setPage(1);
+                  }}
+                  totalItems={filteredLogs.length}
                 />
               </div>
             </>

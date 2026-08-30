@@ -209,16 +209,16 @@ export default function PendingSos() {
     }
   };
 
-  // Fetch Responders
   const fetchAvailableResponders = useCallback(async () => {
     setRespondersLoading(true);
     try {
       const responders = await pb.collection("responder_accounts").getFullList({
         sort: "department, first_name, last_name",
-        fields: "id,first_name,last_name,department,unit_name,contact_number,is_available",
+        fields: "id,first_name,last_name,department,unit_name,contact_number,is_available,is_suspended",
+        filter: "is_suspended != true",
         requestKey: null,
       });
-      setAvailableResponders(responders);
+      setAvailableResponders(responders.filter((r) => !r.is_suspended));
     } catch (error) {
       console.error("Responder fetch error:", error);
     } finally {
@@ -616,17 +616,17 @@ export default function PendingSos() {
                       <User size={18} />
                     )}
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <strong style={{ fontSize: "13.5px", color: isDark ? "#f8fafc" : "#0f172a" }}>
+                  <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: "5px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                      <strong style={{ display: "block", fontSize: "13px", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "capitalize", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {sos.expand?.user?.first_name || "Resident"} {sos.expand?.user?.last_name || ""}
                       </strong>
-                      <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "3px" }}>
-                        <ShieldCheck size={12} /> Verified Resident
+                      <span style={{ fontSize: "10.5px", fontWeight: "700", color: isDark ? "#4ade80" : "#15803d", backgroundColor: isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0", padding: "1px 6px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+                        <ShieldCheck size={11} /> Verified
                       </span>
                     </div>
-                    <span style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
-                      <Phone size={11} /> {sos.expand?.user?.contact_number || "No contact"} • Brgy. {sos.expand?.user?.baranggay || "Lagonglong"}
+                    <span style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#64748b", display: "flex", alignItems: "center", gap: "5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>
+                      <Phone size={11} style={{ flexShrink: 0 }} /> {sos.expand?.user?.contact_number || "No contact"} • Brgy. {sos.expand?.user?.baranggay || "Lagonglong"}
                     </span>
                   </div>
                 </div>
@@ -959,28 +959,7 @@ export default function PendingSos() {
                       <span>{assigningId === sos.id ? "Deploying..." : `Dispatch (${selectedIds.length})`}</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => resolveSos(sos)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        border: "none",
-                        backgroundColor: "#10b981",
-                        color: "#ffffff",
-                        fontSize: "13px",
-                        fontWeight: "800",
-                        cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
-                      }}
-                    >
-                      <CheckCircle2 size={16} />
-                      <span>Resolve</span>
-                    </button>
+
 
                     <button
                       type="button"

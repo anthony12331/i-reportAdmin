@@ -795,6 +795,14 @@ function App() {
                 }
               />
               <Route
+                path="/responders"
+                element={
+                  <ProtectedRoute requiredModule="pins">
+                    <GenerateResponderPin />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/request-backup"
                 element={
                   <ProtectedRoute requiredModule="incidents">

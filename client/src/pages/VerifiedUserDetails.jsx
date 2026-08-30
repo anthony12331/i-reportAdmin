@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -29,6 +29,7 @@ import {
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
 import AdvancedImageModal from "../components/AdvancedImageModal";
+import PremiumPagination from "../components/PremiumPagination";
 import { useMessageBox } from "../components/MessageBox";
 import { useTheme } from "../themes/ThemeContext";
 import { getReadableAddress } from "../utils/utils";
@@ -105,6 +106,18 @@ export default function VerifiedUserDetails() {
   const [selectedMap, setSelectedMap] = useState(null);
   const [incidentsLoading, setIncidentsLoading] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
+
+  // Pagination for Resident Incident Submissions (default 5 items per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
+
+  const totalIncidents = incidentReports.length;
+  const totalIncidentPages = Math.ceil(totalIncidents / perPage) || 1;
+
+  const paginatedIncidents = useMemo(() => {
+    const start = (currentPage - 1) * perPage;
+    return incidentReports.slice(start, start + perPage);
+  }, [incidentReports, currentPage, perPage]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -250,9 +263,9 @@ export default function VerifiedUserDetails() {
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#090d16" : "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
-      <main style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
+      <main className="verified-user-details-main" style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
         {/* TOP BREADCRUMB */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px", flexWrap: "wrap", gap: "12px" }}>
+        <div className="verified-user-top-bar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "22px", flexWrap: "wrap", gap: "12px" }}>
           <button
             type="button"
             onClick={() => navigate("/verified-users")}
@@ -277,7 +290,7 @@ export default function VerifiedUserDetails() {
 
         {/* PROFILE BANNER CARD */}
         <div
-          className="premium-table-card"
+          className="premium-table-card verified-user-profile-banner"
           style={{
             padding: "24px 28px",
             marginBottom: "24px",
@@ -289,7 +302,7 @@ export default function VerifiedUserDetails() {
             gap: "20px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
+          <div className="verified-user-banner-profile" style={{ display: "flex", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
             <div
               onClick={() => selfieUrl && setPreviewImage({ src: selfieUrl, label: "Citizen Profile Photo" })}
               style={{
@@ -317,8 +330,8 @@ export default function VerifiedUserDetails() {
             </div>
 
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                <h1 style={{ margin: 0, fontSize: "22px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+                <h1 style={{ margin: 0, fontSize: "clamp(18px, 2.5vw, 22px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a" }}>
                   {fullName || "Verified Citizen"}
                 </h1>
                 <span style={{
@@ -341,7 +354,7 @@ export default function VerifiedUserDetails() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="verified-user-banner-badge" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <span
               style={{
                 display: "inline-flex",
@@ -365,7 +378,7 @@ export default function VerifiedUserDetails() {
         </div>
 
         {/* MAIN 2-COLUMN DOSSIER GRID */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(360px, 0.9fr)", gap: "24px", alignItems: "start" }}>
+        <div className="verified-user-details-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(min(100%, 360px), 0.9fr)", gap: "24px", alignItems: "start" }}>
           {/* LEFT COLUMN: Identity Verification & Incident History */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Side-by-Side Information Comparison Card */}
@@ -379,7 +392,7 @@ export default function VerifiedUserDetails() {
                 </span>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(260px, 0.95fr)", gap: "20px" }}>
+              <div className="verified-user-id-comparison-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(min(100%, 260px), 0.95fr)", gap: "20px" }}>
                 {/* Form Data Column with 2-column Grid */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", display: "block", letterSpacing: "0.04em" }}>
@@ -471,8 +484,20 @@ export default function VerifiedUserDetails() {
                       </tr>
                     </thead>
                     <tbody>
-                      {incidentReports.map((report) => (
-                        <tr key={report.id}>
+                      {paginatedIncidents.map((report) => (
+                        <tr
+                          key={report.id}
+                          onClick={() => {
+                            if (report.status === "resolved") {
+                              navigate(`/resolved-incidents/${report.id}`);
+                            } else if (report.status === "ongoing" || report.status === "dispatched") {
+                              navigate("/ongoing-incidents");
+                            } else {
+                              navigate("/pending-incidents");
+                            }
+                          }}
+                          style={{ cursor: "pointer" }}
+                        >
                           <td>
                             <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>{report.type || "Incident"}</strong>
                           </td>
@@ -547,6 +572,53 @@ export default function VerifiedUserDetails() {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Table Footer / Premium Pagination from Resolved Incidents */}
+                  <div
+                    className="premium-table-footer"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: "14px",
+                      padding: "16px 4px 4px 4px",
+                      borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                      marginTop: "12px",
+                    }}
+                  >
+                    <div
+                      className="premium-pagination-info"
+                      style={{ fontSize: "12.5px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}
+                    >
+                      Showing{" "}
+                      <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>
+                        {totalIncidents === 0 ? 0 : (currentPage - 1) * perPage + 1}
+                      </strong>
+                      –
+                      <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>
+                        {Math.min(currentPage * perPage, totalIncidents)}
+                      </strong>{" "}
+                      of{" "}
+                      <strong style={{ color: isDark ? "#4ade80" : "#15803d" }}>
+                        {totalIncidents}
+                      </strong>{" "}
+                      Report(s)
+                    </div>
+
+                    <PremiumPagination
+                      currentPage={currentPage}
+                      totalPages={totalIncidentPages}
+                      onPageChange={(newPage) => setCurrentPage(newPage)}
+                      pageSize={perPage}
+                      pageSizeOptions={[5, 10, 20]}
+                      onPageSizeChange={(newSize) => {
+                        setPerPage(newSize);
+                        setCurrentPage(1);
+                      }}
+                      totalItems={totalIncidents}
+                    />
+                  </div>
                 </div>
               )}
             </div>
