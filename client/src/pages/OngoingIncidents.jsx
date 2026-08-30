@@ -961,7 +961,9 @@ export default function OngoingIncidents() {
                   </div>
 
                   {/* Incident Resolution Action Bar */}
-                  <div className="ongoing-action-bar" style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
+                  <div style={{ display: "flex", gap: "10px", marginTop: "auto" }}>
+
+
                     <button
                       type="button"
                       className="ongoing-inspect-btn"
