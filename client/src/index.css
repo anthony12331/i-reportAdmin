@@ -2862,9 +2862,9 @@ html.dark .resolved-type-badge.type-sos {
 }
 
 html.dark .resolved-type-badge.type-fire {
-  background-color: rgba(249, 115, 22, 0.18) !important;
-  border-color: rgba(249, 115, 22, 0.35) !important;
-  color: #fb923c !important;
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
 }
 
 html.dark .resolved-type-badge.type-accident {
@@ -2873,10 +2873,16 @@ html.dark .resolved-type-badge.type-accident {
   color: #facc15 !important;
 }
 
+html.dark .resolved-type-badge.type-police {
+  background-color: rgba(37, 99, 235, 0.18) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+  color: #60a5fa !important;
+}
+
 html.dark .resolved-type-badge.type-landslide {
-  background-color: rgba(217, 119, 6, 0.18) !important;
-  border-color: rgba(217, 119, 6, 0.35) !important;
-  color: #fbbf24 !important;
+  background-color: rgba(146, 64, 14, 0.25) !important;
+  border-color: rgba(180, 83, 9, 0.45) !important;
+  color: #f59e0b !important;
 }
 
 html.dark .resolved-type-badge.type-default {
@@ -2921,9 +2927,9 @@ html.dark .details-type-badge.type-sos {
 }
 
 html.dark .details-type-badge.type-fire {
-  background-color: rgba(249, 115, 22, 0.18) !important;
-  border-color: rgba(249, 115, 22, 0.35) !important;
-  color: #fb923c !important;
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
 }
 
 html.dark .details-type-badge.type-accident {
@@ -2932,10 +2938,16 @@ html.dark .details-type-badge.type-accident {
   color: #facc15 !important;
 }
 
+html.dark .details-type-badge.type-police {
+  background-color: rgba(37, 99, 235, 0.18) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+  color: #60a5fa !important;
+}
+
 html.dark .details-type-badge.type-landslide {
-  background-color: rgba(217, 119, 6, 0.18) !important;
-  border-color: rgba(217, 119, 6, 0.35) !important;
-  color: #fbbf24 !important;
+  background-color: rgba(146, 64, 14, 0.25) !important;
+  border-color: rgba(180, 83, 9, 0.45) !important;
+  color: #f59e0b !important;
 }
 
 html.dark .details-status-pill {

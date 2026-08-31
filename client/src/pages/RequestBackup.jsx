@@ -21,6 +21,25 @@ import {
   Activity,
   Users,
 } from "lucide-react";
+import CustomIcon from "../components/CustomIcon";
+import assistantSvg from "../assets/icons/assistant.svg";
+
+const matchesDepartment = (respDept = "", requestedDept = "") => {
+  if (!requestedDept || requestedDept.toUpperCase() === "ANY" || requestedDept.toUpperCase() === "ALL") {
+    return true;
+  }
+  const rd = (respDept || "").toLowerCase().trim();
+  const req = (requestedDept || "").toLowerCase().trim();
+  if (rd === req) return true;
+  if ((rd.includes("fire") || rd === "bfp") && (req.includes("fire") || req === "bfp")) return true;
+  if ((rd.includes("police") || rd === "pnp") && (req.includes("police") || req === "pnp")) return true;
+  if (
+    (rd.includes("ambulance") || rd.includes("ems") || rd.includes("medical")) &&
+    (req.includes("ambulance") || req.includes("ems") || req.includes("medical"))
+  ) return true;
+  if (rd.includes("mdrrmo") && req.includes("mdrrmo")) return true;
+  return false;
+};
 
 export default function RequestBackup() {
   const { isDark } = useTheme();
@@ -40,10 +59,11 @@ export default function RequestBackup() {
         filter: 'dispatch_status = "pending"',
         sort: "-created",
         expand: "requester_id,incident_id,sos_id",
+        requestKey: null,
       });
       setBackups(records);
     } catch (err) {
-      console.error("Fetch backups error:", err);
+      if (!err.isAbort) console.error("Fetch backups error:", err);
     } finally {
       setLoading(false);
     }
@@ -52,12 +72,12 @@ export default function RequestBackup() {
   const fetchAvailableResponders = async () => {
     try {
       const responders = await pb.collection("responder_accounts").getFullList({
-        filter: "is_available = true && is_suspended != true",
         sort: "department, first_name",
+        requestKey: null,
       });
-      setAvailableResponders(responders.filter((r) => !r.is_suspended));
+      setAvailableResponders(responders.filter((r) => r.is_available === true && !r.is_suspended));
     } catch (err) {
-      console.error("Fetch responders error:", err);
+      if (!err.isAbort) console.error("Fetch responders error:", err);
     }
   };
 
@@ -106,18 +126,45 @@ export default function RequestBackup() {
     if (!isConfirmed) return;
 
     setProcessingId(backupId);
+    let createdDispatchId = null;
     try {
-      await pb.collection("backup_requests").update(backupId, {
+      const targetBackup = backups.find((b) => b.id === backupId);
+
+      // 1. Create dispatch record so responder app receives the incident assignment
+      try {
+        const dispatchPayload = {
+          responder_id: responderId,
+          department: responder?.department || "MDRRMO",
+          status: "pending",
+        };
+        if (targetBackup?.incident_id) {
+          dispatchPayload.incident_id = targetBackup.incident_id;
+        }
+        if (targetBackup?.sos_id) {
+          dispatchPayload.sos_id = targetBackup.sos_id;
+        }
+        const dispatchRecord = await pb.collection("dispatches").create(dispatchPayload);
+        createdDispatchId = dispatchRecord.id;
+      } catch (dispatchErr) {
+        console.warn("Could not create dispatch entry for backup:", dispatchErr);
+      }
+
+      // 2. Update backup request with assigned responder and dispatch_id
+      const updateData = {
         assigned_responder: responderId,
         dispatch_status: "dispatched",
-      });
+      };
+      if (createdDispatchId) {
+        updateData.dispatch_id = createdDispatchId;
+      }
+      await pb.collection("backup_requests").update(backupId, updateData);
 
+      // 3. Mark responder unavailable
       await pb.collection("responder_accounts").update(responderId, {
         is_available: false,
       });
 
       const unitName = responder?.unit_name || `${responder?.first_name || ""} ${responder?.last_name || ""}`.trim() || responder?.name || "Backup Unit";
-      const targetBackup = backups.find((b) => b.id === backupId);
       const requesterName = targetBackup?.expand?.requester_id
         ? `${targetBackup.expand.requester_id.first_name || ""} ${targetBackup.expand.requester_id.last_name || ""}`.trim()
         : "Field Responder";
@@ -136,6 +183,9 @@ export default function RequestBackup() {
       setBackups((prev) => prev.filter((b) => b.id !== backupId));
     } catch (err) {
       console.error("Dispatch error:", err);
+      if (createdDispatchId) {
+        await pb.collection("dispatches").delete(createdDispatchId).catch(() => {});
+      }
       showAlert("Failed to dispatch backup unit: " + (err.message || "Unknown error"), { title: "Error" });
     } finally {
       setProcessingId(null);
@@ -296,7 +346,7 @@ export default function RequestBackup() {
                         flexShrink: 0,
                       }}
                     >
-                      <Siren size={18} />
+                      <CustomIcon icon={assistantSvg} size={18} color={isDark ? "#fbbf24" : "#b45309"} />
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: "15.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
@@ -372,7 +422,7 @@ export default function RequestBackup() {
                   </label>
 
                   <div style={{
-                    maxHeight: "110px",
+                    maxHeight: "140px",
                     overflowY: "auto",
                     display: "flex",
                     flexDirection: "column",
@@ -384,50 +434,61 @@ export default function RequestBackup() {
                     marginBottom: "12px"
                   }}>
                     {availableResponders.length === 0 ? (
-                      <span style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#94a3b8", textAlign: "center", padding: "4px" }}>No standby units available</span>
-                    ) : (
-                      availableResponders
-                        .filter((r) => !backup.department || r.department === backup.department || backup.department === "ANY")
-                        .map((r) => {
-                          const isUnitSelected = selectedResponderIds[backup.id] === r.id;
-                          return (
-                            <label
-                              key={r.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                padding: "5px 8px",
-                                borderRadius: "6px",
-                                backgroundColor: isUnitSelected
-                                  ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
-                                  : (isDark ? "#172338" : "#ffffff"),
-                                border: isUnitSelected
-                                  ? (isDark ? "1px solid rgba(34, 197, 94, 0.4)" : "1px solid #bbf7d0")
-                                  : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
-                                cursor: "pointer",
-                                fontSize: "12px",
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name={`backup-resp-${backup.id}`}
-                                checked={isUnitSelected}
-                                onChange={() => setSelectedResponderIds((prev) => ({ ...prev, [backup.id]: r.id }))}
-                                style={{ accentColor: "#15803d" }}
-                              />
-                              <span style={{
-                                fontWeight: isUnitSelected ? "700" : "600",
-                                color: isUnitSelected
-                                  ? (isDark ? "#4ade80" : "#14532d")
-                                  : (isDark ? "#cbd5e1" : "#334155")
-                              }}>
-                                {r.unit_name || `${r.first_name} ${r.last_name}`} ({r.department})
-                              </span>
-                            </label>
-                          );
-                        })
-                    )}
+                      <span style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#94a3b8", textAlign: "center", padding: "8px" }}>No standby units available</span>
+                    ) : (() => {
+                      const matched = availableResponders.filter((r) => matchesDepartment(r.department, backup.department));
+                      const displayList = matched.length > 0 ? matched : availableResponders;
+                      const isFallback = matched.length === 0 && availableResponders.length > 0;
+
+                      return (
+                        <>
+                          {isFallback && (
+                            <span style={{ fontSize: "10.5px", color: "#eab308", padding: "2px 6px", fontWeight: "700" }}>
+                              No direct {backup.department} units on standby. Showing all available responders:
+                            </span>
+                          )}
+                          {displayList.map((r) => {
+                            const isUnitSelected = selectedResponderIds[backup.id] === r.id;
+                            return (
+                              <label
+                                key={r.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                  padding: "6px 8px",
+                                  borderRadius: "6px",
+                                  backgroundColor: isUnitSelected
+                                    ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
+                                    : (isDark ? "#172338" : "#ffffff"),
+                                  border: isUnitSelected
+                                    ? (isDark ? "1px solid rgba(34, 197, 94, 0.4)" : "1px solid #bbf7d0")
+                                    : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                                  cursor: "pointer",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`backup-resp-${backup.id}`}
+                                  checked={isUnitSelected}
+                                  onChange={() => setSelectedResponderIds((prev) => ({ ...prev, [backup.id]: r.id }))}
+                                  style={{ accentColor: "#15803d" }}
+                                />
+                                <span style={{
+                                  fontWeight: isUnitSelected ? "700" : "600",
+                                  color: isUnitSelected
+                                    ? (isDark ? "#4ade80" : "#14532d")
+                                    : (isDark ? "#cbd5e1" : "#334155")
+                                }}>
+                                  {r.unit_name || `${r.first_name} ${r.last_name}`} ({r.department})
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <button

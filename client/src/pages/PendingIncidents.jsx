@@ -45,41 +45,16 @@ import {
   AlertTriangle,
   Users,
   ChevronDown,
-  Check,
   Eye,
+  Mountain,
 } from "lucide-react";
-
-const renderDepartmentBadge = (dept) => {
-  const d = (dept || "").toLowerCase();
-  if (d.includes("fire")) {
-    return (
-      <span className="dept-badge-fire" style={{ fontSize: "10.5px", fontWeight: "800", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
-        <Flame size={10} /> BFP
-      </span>
-    );
-  }
-  if (d.includes("police")) {
-    return (
-      <span className="dept-badge-police" style={{ fontSize: "10.5px", fontWeight: "800", color: "#6d28d9", backgroundColor: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
-        <Shield size={10} /> PNP
-      </span>
-    );
-  }
-  if (d.includes("ambulance") || d.includes("ems") || d.includes("medical")) {
-    return (
-      <span className="dept-badge-ems" style={{ fontSize: "10.5px", fontWeight: "800", color: "#0369a1", backgroundColor: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
-        <Ambulance size={10} /> EMS
-      </span>
-    );
-  }
-  return (
-    <span className="dept-badge-mdrrmo" style={{ fontSize: "10.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
-      <Activity size={10} /> MDRRMO
-    </span>
-  );
-};
+import DepartmentBadge from "../components/DepartmentBadge";
+import CustomIcon from "../components/CustomIcon";
+import { getCategoryBadgeMeta } from "../utils/categoryIcons";
+import { useTheme } from "../themes/ThemeContext";
 
 export default function PendingIncidents() {
+  const { isDark } = useTheme();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState({});
@@ -141,10 +116,10 @@ export default function PendingIncidents() {
   const fetchAvailableResponders = useCallback(async () => {
     try {
       const records = await pb.collection("responder_accounts").getFullList({
-        filter: "is_available = true && is_suspended != true",
+        sort: "department, first_name",
         requestKey: null,
       });
-      setAvailableResponders(records.filter((r) => !r.is_suspended));
+      setAvailableResponders(records.filter((r) => r.is_available === true && !r.is_suspended));
     } catch (error) {
       if (!error.isAbort) console.error("Error fetching available responders:", error);
     }
@@ -253,6 +228,7 @@ export default function PendingIncidents() {
     setProcessingId(incident.id);
     let reservedResponders = [];
     let dispatchesCreated = [];
+    let selectedResponders = [];
     try {
       const updateData = { status: newStatus };
 
@@ -263,7 +239,7 @@ export default function PendingIncidents() {
           return;
         }
 
-        const selectedResponders = responderIds.map((id) => availableResponders.find((r) => r.id === id)).filter(Boolean);
+        selectedResponders = responderIds.map((id) => availableResponders.find((r) => r.id === id)).filter(Boolean);
 
         for (const r of selectedResponders) {
           await pb.collection("responder_accounts").update(r.id, { is_available: false });
@@ -321,12 +297,14 @@ export default function PendingIncidents() {
   };
 
   const getCategoryMeta = (type = "") => {
-    const t = type.toLowerCase();
-    if (t.includes("fire")) return { icon: <Flame size={17} color="#ef4444" />, bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" };
-    if (t.includes("medical") || t.includes("health")) return { icon: <Ambulance size={17} color="#f97316" />, bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
-    if (t.includes("traffic") || t.includes("accident") || t.includes("car")) return { icon: <Car size={17} color="#15803d" />, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
-    if (t.includes("flood") || t.includes("landslide") || t.includes("rescue")) return { icon: <ShieldAlert size={17} color="#0284c7" />, bg: "#f0f9ff", color: "#0369a1", border: "#bae6fd" };
-    return { icon: <AlertOctagon size={17} color="#8b5cf6" />, bg: "#f5f3ff", color: "#6d28d9", border: "#ddd6fe" };
+    const meta = getCategoryBadgeMeta(type, false, isDark);
+    return {
+      icon: <CustomIcon icon={meta.icon} size={17} color={meta.accent} />,
+      bg: meta.bg,
+      color: meta.color,
+      border: meta.border,
+      label: meta.label,
+    };
   };
 
   const getPriorityBadge = (incident) => {
@@ -924,9 +902,9 @@ export default function PendingIncidents() {
                   </div>
 
                   {/* Responder Assignment Section */}
-                  <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                      <label style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
+                  <div style={{ borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", paddingTop: "14px", display: "flex", flexDirection: "column", flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", flexShrink: 0 }}>
+                      <label style={{ fontSize: "12px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
                         Assign Standby Units ({selectedResponders.length})
                       </label>
 
@@ -948,10 +926,23 @@ export default function PendingIncidents() {
                     {/* Responder List Checkboxes */}
                     <div
                       className="pending-responder-list-wrap"
-                      style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: "#f8fafc", padding: "6px", borderRadius: "10px", border: "1px solid #e2e8f0" }}
+                      style={{
+                        flex: 1,
+                        minHeight: "120px",
+                        maxHeight: "320px",
+                        overflowY: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                        backgroundColor: isDark ? "#0c1322" : "#f8fafc",
+                        padding: "6px",
+                        borderRadius: "10px",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+                        marginBottom: "12px",
+                      }}
                     >
                       {availableResponders.length === 0 ? (
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8", textAlign: "center", padding: "8px" }}>
+                        <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#94a3b8", textAlign: "center", padding: "8px" }}>
                           No Standby Responders Online
                         </span>
                       ) : (() => {
@@ -959,10 +950,12 @@ export default function PendingIncidents() {
                           (r) => !departmentFilters[incident.id] || r.department === departmentFilters[incident.id]
                         );
                         if (filtered.length === 0) {
-                          return <span style={{ fontSize: "11.5px", color: "#94a3b8", textAlign: "center", padding: "8px" }}>No responders in this department</span>;
+                          return <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#94a3b8", textAlign: "center", padding: "8px" }}>No responders in this department</span>;
                         }
                         return filtered.map((r) => {
                           const isSelected = selectedResponders.includes(r.id);
+                          const displayName = `${r.unit_name ? `${r.unit_name} - ` : ""}${r.first_name || ""} ${r.last_name || ""}`.trim() || r.email || "Responder";
+
                           return (
                             <div
                               key={r.id}
@@ -980,26 +973,34 @@ export default function PendingIncidents() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
-                                gap: "8px",
-                                padding: "6px 9px",
+                                gap: "10px",
+                                padding: "7px 10px",
                                 borderRadius: "8px",
-                                backgroundColor: isSelected ? "#f0fdf4" : "#ffffff",
-                                border: isSelected ? "1.5px solid #15803d" : "1px solid #e2e8f0",
+                                backgroundColor: isSelected
+                                  ? (isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4")
+                                  : (isDark ? "#172338" : "#ffffff"),
+                                border: isSelected
+                                  ? "1.5px solid #22c55e"
+                                  : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
                                 cursor: "pointer",
                                 transition: "all 0.15s ease",
-                                boxShadow: isSelected ? "0 2px 6px rgba(21, 128, 61, 0.12)" : "0 1px 2px rgba(0,0,0,0.02)",
+                                boxShadow: isSelected ? "0 2px 6px rgba(21, 128, 61, 0.15)" : "0 1px 2px rgba(0,0,0,0.02)",
                               }}
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0, flex: 1 }}>
                                 {/* Custom Checkbox */}
                                 <div
                                   className={`pending-custom-checkbox ${isSelected ? "checked" : ""}`}
                                   style={{
-                                    width: "16px",
-                                    height: "16px",
-                                    borderRadius: "4px",
-                                    backgroundColor: isSelected ? "#15803d" : "#ffffff",
-                                    border: isSelected ? "none" : "1.5px solid #cbd5e1",
+                                    width: "18px",
+                                    height: "18px",
+                                    borderRadius: "5px",
+                                    backgroundColor: isSelected
+                                      ? "#15803d"
+                                      : (isDark ? "#0c1322" : "#ffffff"),
+                                    border: isSelected
+                                      ? "none"
+                                      : (isDark ? "1.5px solid rgba(255, 255, 255, 0.25)" : "1.5px solid #cbd5e1"),
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
@@ -1007,16 +1008,17 @@ export default function PendingIncidents() {
                                     transition: "all 0.15s ease",
                                   }}
                                 >
-                                  {isSelected && <Check size={11} strokeWidth={3.5} color="#ffffff" />}
+                                  {isSelected && <Check size={12} strokeWidth={3.5} color="#ffffff" />}
                                 </div>
 
                                 {/* Online status dot */}
                                 <span
                                   style={{
-                                    width: "6px",
-                                    height: "6px",
+                                    width: "7px",
+                                    height: "7px",
                                     borderRadius: "50%",
                                     backgroundColor: "#22c55e",
+                                    boxShadow: "0 0 6px rgba(34, 197, 94, 0.6)",
                                     flexShrink: 0,
                                   }}
                                 />
@@ -1025,20 +1027,22 @@ export default function PendingIncidents() {
                                 <span
                                   className={`pending-responder-name ${isSelected ? "selected" : ""}`}
                                   style={{
-                                    fontSize: "12px",
-                                    fontWeight: isSelected ? "800" : "700",
-                                    color: isSelected ? "#14532d" : "#0f172a",
+                                    fontSize: "12.5px",
+                                    fontWeight: isSelected ? "800" : "600",
+                                    color: isSelected
+                                      ? (isDark ? "#4ade80" : "#14532d")
+                                      : (isDark ? "#f8fafc" : "#0f172a"),
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
                                   }}
                                 >
-                                  {getResponderOptionLabel(r)}
+                                  {displayName}
                                 </span>
                               </div>
 
                               {/* Department Badge */}
-                              {renderDepartmentBadge(r.department)}
+                              <DepartmentBadge department={r.department} isDark={isDark} size="sm" />
                             </div>
                           );
                         });

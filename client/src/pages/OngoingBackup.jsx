@@ -85,6 +85,12 @@ export default function OngoingBackup() {
         }).catch(() => {});
       }
 
+      if (backup?.dispatch_id) {
+        await pb.collection("dispatches").update(backup.dispatch_id, {
+          status: "resolved",
+        }).catch(() => {});
+      }
+
       await pb.collection("backup_requests").update(backupId, {
         dispatch_status: "completed",
       });

@@ -66,10 +66,10 @@ ChartJS.register(
 const INCIDENT_CATEGORIES = [
   { value: "ALL", label: "All Classifications" },
   { value: "fire", label: "Fire Outbreak", icon: Flame, color: "#dc2626" },
-  { value: "accident", label: "Vehicular Collision", icon: Car, color: "#ea580c" },
-  { value: "medical", label: "Medical Emergency", icon: HeartPulse, color: "#0284c7" },
-  { value: "landslide", label: "Landslide / Flood", icon: Layers, color: "#ca8a04" },
-  { value: "police", label: "Police & Security", icon: Shield, color: "#7c3aed" },
+  { value: "accident", label: "Vehicular Collision", icon: Car, color: "#eab308" },
+  { value: "police", label: "Police & Security", icon: Shield, color: "#2563eb" },
+  { value: "landslide", label: "Landslide Hazard", icon: Layers, color: "#92400e" },
+  { value: "medical", label: "Medical Emergency", icon: HeartPulse, color: "#16a34a" },
 ];
 
 export default function Report() {

@@ -31,11 +31,11 @@ const hazardFloodStyle = {
 };
 
 const hazardLandslideStyle = {
-  color: '#d97706',
+  color: '#78350f',
   weight: 2,
   opacity: 0.9,
-  fillOpacity: 0.5,
-  fillColor: '#f59e0b',
+  fillOpacity: 0.55,
+  fillColor: '#92400e',
   dashArray: '3, 6'
 };
 
@@ -74,7 +74,7 @@ const onEachBarangay = (feature, layer) => {
             ${severity.flood}
           </div>
           <div style="font-size: 12px;">
-            <strong style="color: #d97706;">Rain-Induced Landslide:</strong><br/>
+            <strong style="color: #78350f;">Rain-Induced Landslide:</strong><br/>
             ${severity.landslide}
           </div>
         </div>
@@ -319,9 +319,9 @@ export default function Calamities() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                      <div style={{ width: '20px', height: '20px', backgroundColor: '#f59e0b', opacity: 0.8, border: '2px solid #d97706', borderRadius: '4px', flexShrink: 0 }}></div>
+                      <div style={{ width: '20px', height: '20px', backgroundColor: '#92400e', opacity: 0.85, border: '2px solid #78350f', borderRadius: '4px', flexShrink: 0 }}></div>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>Rain-Induced Landslides</div>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#334155' }}>Rain-Induced Landslides (Brown)</div>
                         <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Uplands: Banglay, Dampil, Gaston, Lumbo, Manaol, Umagos</div>
                       </div>
                     </div>

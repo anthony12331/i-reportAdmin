@@ -4,15 +4,15 @@ export function getUnitStyles(department = "") {
 
   if (dept.includes("pnp") || dept.includes("police")) {
     return {
-      color: "#0369a1",
-      bg: "#f0f9ff",
+      color: "#1d4ed8",
+      bg: "#eff6ff",
     };
   }
 
   if (dept.includes("bfp") || dept.includes("fire")) {
     return {
-      color: "#c2410c",
-      bg: "#fff7ed",
+      color: "#b91c1c",
+      bg: "#fef2f2",
     };
   }
 

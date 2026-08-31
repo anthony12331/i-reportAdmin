@@ -30,11 +30,16 @@ import {
   Building2,
   Navigation,
   Timer,
+  Mountain,
+  Shield,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
+import { useTheme } from "../themes/ThemeContext";
 import { getReadableAddress } from "../utils/utils";
 import { getIncidentResponseTime, getIncidentTimingMetrics } from "../utils/timeUtils";
+import CustomIcon from "../components/CustomIcon";
+import { getCategoryBadgeMeta, getDepartmentBadgeMeta } from "../utils/categoryIcons";
 
 const formatDate = (value) => {
   if (!value) return "Not available";
@@ -51,12 +56,15 @@ const formatDate = (value) => {
 };
 
 const fileUrl = (record, field) =>
-  record?.[field] ? pb.files.getURL(record, record[field]) : null;
+  record && record[field] ? pb.files.getURL(record, record[field]) : null;
 
-const displayName = (user) =>
-  `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Verified Resident";
+const displayName = (user) => {
+  if (!user) return "Citizen";
+  return `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.email || "Citizen";
+};
 
 export default function ResolvedIncidentDetails({ recordType = "incident" }) {
+  const { isDark } = useTheme();
   const { incidentId } = useParams();
   const navigate = useNavigate();
   const [incident, setIncident] = useState(null);
@@ -118,89 +126,81 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
   const getBackupStatusMeta = (status) => {
     const s = (status || "pending").toLowerCase();
     if (s === "completed" || s === "resolved") {
-      return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0", label: "Completed" };
+      return {
+        bg: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+        color: isDark ? "#4ade80" : "#15803d",
+        border: isDark ? "rgba(34, 197, 94, 0.35)" : "#bbf7d0",
+        label: "Completed",
+      };
     }
     if (s === "at_scene") {
-      return { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe", label: "At Scene" };
+      return {
+        bg: isDark ? "rgba(37, 99, 235, 0.18)" : "#eff6ff",
+        color: isDark ? "#60a5fa" : "#1d4ed8",
+        border: isDark ? "rgba(37, 99, 235, 0.35)" : "#bfdbfe",
+        label: "At Scene",
+      };
     }
     if (s === "en_route") {
-      return { bg: "#f0fdfa", color: "#0f766e", border: "#99f6e4", label: "En Route" };
+      return {
+        bg: isDark ? "rgba(20, 184, 166, 0.18)" : "#f0fdfa",
+        color: isDark ? "#2dd4bf" : "#0f766e",
+        border: isDark ? "rgba(20, 184, 166, 0.35)" : "#99f6e4",
+        label: "En Route",
+      };
     }
     if (s === "accepted") {
-      return { bg: "#fffbeb", color: "#b45309", border: "#fde68a", label: "Accepted" };
+      return {
+        bg: isDark ? "rgba(245, 158, 11, 0.18)" : "#fffbeb",
+        color: isDark ? "#fbbf24" : "#b45309",
+        border: isDark ? "rgba(245, 158, 11, 0.35)" : "#fde68a",
+        label: "Accepted",
+      };
     }
     if (s === "assigned") {
-      return { bg: "#faf5ff", color: "#7e22ce", border: "#e9d5ff", label: "Assigned" };
+      return {
+        bg: isDark ? "rgba(168, 85, 247, 0.18)" : "#faf5ff",
+        color: isDark ? "#c084fc" : "#7e22ce",
+        border: isDark ? "rgba(168, 85, 247, 0.35)" : "#e9d5ff",
+        label: "Assigned",
+      };
     }
     if (s === "declined") {
-      return { bg: "#fef2f2", color: "#b91c1c", border: "#fecaca", label: "Declined" };
+      return {
+        bg: isDark ? "rgba(239, 68, 68, 0.18)" : "#fef2f2",
+        color: isDark ? "#f87171" : "#b91c1c",
+        border: isDark ? "rgba(239, 68, 68, 0.35)" : "#fecaca",
+        label: "Declined",
+      };
     }
-    return { bg: "#f8fafc", color: "#475569", border: "#cbd5e1", label: "Pending Response" };
+    return {
+      bg: isDark ? "#172338" : "#f8fafc",
+      color: isDark ? "#94a3b8" : "#475569",
+      border: isDark ? "rgba(255, 255, 255, 0.12)" : "#cbd5e1",
+      label: "Pending Response",
+    };
   };
 
   const getBackupDeptBadge = (dept) => {
-    const d = (dept || "").toLowerCase();
-    if (d.includes("fire")) {
-      return { label: "BFP Fire", icon: <Flame size={12} color="#b91c1c" />, bg: "#fef2f2", color: "#b91c1c", border: "#fecaca" };
-    }
-    if (d.includes("police")) {
-      return { label: "PNP Police", icon: <ShieldCheck size={12} color="#1d4ed8" />, bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" };
-    }
-    if (d.includes("ambulance") || d.includes("medical")) {
-      return { label: "Ambulance", icon: <Ambulance size={12} color="#c2410c" />, bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
-    }
-    return { label: "MDRRMO Rescue", icon: <ShieldAlert size={12} color="#15803d" />, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
+    const meta = getDepartmentBadgeMeta(dept, isDark);
+    return {
+      label: meta.label,
+      shortLabel: meta.shortLabel,
+      icon: <CustomIcon icon={meta.icon} size={12} color={meta.accent} />,
+      bg: meta.bg,
+      color: meta.color,
+      border: meta.border,
+    };
   };
 
-  const getCategoryMeta = (type = "", isSos = false) => {
-    if (isSos) {
-      return {
-        icon: <Radio size={20} color="#ef4444" />,
-        bg: "#fef2f2",
-        color: "#b91c1c",
-        border: "#fecaca",
-        label: "CRITICAL SOS DISTRESS",
-      };
-    }
-    const t = type.toLowerCase();
-    if (t.includes("fire"))
-      return {
-        icon: <Flame size={20} color="#ef4444" />,
-        bg: "#fef2f2",
-        color: "#b91c1c",
-        border: "#fecaca",
-        label: "FIRE EMERGENCY",
-      };
-    if (t.includes("medical") || t.includes("health"))
-      return {
-        icon: <Ambulance size={20} color="#f97316" />,
-        bg: "#fff7ed",
-        color: "#c2410c",
-        border: "#fed7aa",
-        label: "MEDICAL RESPONSE",
-      };
-    if (t.includes("traffic") || t.includes("accident") || t.includes("car"))
-      return {
-        icon: <Car size={20} color="#15803d" />,
-        bg: "#f0fdf4",
-        color: "#15803d",
-        border: "#bbf7d0",
-        label: "TRAFFIC & ROAD ACCIDENT",
-      };
-    if (t.includes("flood") || t.includes("landslide") || t.includes("rescue"))
-      return {
-        icon: <ShieldAlert size={20} color="#0284c7" />,
-        bg: "#f0f9ff",
-        color: "#0369a1",
-        border: "#bae6fd",
-        label: "NATURAL DISASTER / RESCUE",
-      };
+  const getCategoryMeta = (incidentType = "", isSosDistress = false) => {
+    const meta = getCategoryBadgeMeta(incidentType, isSosDistress, isDark);
     return {
-      icon: <AlertOctagon size={20} color="#8b5cf6" />,
-      bg: "#f5f3ff",
-      color: "#6d28d9",
-      border: "#ddd6fe",
-      label: type ? type.toUpperCase() : "GENERAL INCIDENT",
+      icon: <CustomIcon icon={meta.icon} size={20} color={meta.accent} />,
+      bg: meta.bg,
+      color: meta.color,
+      border: meta.border,
+      label: meta.label,
     };
   };
 
@@ -269,7 +269,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
   const timing = getIncidentTimingMetrics(incident);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#0b0f19" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
 
       <main className="resolved-details-main" style={{ flex: 1, marginLeft: "216px", padding: "32px 36px", minWidth: 0, overflowY: "auto" }}>
@@ -285,9 +285,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
               gap: "8px",
               padding: "8px 16px",
               borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              backgroundColor: "#ffffff",
-              color: "#334155",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+              backgroundColor: isDark ? "#172338" : "#ffffff",
+              color: isDark ? "#cbd5e1" : "#334155",
               fontSize: "13px",
               fontWeight: "700",
               cursor: "pointer",
@@ -308,9 +308,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 gap: "6px",
                 padding: "8px 14px",
                 borderRadius: "10px",
-                border: "1px solid #e2e8f0",
-                backgroundColor: "#ffffff",
-                color: "#475569",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
+                backgroundColor: isDark ? "#172338" : "#ffffff",
+                color: isDark ? "#cbd5e1" : "#475569",
                 fontSize: "12.5px",
                 fontWeight: "700",
                 cursor: "pointer",
@@ -327,6 +327,8 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           style={{
             padding: "24px 28px",
             marginBottom: "24px",
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
             borderLeft: `5px solid ${cat.color}`,
             display: "flex",
             justifyContent: "space-between",
@@ -354,7 +356,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
 
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
-                <h1 style={{ margin: 0, fontSize: "clamp(18px, 2.5vw, 22px)", fontWeight: "900", color: "#0f172a", letterSpacing: "-0.02em" }}>
+                <h1 style={{ margin: 0, fontSize: "clamp(18px, 2.5vw, 22px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", letterSpacing: "-0.02em" }}>
                   Case #{incident.id}
                 </h1>
                 <span
@@ -374,7 +376,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#64748b", fontSize: "12.5px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", color: isDark ? "#94a3b8" : "#64748b", fontSize: "12.5px", flexWrap: "wrap" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <CalendarDays size={13} /> Reported: {formatDate(incident.created)}
                 </span>
@@ -399,9 +401,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   gap: "6px",
                   padding: "8px 14px",
                   borderRadius: "12px",
-                  backgroundColor: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  color: "#15803d",
+                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                  border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                  color: isDark ? "#4ade80" : "#15803d",
                   fontSize: "12px",
                   fontWeight: "800",
                 }}
@@ -419,9 +421,15 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 gap: "6px",
                 padding: "8px 16px",
                 borderRadius: "12px",
-                backgroundColor: isResolved ? "#f0fdf4" : "#fff7ed",
-                border: isResolved ? "1px solid #bbf7d0" : "1px solid #fed7aa",
-                color: isResolved ? "#15803d" : "#c2410c",
+                backgroundColor: isResolved
+                  ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
+                  : (isDark ? "rgba(249, 115, 22, 0.18)" : "#fff7ed"),
+                border: isResolved
+                  ? (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0")
+                  : (isDark ? "1px solid rgba(249, 115, 22, 0.35)" : "1px solid #fed7aa"),
+                color: isResolved
+                  ? (isDark ? "#4ade80" : "#15803d")
+                  : (isDark ? "#fb923c" : "#c2410c"),
                 fontSize: "12.5px",
                 fontWeight: "800",
                 textTransform: "uppercase",
@@ -436,70 +444,70 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
         {/* 5-COLUMN KPI TELEMETRY STRIP */}
         <div className="resolved-kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "16px", marginBottom: "24px" }}>
           {/* Card 1: Response & Resolution Time */}
-          <div className="premium-table-card" style={{ padding: "18px 20px" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+          <div className="premium-table-card" style={{ padding: "18px 20px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Responder Response Time
             </span>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <span style={{ fontSize: "22px", fontWeight: "900", color: "#0f766e" }}>
+              <span style={{ fontSize: "22px", fontWeight: "900", color: isDark ? "#2dd4bf" : "#0f766e" }}>
                 {responseTime}
               </span>
-              <span style={{ fontSize: "12px", color: incident.response_time ? "#15803d" : "#64748b", fontWeight: "600" }}>
+              <span style={{ fontSize: "12px", color: incident.response_time ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b"), fontWeight: "600" }}>
                 {incident.response_time ? "Responder Uploaded" : (timing.dispatchDuration ? `Dispatched: ${timing.dispatchDuration}` : "Turnaround Time")}
               </span>
             </div>
           </div>
 
           {/* Card 2: Citizen Reporters */}
-          <div className="premium-table-card" style={{ padding: "18px 20px" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+          <div className="premium-table-card" style={{ padding: "18px 20px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Citizen Reporters
             </span>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <span style={{ fontSize: "22px", fontWeight: "900", color: "#0f172a" }}>
+              <span style={{ fontSize: "22px", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a" }}>
                 {reportersCount}
               </span>
-              <span style={{ fontSize: "12px", color: reportersCount > 1 ? "#15803d" : "#64748b", fontWeight: "700" }}>
+              <span style={{ fontSize: "12px", color: reportersCount > 1 ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b"), fontWeight: "700" }}>
                 {reportersCount > 1 ? "Verified Multi-Report" : "Single Resident Submission"}
               </span>
             </div>
           </div>
 
           {/* Card 3: Response Units Deployed */}
-          <div className="premium-table-card" style={{ padding: "18px 20px" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+          <div className="premium-table-card" style={{ padding: "18px 20px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Units Deployed
             </span>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-              <span style={{ fontSize: "22px", fontWeight: "900", color: "#15803d" }}>
+              <span style={{ fontSize: "22px", fontWeight: "900", color: isDark ? "#4ade80" : "#15803d" }}>
                 {incident.dispatches?.length || (incident.assigned_department ? 1 : 0)}
               </span>
-              <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+              <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                 Field Unit(s) Assigned
               </span>
             </div>
           </div>
 
           {/* Card 4: Location */}
-          <div className="premium-table-card" style={{ padding: "18px 20px" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+          <div className="premium-table-card" style={{ padding: "18px 20px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Incident Location
             </span>
             <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 Brgy. {reporter?.baranggay || reporter?.barangay || "Lagonglong"}
               </span>
             </div>
           </div>
 
           {/* Card 5: Operational Status */}
-          <div className="premium-table-card" style={{ padding: "18px 20px" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+          <div className="premium-table-card" style={{ padding: "18px 20px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
               Case Operational Status
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "#15803d", textTransform: "uppercase" }}>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase" }}>
                 Concluded & Closed
               </span>
             </div>
@@ -511,9 +519,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           {/* LEFT COLUMN: Operations, Description, Dispatches & Maps */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Incident Narrative & Resolution Card */}
-            <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                   <FileText size={18} color="#15803d" /> Incident Description & Field Notes
                 </h3>
               </div>
@@ -526,9 +534,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                     gap: "10px",
                     padding: "12px 14px",
                     borderRadius: "10px",
-                    backgroundColor: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
-                    color: "#15803d",
+                    backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                    border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                    color: isDark ? "#4ade80" : "#15803d",
                     fontSize: "13px",
                     fontWeight: "700",
                     marginBottom: "16px",
@@ -546,15 +554,15 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 style={{
                   padding: "16px",
                   borderRadius: "12px",
-                  backgroundColor: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  color: "#334155",
+                  backgroundColor: isDark ? "#172338" : "#f8fafc",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+                  color: isDark ? "#cbd5e1" : "#334155",
                   fontSize: "14px",
                   lineHeight: "1.6",
                 }}
               >
                 {incident.description || incident.remarks || (
-                  <span style={{ color: "#94a3b8", fontStyle: "italic" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#94a3b8", fontStyle: "italic" }}>
                     No specific written narrative provided with submission.
                   </span>
                 )}
@@ -562,12 +570,12 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             </div>
 
             {/* Response Units & Dispatch History Card */}
-            <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                   <Navigation size={18} color="#15803d" /> Response Units & Dispatch Activity
                 </h3>
-                <span style={{ fontSize: "12px", fontWeight: "700", color: "#64748b" }}>
+                <span style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b" }}>
                   {incident.dispatches?.length || 0} unit(s) recorded
                 </span>
               </div>
@@ -589,8 +597,8 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                           flexDirection: "column",
                           padding: "16px 18px",
                           borderRadius: "12px",
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #e2e8f0",
+                          backgroundColor: isDark ? "#172338" : "#ffffff",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                           boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                           gap: "12px",
                         }}
@@ -611,14 +619,14 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                                 width: "42px",
                                 height: "42px",
                                 borderRadius: "10px",
-                                backgroundColor: "#f0fdf4",
-                                color: "#15803d",
+                                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                                color: isDark ? "#4ade80" : "#15803d",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 fontWeight: "800",
                                 fontSize: "14px",
-                                border: "1px solid #bbf7d0",
+                                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
                                 flexShrink: 0,
                               }}
                             >
@@ -626,16 +634,16 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                             </div>
                             <div>
                               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <strong style={{ fontSize: "14px", color: "#0f172a" }}>
+                                <strong style={{ fontSize: "14px", color: isDark ? "#f8fafc" : "#0f172a" }}>
                                   {responder ? displayName(responder) : `${dispatch.department || "Response"} Unit`}
                                 </strong>
                                 {dispatch.is_primary_responder && (
-                                  <span style={{ fontSize: "10px", fontWeight: "800", color: "#2563eb", backgroundColor: "#eff6ff", padding: "1px 6px", borderRadius: "4px", border: "1px solid #dbeafe" }}>
+                                  <span style={{ fontSize: "10px", fontWeight: "800", color: isDark ? "#60a5fa" : "#2563eb", backgroundColor: isDark ? "rgba(37, 99, 235, 0.2)" : "#eff6ff", padding: "1px 6px", borderRadius: "4px", border: isDark ? "1px solid rgba(37, 99, 235, 0.4)" : "1px solid #dbeafe" }}>
                                     Primary Unit
                                   </span>
                                 )}
                               </div>
-                              <span style={{ fontSize: "12px", color: "#64748b", display: "block", marginTop: "2px" }}>
+                              <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", display: "block", marginTop: "2px" }}>
                                 Unit: {responder?.unit_name || dispatch.department || "Field Team"} • {(dispatch.department || "Emergency Services").toUpperCase()}
                               </span>
                             </div>
@@ -652,18 +660,18 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                                   gap: "5px",
                                   fontSize: "12px",
                                   fontWeight: "800",
-                                  color: "#0f766e",
-                                  backgroundColor: "#f0fdfa",
-                                  border: "1px solid #99f6e4",
+                                  color: isDark ? "#2dd4bf" : "#0f766e",
+                                  backgroundColor: isDark ? "rgba(20, 184, 166, 0.16)" : "#f0fdfa",
+                                  border: isDark ? "1px solid rgba(20, 184, 166, 0.35)" : "1px solid #99f6e4",
                                   padding: "4px 10px",
                                   borderRadius: "8px",
                                 }}
                               >
-                                <Clock size={13} color="#0d9488" />
+                                <Clock size={13} color={isDark ? "#2dd4bf" : "#0d9488"} />
                                 Response Time: {dResponseTime}
                               </span>
                               {dispatch.response_time && (
-                                <span style={{ fontSize: "10px", color: "#15803d", fontWeight: "700" }}>
+                                <span style={{ fontSize: "10px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "700" }}>
                                   Recorded in Dispatch Database
                                 </span>
                               )}
@@ -676,9 +684,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                                 fontWeight: "800",
                                 padding: "4px 10px",
                                 borderRadius: "8px",
-                                backgroundColor: "#f0fdf4",
-                                color: "#15803d",
-                                border: "1px solid #bbf7d0",
+                                backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                                color: isDark ? "#4ade80" : "#15803d",
+                                border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
                                 textTransform: "uppercase",
                                 display: "inline-block",
                               }}
@@ -696,21 +704,21 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                               marginTop: "2px",
                               padding: "12px 16px",
                               borderRadius: "10px",
-                              backgroundColor: "#f8fafc",
-                              border: "1px solid #f1f5f9",
-                              borderLeft: "4px solid #15803d",
+                              backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+                              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                              borderLeft: isDark ? "4px solid #4ade80" : "4px solid #15803d",
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", fontSize: "11px", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                              <FileText size={13} color="#15803d" />
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", fontSize: "11px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                              <FileText size={13} color={isDark ? "#4ade80" : "#15803d"} />
                               Responder Resolution Input & Field Summary:
                             </div>
-                            <div style={{ fontSize: "13.5px", color: "#1e293b", lineHeight: "1.55", whiteSpace: "pre-wrap" }}>
+                            <div style={{ fontSize: "13.5px", color: isDark ? "#e2e8f0" : "#1e293b", lineHeight: "1.55", whiteSpace: "pre-wrap" }}>
                               {dispatch.description}
                             </div>
                           </div>
                         ) : (
-                          <div style={{ fontSize: "11.5px", color: "#94a3b8", fontStyle: "italic", paddingLeft: "4px" }}>
+                          <div style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#94a3b8", fontStyle: "italic", paddingLeft: "4px" }}>
                             No individual resolution narrative recorded by this responder.
                           </div>
                         )}
@@ -719,27 +727,27 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   })}
                 </div>
               ) : (
-                <div style={{ padding: "30px", textAlign: "center", color: "#94a3b8", fontSize: "13.5px" }}>
+                <div style={{ padding: "30px", textAlign: "center", color: isDark ? "#94a3b8" : "#94a3b8", fontSize: "13.5px" }}>
                   No field dispatch records attached to this case.
                 </div>
               )}
             </div>
 
             {/* Backup & Reinforcement Dispatches Card */}
-            <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Users size={18} color="#2563eb" /> Backup Dispatches & Reinforcement Activity
+            <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Users size={18} color={isDark ? "#60a5fa" : "#2563eb"} /> Backup Dispatches & Reinforcement Activity
                 </h3>
                 <span
                   style={{
                     fontSize: "12px",
                     fontWeight: "800",
-                    color: incident.backupRequests?.length > 0 ? "#2563eb" : "#64748b",
-                    backgroundColor: incident.backupRequests?.length > 0 ? "#eff6ff" : "#f1f5f9",
+                    color: incident.backupRequests?.length > 0 ? (isDark ? "#60a5fa" : "#2563eb") : (isDark ? "#94a3b8" : "#64748b"),
+                    backgroundColor: incident.backupRequests?.length > 0 ? (isDark ? "rgba(37, 99, 235, 0.2)" : "#eff6ff") : (isDark ? "#172338" : "#f1f5f9"),
                     padding: "3px 9px",
                     borderRadius: "8px",
-                    border: incident.backupRequests?.length > 0 ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                    border: incident.backupRequests?.length > 0 ? (isDark ? "1px solid rgba(37, 99, 235, 0.4)" : "1px solid #bfdbfe") : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
                   }}
                 >
                   {incident.backupRequests?.length || 0} Backup Deployment(s)
@@ -762,8 +770,8 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                           flexDirection: "column",
                           padding: "16px 18px",
                           borderRadius: "12px",
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #e2e8f0",
+                          backgroundColor: isDark ? "#172338" : "#ffffff",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                           boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                           gap: "14px",
                         }}
@@ -811,8 +819,8 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                             </span>
                           </div>
 
-                          <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                            <Clock size={13} color="#94a3b8" /> Requested: {formatDate(bReq.created)}
+                          <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                            <Clock size={13} color={isDark ? "#94a3b8" : "#94a3b8"} /> Requested: {formatDate(bReq.created)}
                           </div>
                         </div>
 
@@ -822,15 +830,15 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                             style={{
                               padding: "12px 14px",
                               borderRadius: "10px",
-                              backgroundColor: "#fef2f2",
-                              border: "1px solid #fee2e2",
+                              backgroundColor: isDark ? "rgba(239, 68, 68, 0.16)" : "#fef2f2",
+                              border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fee2e2",
                               borderLeft: "4px solid #ef4444",
                             }}
                           >
-                            <span style={{ fontSize: "11px", fontWeight: "800", color: "#b91c1c", textTransform: "uppercase", display: "block", marginBottom: "3px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#f87171" : "#b91c1c", textTransform: "uppercase", display: "block", marginBottom: "3px" }}>
                               Reason for Reinforcement Request:
                             </span>
-                            <span style={{ fontSize: "13.5px", color: "#991b1b", fontWeight: "600", lineHeight: "1.5" }}>
+                            <span style={{ fontSize: "13.5px", color: isDark ? "#fca5a5" : "#991b1b", fontWeight: "600", lineHeight: "1.5" }}>
                               {bReq.reason}
                             </span>
                           </div>
@@ -843,17 +851,17 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                             style={{
                               padding: "12px 14px",
                               borderRadius: "10px",
-                              backgroundColor: "#f8fafc",
-                              border: "1px solid #f1f5f9",
+                              backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+                              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
                             }}
                           >
-                            <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
                               Originating Lead Responder
                             </span>
-                            <strong style={{ fontSize: "13.5px", color: "#0f172a", display: "block" }}>
+                            <strong style={{ fontSize: "13.5px", color: isDark ? "#f8fafc" : "#0f172a", display: "block" }}>
                               {requester ? displayName(requester) : "Primary Field Responder"}
                             </strong>
-                            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                            <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", marginTop: "2px" }}>
                               Unit: {requester?.unit_name || (requester?.department ? `${requester.department.toUpperCase()} Team` : "Field Unit")}
                               {requester?.contact_number && ` • 📞 ${requester.contact_number}`}
                             </div>
@@ -864,30 +872,30 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                             style={{
                               padding: "12px 14px",
                               borderRadius: "10px",
-                              backgroundColor: assignedResp ? "#f0fdf4" : "#f8fafc",
-                              border: assignedResp ? "1px solid #dcfce7" : "1px solid #f1f5f9",
+                              backgroundColor: assignedResp ? (isDark ? "rgba(34, 197, 94, 0.12)" : "#f0fdf4") : (isDark ? "#0f172a" : "#f8fafc"),
+                              border: assignedResp ? (isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #dcfce7") : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9"),
                             }}
                           >
-                            <span style={{ fontSize: "11px", fontWeight: "700", color: assignedResp ? "#15803d" : "#64748b", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: "700", color: assignedResp ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b"), textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
                               Assigned Backup Unit
                             </span>
                             {assignedResp ? (
                               <>
-                                <strong style={{ fontSize: "13.5px", color: "#0f172a", display: "block" }}>
+                                <strong style={{ fontSize: "13.5px", color: isDark ? "#f8fafc" : "#0f172a", display: "block" }}>
                                   {displayName(assignedResp)}
                                 </strong>
-                                <div style={{ fontSize: "12px", color: "#15803d", fontWeight: "600", marginTop: "2px" }}>
+                                <div style={{ fontSize: "12px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "600", marginTop: "2px" }}>
                                   Unit: {assignedResp.unit_name || `${assignedResp.department?.toUpperCase()} Backup`}
                                   {assignedResp.contact_number && ` • 📞 ${assignedResp.contact_number}`}
                                 </div>
                                 {bReq.accepted_at && (
-                                  <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                                  <div style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", marginTop: "4px" }}>
                                     Accepted at: {bReq.accepted_at}
                                   </div>
                                 )}
                               </>
                             ) : (
-                              <span style={{ fontSize: "12.5px", color: "#94a3b8", fontStyle: "italic" }}>
+                              <span style={{ fontSize: "12.5px", color: isDark ? "#94a3b8" : "#94a3b8", fontStyle: "italic" }}>
                                 Awaiting responder assignment / acceptance
                               </span>
                             )}
@@ -900,15 +908,15 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                             style={{
                               padding: "12px 14px",
                               borderRadius: "10px",
-                              backgroundColor: "#f8fafc",
-                              border: "1px solid #f1f5f9",
-                              borderLeft: "4px solid #2563eb",
+                              backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+                              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                              borderLeft: isDark ? "4px solid #60a5fa" : "4px solid #2563eb",
                             }}
                           >
-                            <span style={{ fontSize: "11px", fontWeight: "800", color: "#2563eb", textTransform: "uppercase", display: "block", marginBottom: "3px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#60a5fa" : "#2563eb", textTransform: "uppercase", display: "block", marginBottom: "3px" }}>
                               Backup Responder Field Notes & Report:
                             </span>
-                            <div style={{ fontSize: "13px", color: "#1e293b", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+                            <div style={{ fontSize: "13px", color: isDark ? "#e2e8f0" : "#1e293b", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
                               {bReq.responder_report}
                             </div>
                           </div>
@@ -918,7 +926,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   })}
                 </div>
               ) : (
-                <div style={{ padding: "24px 16px", textAlign: "center", color: "#94a3b8", fontSize: "13.5px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px dashed #cbd5e1" }}>
+                <div style={{ padding: "24px 16px", textAlign: "center", color: isDark ? "#94a3b8" : "#64748b", fontSize: "13.5px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "10px", border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1" }}>
                   No secondary backup reinforcements were requested for this incident. Handled fully by initial dispatch.
                 </div>
               )}
@@ -926,9 +934,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
 
             {/* Satellite Map Telemetry Card */}
             {incident.latitude != null && incident.longitude != null && (
-              <div className="premium-table-card" style={{ padding: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+              <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                     <MapPin size={18} color="#15803d" /> Geospatial Satellite Telemetry
                   </h3>
 
@@ -946,9 +954,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                       style={{
                         padding: "6px 12px",
                         borderRadius: "8px",
-                        border: "1px solid #cbd5e1",
-                        backgroundColor: "#ffffff",
-                        color: "#334155",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                        backgroundColor: isDark ? "#172338" : "#ffffff",
+                        color: isDark ? "#cbd5e1" : "#334155",
                         fontSize: "12px",
                         fontWeight: "700",
                         cursor: "pointer",
@@ -968,7 +976,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                         padding: "6px 12px",
                         borderRadius: "8px",
                         border: "none",
-                        backgroundColor: "#15803d",
+                        backgroundColor: isDark ? "#15803d" : "#15803d",
                         color: "#ffffff",
                         fontSize: "12px",
                         fontWeight: "700",
@@ -988,8 +996,8 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   style={{
                     padding: "12px 14px",
                     borderRadius: "10px",
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #e2e8f0",
+                    backgroundColor: isDark ? "#172338" : "#f8fafc",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                     marginBottom: "14px",
                     fontSize: "13px",
                     display: "flex",
@@ -998,7 +1006,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   }}
                 >
                   <MapPin size={16} color="#15803d" style={{ flexShrink: 0 }} />
-                  <span style={{ color: "#0f172a", fontWeight: "600" }}>
+                  <span style={{ color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "600" }}>
                     {address || `GPS Coordinates (${incident.latitude.toFixed(6)}, ${incident.longitude.toFixed(6)})`}
                   </span>
                 </div>
@@ -1015,7 +1023,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                     height: "260px",
                     borderRadius: "14px",
                     overflow: "hidden",
-                    border: "1px solid #e2e8f0",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                     position: "relative",
                     cursor: "pointer",
                     boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
@@ -1037,7 +1045,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                       position: "absolute",
                       bottom: "10px",
                       right: "10px",
-                      backgroundColor: "rgba(15, 23, 42, 0.75)",
+                      backgroundColor: "rgba(15, 23, 42, 0.8)",
                       color: "#ffffff",
                       fontSize: "11px",
                       fontWeight: "700",
@@ -1059,12 +1067,12 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           {/* RIGHT COLUMN: Reporter Dossier, Media Inspection & Timestamps */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Citizen Reporter Card */}
-            <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                   <User size={18} color="#15803d" /> Resident Information
                 </h3>
-                <span style={{ fontSize: "11px", fontWeight: "800", color: "#15803d", backgroundColor: "#f0fdf4", padding: "2px 8px", borderRadius: "6px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: "3px" }}>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4", padding: "2px 8px", borderRadius: "6px", border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: "3px" }}>
                   <ShieldCheck size={12} /> Verified Resident
                 </span>
               </div>
@@ -1075,9 +1083,9 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                     width: "56px",
                     height: "56px",
                     borderRadius: "16px",
-                    backgroundColor: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
-                    color: "#15803d",
+                    backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                    border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                    color: isDark ? "#4ade80" : "#15803d",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1095,27 +1103,27 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 </div>
 
                 <div>
-                  <strong style={{ fontSize: "16px", color: "#0f172a", display: "block" }}>
+                  <strong style={{ fontSize: "16px", color: isDark ? "#f8fafc" : "#0f172a", display: "block" }}>
                     {displayName(reporter)}
                   </strong>
-                  <span style={{ fontSize: "12px", color: "#64748b" }}>
+                  <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                     Citizen ID: #{reporter?.user_id || reporter?.id || "N/A"}
                   </span>
                 </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px" }}>
-                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
+                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "10px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
                     <Phone size={12} color="#15803d" /> Contact Phone
                   </span>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                    <strong style={{ color: "#0f172a", fontSize: "13.5px" }}>{reporter?.contact_number || "No contact registered"}</strong>
+                    <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13.5px" }}>{reporter?.contact_number || "No contact registered"}</strong>
                     {reporter?.contact_number && (
                       <button
                         type="button"
                         onClick={() => copyPhoneNumber(reporter.contact_number)}
-                        style={{ background: "none", border: "none", color: "#15803d", cursor: "pointer", fontSize: "11px", fontWeight: "800", padding: "2px 6px" }}
+                        style={{ background: "none", border: "none", color: isDark ? "#4ade80" : "#15803d", cursor: "pointer", fontSize: "11px", fontWeight: "800", padding: "2px 6px" }}
                       >
                         {copiedPhone ? <Check size={12} /> : "Copy"}
                       </button>
@@ -1123,14 +1131,14 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   </div>
                 </div>
 
-                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>Barangay Jurisdiction</span>
-                  <strong style={{ color: "#0f172a", fontSize: "13.5px" }}>{reporter?.baranggay || reporter?.barangay || "Lagonglong"}</strong>
+                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "10px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>Barangay Jurisdiction</span>
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13.5px" }}>{reporter?.baranggay || reporter?.barangay || "Lagonglong"}</strong>
                 </div>
 
-                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ color: "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>Full Registered Address</span>
-                  <strong style={{ color: "#0f172a", fontSize: "13px", wordBreak: "break-word", overflowWrap: "anywhere", lineHeight: "1.4" }}>
+                <div className="details-resident-info-field" style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "9px 12px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "10px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>Full Registered Address</span>
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13px", wordBreak: "break-word", overflowWrap: "anywhere", lineHeight: "1.4" }}>
                     {[reporter?.street_address, reporter?.municipality, reporter?.province].filter(Boolean).join(", ") || "Lagonglong, Misamis Oriental"}
                   </strong>
                 </div>
@@ -1138,16 +1146,16 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             </div>
 
             {/* Media Evidence Previews */}
-            <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                   <ImageIcon size={18} color="#15803d" /> Media Evidence
                 </h3>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
-                  <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "6px" }}>
+                  <span style={{ fontSize: "11.5px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", display: "block", marginBottom: "6px" }}>
                     Incident Photo
                   </span>
                   {imageUrl ? (
@@ -1168,14 +1176,14 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ height: "140px", borderRadius: "10px", border: "1px dashed #cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: "12px" }}>
+                    <div style={{ height: "140px", borderRadius: "10px", border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1", backgroundColor: isDark ? "#172338" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#94a3b8" : "#94a3b8", fontSize: "12px" }}>
                       No image uploaded
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "6px" }}>
+                  <span style={{ fontSize: "11.5px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", display: "block", marginBottom: "6px" }}>
                     Incident Video
                   </span>
                   {videoUrl ? (
@@ -1197,7 +1205,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                       <PlayCircle size={32} color="#ffffff" style={{ position: "absolute" }} />
                     </div>
                   ) : (
-                    <div style={{ height: "140px", borderRadius: "10px", border: "1px dashed #cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: "12px" }}>
+                    <div style={{ height: "140px", borderRadius: "10px", border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1", backgroundColor: isDark ? "#172338" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#94a3b8" : "#94a3b8", fontSize: "12px" }}>
                       No video uploaded
                     </div>
                   )}
@@ -1206,28 +1214,28 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             </div>
 
             {/* Audit & Timestamps Metadata Card */}
-            <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: "1px solid #f1f5f9", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                   <CalendarDays size={18} color="#15803d" /> Audit Timestamps
                 </h3>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
-                <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ color: "#64748b" }}>Case Logged:</span>
-                  <strong style={{ color: "#0f172a" }}>{formatDate(incident.created)}</strong>
+                <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "8px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Case Logged:</span>
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{formatDate(incident.created)}</strong>
                 </div>
 
-                <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                  <span style={{ color: "#64748b" }}>Resolved / Updated:</span>
-                  <strong style={{ color: "#0f172a" }}>{formatDate(incident.updated)}</strong>
+                <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "8px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Resolved / Updated:</span>
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{formatDate(incident.updated)}</strong>
                 </div>
 
                 {incident.sync_key && (
-                  <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                    <span style={{ color: "#64748b" }}>Sync Key:</span>
-                    <strong style={{ color: "#64748b", fontFamily: "monospace", fontSize: "11.5px" }}>{incident.sync_key}</strong>
+                  <div className="details-timestamp-item" style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", backgroundColor: isDark ? "#172338" : "#f8fafc", borderRadius: "8px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                    <span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Sync Key:</span>
+                    <strong style={{ color: isDark ? "#94a3b8" : "#64748b", fontFamily: "monospace", fontSize: "11.5px" }}>{incident.sync_key}</strong>
                   </div>
                 )}
               </div>
@@ -1243,7 +1251,7 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backgroundColor: "rgba(15, 23, 42, 0.8)",
             backdropFilter: "blur(10px)",
             zIndex: 99999,
             display: "flex",
@@ -1256,24 +1264,25 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
           <div
             className="lightboxModalCard"
             style={{
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
               borderRadius: "20px",
               width: "100%",
               maxWidth: "780px",
               overflow: "hidden",
+              border: isDark ? "1px solid rgba(255,255,255,0.1)" : "none",
               boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.5)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
-              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", backgroundColor: isDark ? "#172338" : "#f8fafc" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
                 <MapPin size={17} color="#15803d" /> {selectedMap.address}
               </h3>
               <button
                 type="button"
                 className="animatedCloseButton"
                 onClick={() => setSelectedMap(null)}
-                style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{ width: "34px", height: "34px", borderRadius: "50%", border: isDark ? "1px solid rgba(255,255,255,0.12)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#1e293b" : "#fff", color: isDark ? "#f8fafc" : "#0f172a", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
                 <X size={16} />
               </button>
@@ -1315,24 +1324,25 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
               position: "relative",
               width: "100%",
               maxWidth: "800px",
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
               borderRadius: "22px",
               overflow: "hidden",
+              border: isDark ? "1px solid rgba(255,255,255,0.1)" : "none",
               boxShadow: "0 30px 90px -15px rgba(0, 0, 0, 0.7)",
               display: "flex",
               flexDirection: "column",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
-              <span style={{ fontSize: "14px", fontWeight: "800", color: "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#172338" : "#f8fafc" }}>
+              <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", gap: "8px" }}>
                 <ImageIcon size={16} /> Evidence Media Inspector
               </span>
               <button
                 type="button"
                 className="animatedCloseButton"
                 onClick={() => setPreview(null)}
-                style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #e2e8f0", backgroundColor: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{ width: "36px", height: "36px", borderRadius: "50%", border: isDark ? "1px solid rgba(255,255,255,0.12)" : "1px solid #e2e8f0", backgroundColor: isDark ? "#1e293b" : "#fff", color: isDark ? "#f8fafc" : "#0f172a", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
                 <X size={17} />
               </button>

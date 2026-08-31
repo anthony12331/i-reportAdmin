@@ -13,6 +13,7 @@ import {
   X,
   ShieldCheck,
   Calendar,
+  RotateCcw,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
@@ -279,14 +280,48 @@ export default function Audit() {
                   }}
                 />
               )}
+              <button
+                type="button"
+                className="audit-refresh-btn"
+                onClick={fetchLogs}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "7px 14px",
+                  borderRadius: "10px",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                  backgroundColor: isDark ? "#172338" : "#ffffff",
+                  color: isDark ? "#cbd5e1" : "#475569",
+                  fontSize: "12.5px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <RotateCcw size={13} className={loading ? "animate-spin" : ""} />
+                <span>Refresh</span>
+              </button>
             </div>
           </div>
 
           {/* Table Area */}
           {loading && logs.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "360px", gap: "12px" }}>
-              <Loader size={32} className="spin-animation" color={isDark ? "#4ade80" : "#15803d"} />
-              <span style={{ fontSize: "14px", fontWeight: "600", color: isDark ? "#94a3b8" : "#64748b" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "360px", gap: "14px" }}>
+              <div style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "16px",
+                backgroundColor: isDark ? "rgba(34, 197, 94, 0.15)" : "#f0fdf4",
+                border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: isDark ? "#4ade80" : "#15803d",
+              }}>
+                <Loader size={28} className="animate-spin" />
+              </div>
+              <span style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b" }}>
                 Loading activity audit trail...
               </span>
             </div>

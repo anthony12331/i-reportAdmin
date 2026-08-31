@@ -62,16 +62,22 @@ function createMarkerIcon(incident) {
     mainColor = "#10b981"; // Green
     glowColor = "rgba(16, 185, 129, 0.6)";
   } else if (isSos || type.includes("fire")) {
-    mainColor = "#ef4444"; // Red
+    mainColor = "#ef4444"; // Red (Fire & SOS)
     glowColor = "rgba(239, 68, 68, 0.65)";
-  } else if (type.includes("medical") || type.includes("health")) {
-    mainColor = "#f97316"; // Orange
-    glowColor = "rgba(249, 115, 22, 0.65)";
-  } else if (type.includes("traffic") || type.includes("accident") || type.includes("car")) {
-    mainColor = "#eab308"; // Yellow / Gold
+  } else if (type.includes("traffic") || type.includes("accident") || type.includes("car") || type.includes("vehicular")) {
+    mainColor = "#eab308"; // Yellow (Accident)
     glowColor = "rgba(234, 179, 8, 0.65)";
-  } else if (type.includes("flood") || type.includes("landslide") || type.includes("rescue")) {
-    mainColor = "#0284c7"; // Cyan / Blue
+  } else if (type.includes("police") || type.includes("crime") || type.includes("security") || type.includes("pnp")) {
+    mainColor = "#2563eb"; // Blue (Police)
+    glowColor = "rgba(37, 99, 235, 0.65)";
+  } else if (type.includes("landslide")) {
+    mainColor = "#92400e"; // Brown (Landslide)
+    glowColor = "rgba(146, 64, 14, 0.65)";
+  } else if (type.includes("medical") || type.includes("health")) {
+    mainColor = "#f97316"; // Orange (Medical)
+    glowColor = "rgba(249, 115, 22, 0.65)";
+  } else if (type.includes("flood") || type.includes("rescue")) {
+    mainColor = "#0284c7"; // Cyan / Ocean (Flood)
     glowColor = "rgba(2, 132, 199, 0.65)";
   }
 
@@ -400,153 +406,170 @@ export default function IncidentMap() {
           flexDirection: "column",
           minWidth: 0,
           height: "100vh",
+          padding: isFullscreen ? "0" : "20px 28px 24px 28px",
+          boxSizing: "border-box",
           position: "relative",
           backgroundColor: isDark ? "#090d16" : "#f8fafc",
+          overflow: "hidden",
         }}
       >
         {/* Simple & Clean Header */}
-        <header
-          style={{
-            padding: "16px 28px",
-            backgroundColor: isDark ? "#131c2e" : "#ffffff",
-            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
-            zIndex: 1000,
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "16px",
-            boxShadow: isDark
-              ? "0 4px 20px -2px rgba(0, 0, 0, 0.5)"
-              : "0 1px 3px rgba(0, 0, 0, 0.04)",
-          }}
-        >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span
+        {!isFullscreen && (
+          <header
+            style={{
+              marginBottom: "16px",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "16px",
+              flexShrink: 0,
+            }}
+          >
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    backgroundColor: isDark ? "#4ade80" : "#15803d",
+                    boxShadow: "0 0 10px rgba(74, 222, 128, 0.5)",
+                  }}
+                />
+                <h1
+                  style={{
+                    fontSize: "22px",
+                    fontWeight: "800",
+                    color: isDark ? "#f8fafc" : "#14532d",
+                    margin: 0,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Incidents Map
+                </h1>
+              </div>
+              <p
                 style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: isDark ? "#4ade80" : "#15803d",
-                  boxShadow: "0 0 10px rgba(74, 222, 128, 0.5)",
-                }}
-              />
-              <h1
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "800",
-                  color: isDark ? "#f8fafc" : "#14532d",
-                  margin: 0,
-                  letterSpacing: "-0.02em",
+                  margin: "4px 0 0",
+                  fontSize: "13px",
+                  color: isDark ? "#94a3b8" : "#64748b",
                 }}
               >
-                Incidents Map
-              </h1>
-            </div>
-            <p
-              style={{
-                margin: "4px 0 0",
-                fontSize: "12.5px",
-                color: isDark ? "#94a3b8" : "#64748b",
-              }}
-            >
-              Satellite map view of all active emergencies, responder dispatches, and resolved incidents in Lagonglong.
-            </p>
-          </div>
-
-          {/* Quick Counter Summary */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 14px",
-                borderRadius: "12px",
-                backgroundColor: isDark ? "#172338" : "#f1f5f9",
-                border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
-              }}
-            >
-              <MapIcon size={16} color={isDark ? "#38bdf8" : "#0284c7"} />
-              <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
-                Total:{" "}
-                <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13px" }}>
-                  {metrics.total}
-                </strong>
-              </span>
+                Satellite map view of all active emergencies, responder dispatches, and resolved incidents in Lagonglong.
+              </p>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 14px",
-                borderRadius: "12px",
-                backgroundColor: isDark ? "rgba(245, 158, 11, 0.16)" : "#fffbeb",
-                border: isDark ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid #fef3c7",
-              }}
-            >
-              <Activity size={16} color={isDark ? "#fbbf24" : "#d97706"} />
-              <span style={{ fontSize: "12px", color: isDark ? "#fbbf24" : "#b45309", fontWeight: "700" }}>
-                Active: {metrics.ongoing}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 14px",
-                borderRadius: "12px",
-                backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
-                border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0",
-              }}
-            >
-              <CheckCircle2 size={16} color={isDark ? "#4ade80" : "#15803d"} />
-              <span style={{ fontSize: "12px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "700" }}>
-                Resolved: {metrics.resolved}
-              </span>
-            </div>
-
-            {metrics.activeSos > 0 && (
+            {/* Quick Counter Summary */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
+                  gap: "7px",
                   padding: "6px 14px",
                   borderRadius: "12px",
-                  backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
-                  border: isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fecaca",
-                  animation: "urgentPulse 1.5s infinite",
+                  backgroundColor: isDark ? "#172338" : "#ffffff",
+                  border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                 }}
               >
-                <Radio size={16} color={isDark ? "#f87171" : "#b91c1c"} />
-                <span style={{ fontSize: "12px", color: isDark ? "#f87171" : "#b91c1c", fontWeight: "800" }}>
-                  Active SOS: {metrics.activeSos}
+                <MapIcon size={15} color={isDark ? "#38bdf8" : "#0284c7"} />
+                <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+                  Total:{" "}
+                  <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", fontSize: "13px" }}>
+                    {metrics.total}
+                  </strong>
                 </span>
               </div>
-            )}
-          </div>
-        </header>
 
-        {/* Clean Single-Row Filter Toolbar */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "6px 14px",
+                  borderRadius: "12px",
+                  backgroundColor: isDark ? "rgba(245, 158, 11, 0.16)" : "#fffbeb",
+                  border: isDark ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid #fef3c7",
+                }}
+              >
+                <Activity size={15} color={isDark ? "#fbbf24" : "#d97706"} />
+                <span style={{ fontSize: "12px", color: isDark ? "#fbbf24" : "#b45309", fontWeight: "700" }}>
+                  Active: {metrics.ongoing}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "6px 14px",
+                  borderRadius: "12px",
+                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.16)" : "#f0fdf4",
+                  border: isDark ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid #bbf7d0",
+                }}
+              >
+                <CheckCircle2 size={15} color={isDark ? "#4ade80" : "#15803d"} />
+                <span style={{ fontSize: "12px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "700" }}>
+                  Resolved: {metrics.resolved}
+                </span>
+              </div>
+
+              {metrics.activeSos > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "7px",
+                    padding: "6px 14px",
+                    borderRadius: "12px",
+                    backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                    border: isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fecaca",
+                    animation: "urgentPulse 1.5s infinite",
+                  }}
+                >
+                  <Radio size={15} color={isDark ? "#f87171" : "#b91c1c"} />
+                  <span style={{ fontSize: "12px", color: isDark ? "#f87171" : "#b91c1c", fontWeight: "800" }}>
+                    Active SOS: {metrics.activeSos}
+                  </span>
+                </div>
+              )}
+            </div>
+          </header>
+        )}
+
+        {/* Map Card Holder */}
         <div
           style={{
-            padding: "10px 24px",
-            backgroundColor: isDark ? "#0f172a" : "#ffffff",
-            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+            flex: 1,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "12px",
-            zIndex: 1001,
-            overflow: "visible",
+            flexDirection: "column",
+            minHeight: 0,
+            borderRadius: isFullscreen ? "0" : "16px",
+            border: isFullscreen ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+            boxShadow: isFullscreen ? "none" : (isDark ? "0 8px 30px rgba(0,0,0,0.35)" : "0 4px 20px -2px rgba(0, 0, 0, 0.05)"),
+            overflow: "hidden",
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            position: "relative",
           }}
         >
+          {/* Clean Single-Row Filter Toolbar */}
+          <div
+            style={{
+              padding: "10px 18px",
+              backgroundColor: isDark ? "#131c2e" : "#ffffff",
+              borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              flexShrink: 0,
+              zIndex: 1001,
+              overflow: "visible",
+            }}
+          >
           {/* Status Segment Pills */}
           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
             {[
@@ -1027,7 +1050,49 @@ export default function IncidentMap() {
                     boxShadow: "0 0 6px #ef4444",
                   }}
                 />
-                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Active Emergency</span>
+                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Fire / SOS (Red)</span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    backgroundColor: "#eab308",
+                    display: "inline-block",
+                    boxShadow: "0 0 6px #eab308",
+                  }}
+                />
+                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Accident / Traffic (Yellow)</span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    backgroundColor: "#2563eb",
+                    display: "inline-block",
+                    boxShadow: "0 0 6px #2563eb",
+                  }}
+                />
+                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Police & Security (Blue)</span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    backgroundColor: "#92400e",
+                    display: "inline-block",
+                    boxShadow: "0 0 6px #92400e",
+                  }}
+                />
+                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Landslide Hazard (Brown)</span>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1041,38 +1106,13 @@ export default function IncidentMap() {
                     boxShadow: "0 0 6px #10b981",
                   }}
                 />
-                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Resolved Incident</span>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: "#f97316",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Medical / Health</span>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: "#eab308",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Traffic & Collision</span>
+                <span style={{ fontSize: "11.5px", fontWeight: "600" }}>Resolved Incident (Green)</span>
               </div>
             </div>
           </div>
         </div>
-      </main>
-    </div>
-  );
+      </div>
+    </main>
+  </div>
+);
 }

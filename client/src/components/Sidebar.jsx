@@ -20,7 +20,7 @@ import {
   Map,
 } from "lucide-react";
 import { useMessageBox } from "./MessageBox";
-import { ThemeSwitch } from "../themes/ThemeContext";
+import { ThemeSwitch, useTheme } from "../themes/ThemeContext";
 import { addAuditLog } from "../utils/auditLog";
 
 const ONGOING_STATUSES = ["ongoing", "accepted", "en_route", "at_scene", "dispatched"];
@@ -30,6 +30,7 @@ export default function Sidebar({
   ongoingIncidentsCount,
   pendingUsersCount,
 }) {
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const admin = pb.authStore.model;
@@ -69,7 +70,7 @@ export default function Sidebar({
   // Background Hazard Polling (Runs every 10 minutes)
   useEffect(() => {
     let interval;
-    
+
     const checkHazards = async () => {
       // Prevent spamming alerts (only alert once every 6 hours max)
       if (Date.now() - lastAlertTime.current < 6 * 60 * 60 * 1000) return;
@@ -78,7 +79,7 @@ export default function Sidebar({
         // 1. Check Weather
         const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=8.8066&longitude=124.7880&current=precipitation,wind_speed_10m`);
         const weatherData = await weatherRes.json();
-        
+
         if (weatherData?.current) {
           if (weatherData.current.precipitation > 15 || weatherData.current.wind_speed_10m > 60) {
             lastAlertTime.current = Date.now();
@@ -93,7 +94,7 @@ export default function Sidebar({
         const dateStr = d.toISOString().split('T')[0];
         const quakeRes = await fetch(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${dateStr}&minlatitude=6.0&maxlatitude=10.0&minlongitude=123.0&maxlongitude=127.0&minmagnitude=5.0`);
         const quakeData = await quakeRes.json();
-        
+
         if (quakeData?.features?.length > 0) {
           const latest = quakeData.features[0];
           lastAlertTime.current = Date.now();
@@ -119,12 +120,12 @@ export default function Sidebar({
       document.documentElement.classList.add("sidebar-hidden");
       try {
         localStorage.setItem("sidebar_hidden", "true");
-      } catch {}
+      } catch { }
     } else {
       document.documentElement.classList.remove("sidebar-hidden");
       try {
         localStorage.setItem("sidebar_hidden", "false");
-      } catch {}
+      } catch { }
     }
 
     // Trigger resize events so Leaflet map canvas updates smoothly
@@ -268,7 +269,7 @@ export default function Sidebar({
     });
 
     if (!shouldLogout) return;
-    
+
     try {
       const adminFullName = (`${admin?.first_name || ""} ${admin?.last_name || ""}`.trim()) || admin?.email || "Administrator";
       addAuditLog({
@@ -281,13 +282,71 @@ export default function Sidebar({
     } catch (err) {
       console.log("Realtime unsubscribe error:", err);
     }
-    
+
     pb.authStore.clear();
     navigate("/");
   };
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
+
+  const getBadgeStyle = (colorType = "red") => {
+    if (colorType === "red") {
+      return {
+        backgroundColor: isDark ? "rgba(239, 68, 68, 0.22)" : "#fef2f2",
+        color: isDark ? "#f87171" : "#b91c1c",
+        border: isDark ? "1px solid rgba(239, 68, 68, 0.45)" : "1px solid #fecaca",
+        fontSize: "11px",
+        fontWeight: "800",
+        minWidth: "20px",
+        height: "20px",
+        padding: "0 6px",
+        borderRadius: "999px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        letterSpacing: "-0.01em",
+        boxShadow: isDark ? "0 0 8px rgba(239, 68, 68, 0.25)" : "none",
+      };
+    }
+    if (colorType === "orange" || colorType === "yellow") {
+      return {
+        backgroundColor: isDark ? "rgba(234, 179, 8, 0.22)" : "#fefce8",
+        color: isDark ? "#facc15" : "#854d0e",
+        border: isDark ? "1px solid rgba(234, 179, 8, 0.45)" : "1px solid #fef08a",
+        fontSize: "11px",
+        fontWeight: "800",
+        minWidth: "20px",
+        height: "20px",
+        padding: "0 6px",
+        borderRadius: "999px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        letterSpacing: "-0.01em",
+        boxShadow: isDark ? "0 0 8px rgba(234, 179, 8, 0.25)" : "none",
+      };
+    }
+    return {
+      backgroundColor: isDark ? "rgba(34, 197, 94, 0.22)" : "#f0fdf4",
+      color: isDark ? "#4ade80" : "#15803d",
+      border: isDark ? "1px solid rgba(34, 197, 94, 0.45)" : "1px solid #bbf7d0",
+      fontSize: "11px",
+      fontWeight: "800",
+      minWidth: "20px",
+      height: "20px",
+      padding: "0 6px",
+      borderRadius: "999px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      letterSpacing: "-0.01em",
+      boxShadow: isDark ? "0 0 8px rgba(34, 197, 94, 0.25)" : "none",
+    };
+  };
 
   const adminName = (`${admin?.first_name || ""} ${admin?.last_name || ""}`.trim()) || (admin?.email ? admin.email.split("@")[0] : "Administrator");
   const adminInitial = adminName.charAt(0).toUpperCase();
@@ -350,297 +409,297 @@ export default function Sidebar({
           </div>
         </div>
 
-      {/* Navigation */}
-      <nav className="sidebarNavNoScroll" style={styles.nav}>
-        <p style={styles.sectionTitle}>Main</p>
-        <div
-          className={`sidebar-nav-item ${isActive("/dashboard") ? "active" : ""}`}
-          onClick={() => navigate("/dashboard")}
-        >
-          <div style={styles.navLinkGroup}>
-            <LayoutDashboard size={17} color={isActive("/dashboard") ? "#15803d" : "#64748b"} />
-            <span>Dashboard</span>
+        {/* Navigation */}
+        <nav className="sidebarNavNoScroll" style={styles.nav}>
+          <p style={styles.sectionTitle}>Main</p>
+          <div
+            className={`sidebar-nav-item ${isActive("/dashboard") ? "active" : ""}`}
+            onClick={() => navigate("/dashboard")}
+          >
+            <div style={styles.navLinkGroup}>
+              <LayoutDashboard size={17} color={isActive("/dashboard") ? "#15803d" : "#64748b"} />
+              <span>Dashboard</span>
+            </div>
           </div>
-        </div>
 
-        {hasAccess("incidents") && (
-          <>
-            <p style={styles.sectionTitle}>Incidents</p>
+          {hasAccess("incidents") && (
+            <>
+              <p style={styles.sectionTitle}>Incidents</p>
 
-            <div
-              className={`sidebar-nav-item ${isActive("/pending-incidents") ? "active" : ""}`}
-              onClick={() => navigate("/pending-incidents")}
-            >
-              <div style={styles.navLinkGroup}>
-                <AlertTriangle size={17} color={isActive("/pending-incidents") ? "#15803d" : "#64748b"} />
-                <span>Pending Reports</span>
-              </div>
-              {counts.pendingIncidents > 0 && (
-                <span style={styles.badgeRed}>{counts.pendingIncidents}</span>
-              )}
-            </div>
-
-            <div
-              className={`sidebar-nav-item ${isActive("/ongoing-incidents") ? "active" : ""}`}
-              onClick={() => navigate("/ongoing-incidents")}
-            >
-              <div style={styles.navLinkGroup}>
-                <Activity size={17} color={isActive("/ongoing-incidents") ? "#15803d" : "#64748b"} />
-                <span>Ongoing Incidents</span>
-              </div>
-              {counts.ongoingIncidents > 0 && (
-                <span style={styles.badgeOrange}>{counts.ongoingIncidents}</span>
-              )}
-            </div>
-
-            <div
-              className={`sidebar-nav-item ${location.pathname === "/resolved-incidents" ? "active" : ""}`}
-              onClick={() => navigate("/resolved-incidents")}
-            >
-              <div style={styles.navLinkGroup}>
-                <CheckCircle2 size={17} color={location.pathname === "/resolved-incidents" ? "#15803d" : "#64748b"} />
-                <span>Resolved Incidents</span>
-              </div>
-            </div>
-
-            <div
-              className={`sidebar-nav-item ${isActive("/incident-map") ? "active" : ""}`}
-              onClick={() => navigate("/incident-map")}
-            >
-              <div style={styles.navLinkGroup}>
-                <Map size={17} color={isActive("/incident-map") ? "#15803d" : "#64748b"} />
-                <span>Incidents Map</span>
-              </div>
-            </div>
-            {location.pathname.startsWith("/resolved-incidents/") && (
               <div
-                className="sidebar-sub-nav-item active"
+                className={`sidebar-nav-item ${isActive("/pending-incidents") ? "active" : ""}`}
+                onClick={() => navigate("/pending-incidents")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <AlertTriangle size={17} color={isActive("/pending-incidents") ? "#15803d" : "#64748b"} />
+                  <span>Pending Reports</span>
+                </div>
+                {counts.pendingIncidents > 0 && (
+                  <span style={getBadgeStyle("red")}>{counts.pendingIncidents}</span>
+                )}
+              </div>
+
+              <div
+                className={`sidebar-nav-item ${isActive("/ongoing-incidents") ? "active" : ""}`}
+                onClick={() => navigate("/ongoing-incidents")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <Activity size={17} color={isActive("/ongoing-incidents") ? "#15803d" : "#64748b"} />
+                  <span>Ongoing Incidents</span>
+                </div>
+                {counts.ongoingIncidents > 0 && (
+                  <span style={getBadgeStyle("orange")}>{counts.ongoingIncidents}</span>
+                )}
+              </div>
+
+              <div
+                className={`sidebar-nav-item ${location.pathname === "/resolved-incidents" ? "active" : ""}`}
                 onClick={() => navigate("/resolved-incidents")}
               >
                 <div style={styles.navLinkGroup}>
-                  <ClipboardList size={15} />
-                  <span>Incident Details</span>
+                  <CheckCircle2 size={17} color={location.pathname === "/resolved-incidents" ? "#15803d" : "#64748b"} />
+                  <span>Resolved Incidents</span>
                 </div>
               </div>
-            )}
 
-            <div
-              className={`sidebar-nav-item ${isActive("/request-backup") ? "active" : ""}`}
-              onClick={() => navigate("/request-backup")}
-            >
-              <div style={styles.navLinkGroup}>
-                <ShieldCheck size={17} color={isActive("/request-backup") ? "#15803d" : "#64748b"} />
-                <span>Request Backup</span>
-              </div>
-              {counts.pendingBackups > 0 && <span style={styles.badgeRed}>{counts.pendingBackups}</span>}
-            </div>
-
-            <div
-              className={`sidebar-nav-item ${isActive("/ongoing-backup") ? "active" : ""}`}
-              onClick={() => navigate("/ongoing-backup")}
-            >
-              <div style={styles.navLinkGroup}>
-                <Activity size={17} color={isActive("/ongoing-backup") ? "#15803d" : "#64748b"} />
-                <span>Ongoing Backup</span>
-              </div>
-              {counts.ongoingBackups > 0 && <span style={styles.badgeOrange}>{counts.ongoingBackups}</span>}
-            </div>
-          </>
-        )}
-
-        {hasAccess("sos") && (
-          <>
-            <p style={styles.sectionTitle}>SOS Alerts</p>
-            <div
-              className={`sidebar-nav-item ${isActive("/pending-sos") ? "active" : ""}`}
-              onClick={() => navigate("/pending-sos")}
-            >
-              <div style={styles.navLinkGroup}>
-                <div
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    ...(counts.pendingSos > 0
-                      ? {
-                          backgroundColor: "#fef2f2",
-                          border: "1px solid #fecaca",
-                        }
-                      : {}),
-                  }}
-                  className={counts.pendingSos > 0 ? "urgent-status-pulse" : ""}
-                >
-                  <Radio
-                    size={14}
-                    color={counts.pendingSos > 0 ? "#dc2626" : isActive("/pending-sos") ? "#15803d" : "#64748b"}
-                  />
-                </div>
-                <span style={counts.pendingSos > 0 ? { color: "#dc2626", fontWeight: "800" } : {}}>
-                  Live SOS Alerts
-                </span>
-              </div>
-              {counts.pendingSos > 0 && (
-                <span style={styles.badgeRed}>{counts.pendingSos}</span>
-              )}
-            </div>
-          </>
-        )}
-
-        {hasAccess("users") && (
-          <>
-            <p style={styles.sectionTitle}>User Registry</p>
-            <div
-              className={`sidebar-nav-item ${isActive("/pending-users") ? "active" : ""}`}
-              onClick={() => navigate("/pending-users")}
-            >
-              <div style={styles.navLinkGroup}>
-                <Users size={17} color={isActive("/pending-users") ? "#15803d" : "#64748b"} />
-                <span>Pending Verification</span>
-              </div>
-              {counts.pendingUsers > 0 && (
-                <span style={styles.badgeGreen}>{counts.pendingUsers}</span>
-              )}
-            </div>
-
-            <div
-              className={`sidebar-nav-item ${location.pathname === "/verified-users" ? "active" : ""}`}
-              onClick={() => navigate("/verified-users")}
-            >
-              <div style={styles.navLinkGroup}>
-                <ShieldCheck size={17} color={location.pathname === "/verified-users" ? "#15803d" : "#64748b"} />
-                <span>Verified Users</span>
-              </div>
-            </div>
-            {location.pathname.startsWith("/verified-users/") && (
               <div
-                className="sidebar-sub-nav-item active"
+                className={`sidebar-nav-item ${isActive("/incident-map") ? "active" : ""}`}
+                onClick={() => navigate("/incident-map")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <Map size={17} color={isActive("/incident-map") ? "#15803d" : "#64748b"} />
+                  <span>Incidents Map</span>
+                </div>
+              </div>
+              {location.pathname.startsWith("/resolved-incidents/") && (
+                <div
+                  className="sidebar-sub-nav-item active"
+                  onClick={() => navigate("/resolved-incidents")}
+                >
+                  <div style={styles.navLinkGroup}>
+                    <ClipboardList size={15} />
+                    <span>Incident Details</span>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className={`sidebar-nav-item ${isActive("/request-backup") ? "active" : ""}`}
+                onClick={() => navigate("/request-backup")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <ShieldCheck size={17} color={isActive("/request-backup") ? "#15803d" : "#64748b"} />
+                  <span>Request Backup</span>
+                </div>
+                {counts.pendingBackups > 0 && <span style={getBadgeStyle("red")}>{counts.pendingBackups}</span>}
+              </div>
+
+              <div
+                className={`sidebar-nav-item ${isActive("/ongoing-backup") ? "active" : ""}`}
+                onClick={() => navigate("/ongoing-backup")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <Activity size={17} color={isActive("/ongoing-backup") ? "#15803d" : "#64748b"} />
+                  <span>Ongoing Backup</span>
+                </div>
+                {counts.ongoingBackups > 0 && <span style={getBadgeStyle("orange")}>{counts.ongoingBackups}</span>}
+              </div>
+            </>
+          )}
+
+          {hasAccess("sos") && (
+            <>
+              <p style={styles.sectionTitle}>SOS Alerts</p>
+              <div
+                className={`sidebar-nav-item ${isActive("/pending-sos") ? "active" : ""}`}
+                onClick={() => navigate("/pending-sos")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <div
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      ...(counts.pendingSos > 0
+                        ? {
+                          backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
+                          border: isDark ? "1px solid rgba(239, 68, 68, 0.45)" : "1px solid #fecaca",
+                        }
+                        : {}),
+                    }}
+                    className={counts.pendingSos > 0 ? "urgent-status-pulse" : ""}
+                  >
+                    <Radio
+                      size={14}
+                      color={counts.pendingSos > 0 ? (isDark ? "#f87171" : "#dc2626") : isActive("/pending-sos") ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b")}
+                    />
+                  </div>
+                  <span style={counts.pendingSos > 0 ? { color: isDark ? "#f87171" : "#dc2626", fontWeight: "800" } : {}}>
+                    Live SOS Alerts
+                  </span>
+                </div>
+                {counts.pendingSos > 0 && (
+                  <span style={getBadgeStyle("red")}>{counts.pendingSos}</span>
+                )}
+              </div>
+            </>
+          )}
+
+          {hasAccess("users") && (
+            <>
+              <p style={styles.sectionTitle}>User Registry</p>
+              <div
+                className={`sidebar-nav-item ${isActive("/pending-users") ? "active" : ""}`}
+                onClick={() => navigate("/pending-users")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <Users size={17} color={isActive("/pending-users") ? "#15803d" : "#64748b"} />
+                  <span>Pending Verification</span>
+                </div>
+                {counts.pendingUsers > 0 && (
+                  <span style={getBadgeStyle("green")}>{counts.pendingUsers}</span>
+                )}
+              </div>
+
+              <div
+                className={`sidebar-nav-item ${location.pathname === "/verified-users" ? "active" : ""}`}
                 onClick={() => navigate("/verified-users")}
               >
                 <div style={styles.navLinkGroup}>
-                  <ClipboardList size={15} />
-                  <span>User Details</span>
+                  <ShieldCheck size={17} color={location.pathname === "/verified-users" ? "#15803d" : "#64748b"} />
+                  <span>Verified Users</span>
                 </div>
               </div>
-            )}
-          </>
-        )}
+              {location.pathname.startsWith("/verified-users/") && (
+                <div
+                  className="sidebar-sub-nav-item active"
+                  onClick={() => navigate("/verified-users")}
+                >
+                  <div style={styles.navLinkGroup}>
+                    <ClipboardList size={15} />
+                    <span>User Details</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
-        {hasAccess("reports") && (
-          <>
-            <p style={styles.sectionTitle}>Analytics</p>
-            <div
-              className={`sidebar-nav-item ${isActive("/reports") ? "active" : ""}`}
-              onClick={() => navigate("/reports")}
-            >
-              <div style={styles.navLinkGroup}>
-                <BarChart3 size={17} color={isActive("/reports") ? "#15803d" : "#64748b"} />
-                <span>Generate Reports</span>
+          {hasAccess("reports") && (
+            <>
+              <p style={styles.sectionTitle}>Analytics</p>
+              <div
+                className={`sidebar-nav-item ${isActive("/reports") ? "active" : ""}`}
+                onClick={() => navigate("/reports")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <BarChart3 size={17} color={isActive("/reports") ? "#15803d" : "#64748b"} />
+                  <span>Generate Reports</span>
+                </div>
               </div>
-            </div>
-            <div
-              className={`sidebar-nav-item ${isActive("/calamities") ? "active" : ""}`}
-              onClick={() => navigate("/calamities")}
-            >
-              <div style={styles.navLinkGroup}>
-                <AlertTriangle size={17} color={isActive("/calamities") ? "#15803d" : "#64748b"} />
-                <span>Hazards & Calamities</span>
+              <div
+                className={`sidebar-nav-item ${isActive("/calamities") ? "active" : ""}`}
+                onClick={() => navigate("/calamities")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <AlertTriangle size={17} color={isActive("/calamities") ? "#15803d" : "#64748b"} />
+                  <span>Hazards & Calamities</span>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {hasAccess("pins") && (
-          <>
-            <p style={styles.sectionTitle}>Access</p>
-            <div
-              className={`sidebar-nav-item ${isActive("/responder-pins") || isActive("/responders") ? "active" : ""}`}
-              onClick={() => navigate("/responder-pins")}
-            >
-              <div style={styles.navLinkGroup}>
-                <KeyRound size={17} color={isActive("/responder-pins") || isActive("/responders") ? "#15803d" : "#64748b"} />
-                <span>Responder Management</span>
+          {hasAccess("pins") && (
+            <>
+              <p style={styles.sectionTitle}>Access</p>
+              <div
+                className={`sidebar-nav-item ${isActive("/responder-pins") || isActive("/responders") ? "active" : ""}`}
+                onClick={() => navigate("/responder-pins")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <KeyRound size={17} color={isActive("/responder-pins") || isActive("/responders") ? "#15803d" : "#64748b"} />
+                  <span>Responder Management</span>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {isSuperAdmin && (
-          <>
-            <p style={styles.sectionTitle}>Administration</p>
-            <div
-              className={`sidebar-nav-item ${isActive("/manage-admins") ? "active" : ""}`}
-              onClick={() => navigate("/manage-admins")}
-            >
-              <div style={styles.navLinkGroup}>
-                <Shield size={17} color={isActive("/manage-admins") ? "#15803d" : "#64748b"} />
-                <span>Manage Admins</span>
+          {isSuperAdmin && (
+            <>
+              <p style={styles.sectionTitle}>Administration</p>
+              <div
+                className={`sidebar-nav-item ${isActive("/manage-admins") ? "active" : ""}`}
+                onClick={() => navigate("/manage-admins")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <Shield size={17} color={isActive("/manage-admins") ? "#15803d" : "#64748b"} />
+                  <span>Manage Admins</span>
+                </div>
               </div>
-            </div>
 
-            <div
-              className={`sidebar-nav-item ${isActive("/rbac-settings") ? "active" : ""}`}
-              onClick={() => navigate("/rbac-settings")}
-            >
-              <div style={styles.navLinkGroup}>
-                <Settings size={17} color={isActive("/rbac-settings") ? "#15803d" : "#64748b"} />
-                <span>Access Control</span>
+              <div
+                className={`sidebar-nav-item ${isActive("/rbac-settings") ? "active" : ""}`}
+                onClick={() => navigate("/rbac-settings")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <Settings size={17} color={isActive("/rbac-settings") ? "#15803d" : "#64748b"} />
+                  <span>Access Control</span>
+                </div>
               </div>
-            </div>
 
-            <div
-              className={`sidebar-nav-item ${isActive("/audit-logs") ? "active" : ""}`}
-              onClick={() => navigate("/audit-logs")}
-            >
-              <div style={styles.navLinkGroup}>
-                <History size={17} color={isActive("/audit-logs") ? "#15803d" : "#64748b"} />
-                <span>Audit Logs</span>
+              <div
+                className={`sidebar-nav-item ${isActive("/audit-logs") ? "active" : ""}`}
+                onClick={() => navigate("/audit-logs")}
+              >
+                <div style={styles.navLinkGroup}>
+                  <History size={17} color={isActive("/audit-logs") ? "#15803d" : "#64748b"} />
+                  <span>Audit Logs</span>
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </nav>
+            </>
+          )}
+        </nav>
 
-      {/* Admin Profile & Logout Footer */}
-      <div className="sidebarLogoutSection" style={styles.logoutSection}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-          <div
-            style={{
-              width: "34px",
-              height: "34px",
-              borderRadius: "10px",
-              background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "13px",
-              fontWeight: "800",
-              flexShrink: 0,
-            }}
-          >
-            {adminInitial}
+        {/* Admin Profile & Logout Footer */}
+        <div className="sidebarLogoutSection" style={styles.logoutSection}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+            <div
+              style={{
+                width: "34px",
+                height: "34px",
+                borderRadius: "10px",
+                background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "13px",
+                fontWeight: "800",
+                flexShrink: 0,
+              }}
+            >
+              {adminInitial}
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <span className="sidebarAdminName" style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {adminName}
+              </span>
+              <span className="sidebarAdminRole" style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b" }}>
+                {isSuperAdmin ? "Super Admin" : "Officer"}
+              </span>
+            </div>
+            <ThemeSwitch />
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <span className="sidebarAdminName" style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {adminName}
-            </span>
-            <span className="sidebarAdminRole" style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#64748b" }}>
-              {isSuperAdmin ? "Super Admin" : "Officer"}
-            </span>
-          </div>
-          <ThemeSwitch />
+
+          <button className="sidebarLogoutBtn" onClick={handleLogout} style={styles.logoutBtn}>
+            <LogOut size={14} /> <span>Log Out</span>
+          </button>
         </div>
-
-        <button className="sidebarLogoutBtn" onClick={handleLogout} style={styles.logoutBtn}>
-          <LogOut size={14} /> <span>Log Out</span>
-        </button>
-      </div>
-    </aside>
-  </>
+      </aside>
+    </>
   );
 }
 

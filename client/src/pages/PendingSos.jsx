@@ -38,83 +38,7 @@ import {
 import { getResponderOptionLabel } from "../utils/responderOptions";
 import { useMessageBox } from "../components/MessageBox";
 
-const renderDepartmentBadge = (dept, isDark = false) => {
-  const d = (dept || "").toLowerCase();
-  if (d.includes("fire")) {
-    return (
-      <span style={{
-        fontSize: "10.5px",
-        fontWeight: "800",
-        color: isDark ? "#f87171" : "#b91c1c",
-        backgroundColor: isDark ? "rgba(239, 68, 68, 0.18)" : "#fef2f2",
-        border: isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca",
-        padding: "2px 7px",
-        borderRadius: "6px",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "3px",
-        flexShrink: 0
-      }}>
-        <Flame size={10} /> BFP
-      </span>
-    );
-  }
-  if (d.includes("police")) {
-    return (
-      <span style={{
-        fontSize: "10.5px",
-        fontWeight: "800",
-        color: isDark ? "#c084fc" : "#6d28d9",
-        backgroundColor: isDark ? "rgba(168, 85, 247, 0.18)" : "#f5f3ff",
-        border: isDark ? "1px solid rgba(168, 85, 247, 0.35)" : "1px solid #ddd6fe",
-        padding: "2px 7px",
-        borderRadius: "6px",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "3px",
-        flexShrink: 0
-      }}>
-        <Shield size={10} /> PNP
-      </span>
-    );
-  }
-  if (d.includes("ambulance") || d.includes("ems") || d.includes("medical")) {
-    return (
-      <span style={{
-        fontSize: "10.5px",
-        fontWeight: "800",
-        color: isDark ? "#38bdf8" : "#0369a1",
-        backgroundColor: isDark ? "rgba(56, 189, 248, 0.18)" : "#f0f9ff",
-        border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid #bae6fd",
-        padding: "2px 7px",
-        borderRadius: "6px",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "3px",
-        flexShrink: 0
-      }}>
-        <Ambulance size={10} /> EMS
-      </span>
-    );
-  }
-  return (
-    <span style={{
-      fontSize: "10.5px",
-      fontWeight: "800",
-      color: isDark ? "#4ade80" : "#15803d",
-      backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
-      border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
-      padding: "2px 7px",
-      borderRadius: "6px",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "3px",
-      flexShrink: 0
-    }}>
-      <Activity size={10} /> MDRRMO
-    </span>
-  );
-};
+import DepartmentBadge from "../components/DepartmentBadge";
 
 export default function PendingSos() {
   const { isDark } = useTheme();
@@ -214,11 +138,9 @@ export default function PendingSos() {
     try {
       const responders = await pb.collection("responder_accounts").getFullList({
         sort: "department, first_name, last_name",
-        fields: "id,first_name,last_name,department,unit_name,contact_number,is_available,is_suspended",
-        filter: "is_suspended != true",
         requestKey: null,
       });
-      setAvailableResponders(responders.filter((r) => !r.is_suspended));
+      setAvailableResponders(responders.filter((r) => r.is_available === true && !r.is_suspended));
     } catch (error) {
       console.error("Responder fetch error:", error);
     } finally {
@@ -519,10 +441,11 @@ export default function PendingSos() {
                   display: "flex",
                   flexDirection: "column",
                   gap: "16px",
-                  borderTop: "4px solid #ef4444",
                   position: "relative",
                   backgroundColor: isDark ? "#131c2e" : "#ffffff",
                   border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+                  borderTop: "4px solid #ef4444",
+                  boxShadow: isDark ? "0 8px 30px rgba(0,0,0,0.35)" : "0 4px 20px -2px rgba(0, 0, 0, 0.06)",
                 }}
               >
                 {/* Header Banner */}
@@ -586,22 +509,23 @@ export default function PendingSos() {
                     padding: "12px 14px",
                     borderRadius: "12px",
                     backgroundColor: isDark ? "#172338" : "#ffffff",
-                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                   }}
                 >
                   <div
                     style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "10px",
-                      backgroundColor: isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2",
-                      color: isDark ? "#f87171" : "#b91c1c",
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "12px",
+                      backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                      border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                      color: isDark ? "#4ade80" : "#15803d",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       fontWeight: "800",
-                      fontSize: "13px",
+                      fontSize: "14px",
                       flexShrink: 0,
                       overflow: "hidden",
                     }}
@@ -611,9 +535,12 @@ export default function PendingSos() {
                         src={sosUserAvatar}
                         alt="Resident"
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
                       />
                     ) : (
-                      <User size={18} />
+                      <span>{(sos.expand?.user?.first_name || "R")[0].toUpperCase()}</span>
                     )}
                   </div>
                   <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: "5px" }}>
@@ -646,7 +573,7 @@ export default function PendingSos() {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                     <MapPin size={15} color={isDark ? "#4ade80" : "#15803d"} style={{ flexShrink: 0 }} />
-                    <span style={{ color: isDark ? "#cbd5e1" : "#334155", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ color: isDark ? "#f8fafc" : "#334155", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {addresses[sos.id] || "Acquiring GPS Telemetry..."}
                     </span>
                   </div>
@@ -733,7 +660,7 @@ export default function PendingSos() {
                   </div>
                 )}
 
-                {/* Live Camera Feed Button & Player */}
+                {/* Live Camera Feed Button */}
                 <div>
                   <button
                     type="button"
@@ -742,9 +669,9 @@ export default function PendingSos() {
                       handleToggleVideo(sos.id);
                     }}
                     style={{
-                      backgroundColor: activeVideoId === sos.id ? (isDark ? "#334155" : "#334155") : "#dc2626",
+                      background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
                       color: "#ffffff",
-                      padding: "9px 14px",
+                      padding: "10px 14px",
                       borderRadius: "10px",
                       border: "none",
                       fontWeight: "800",
@@ -755,21 +682,13 @@ export default function PendingSos() {
                       justifyContent: "center",
                       alignItems: "center",
                       gap: "8px",
-                      boxShadow: activeVideoId === sos.id ? "none" : "0 4px 12px rgba(220, 38, 38, 0.25)",
+                      boxShadow: "0 4px 14px rgba(220, 38, 38, 0.3)",
                       transition: "all 0.15s ease",
                     }}
                   >
                     <Video size={16} />
-                    <span>{activeVideoId === sos.id ? "Close Live Camera Feed" : "View Live Citizen Camera"}</span>
+                    <span>View Live Citizen Camera</span>
                   </button>
-
-                  {activeVideoId === sos.id && (
-                    <div style={{ width: "100%", height: "260px", marginTop: "12px", borderRadius: "12px", overflow: "hidden", border: "2px solid #dc2626", backgroundColor: "#070b14" }}>
-                      <Suspense fallback={<div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", fontSize: "13px" }}>Loading camera...</div>}>
-                        <LiveVideoPlayer channelName={sos.id} responderId={activeSosDispatches[0]?.responder_id || null} />
-                      </Suspense>
-                    </div>
-                  )}
                 </div>
 
                 {/* Deployed Units List */}
@@ -829,7 +748,7 @@ export default function PendingSos() {
                     />
                   </div>
 
-                  <div style={{ maxHeight: "120px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "5px", backgroundColor: isDark ? "#0f172a" : "#f8fafc", padding: "6px", borderRadius: "10px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", marginBottom: "12px" }}>
+                  <div style={{ maxHeight: "135px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px", backgroundColor: isDark ? "#0c1322" : "#f8fafc", padding: "8px", borderRadius: "10px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", marginBottom: "12px" }}>
                     {respondersLoading ? (
                       <span style={{ fontSize: "11.5px", color: isDark ? "#4ade80" : "#15803d", padding: "6px", textAlign: "center" }}>Loading standby units...</span>
                     ) : availableResponders.length === 0 ? (
@@ -862,28 +781,28 @@ export default function PendingSos() {
                               alignItems: "center",
                               justifyContent: "space-between",
                               gap: "8px",
-                              padding: "6px 9px",
+                              padding: "7px 10px",
                               borderRadius: "8px",
                               backgroundColor: isSelected
-                                ? (isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4")
+                                ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
                                 : (isDark ? "#172338" : "#ffffff"),
                               border: isSelected
-                                ? (isDark ? "1.5px solid #22c55e" : "1.5px solid #15803d")
+                                ? (isDark ? "1.5px solid #4ade80" : "1.5px solid #15803d")
                                 : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
                               cursor: "pointer",
                               transition: "all 0.15s ease",
-                              boxShadow: isSelected ? "0 2px 6px rgba(21, 128, 61, 0.12)" : "0 1px 2px rgba(0,0,0,0.02)",
+                              boxShadow: isSelected ? "0 2px 6px rgba(21, 128, 61, 0.15)" : "0 1px 2px rgba(0,0,0,0.02)",
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0, flex: 1 }}>
                               {/* Custom Checkbox */}
                               <div
                                 style={{
-                                  width: "16px",
-                                  height: "16px",
-                                  borderRadius: "4px",
-                                  backgroundColor: isSelected ? (isDark ? "#22c55e" : "#15803d") : (isDark ? "#1e293b" : "#ffffff"),
-                                  border: isSelected ? "none" : (isDark ? "1.5px solid rgba(255, 255, 255, 0.2)" : "1.5px solid #cbd5e1"),
+                                  width: "18px",
+                                  height: "18px",
+                                  borderRadius: "5px",
+                                  backgroundColor: isSelected ? (isDark ? "#22c55e" : "#15803d") : (isDark ? "#0c1322" : "#ffffff"),
+                                  border: isSelected ? "none" : (isDark ? "1.5px solid rgba(255, 255, 255, 0.25)" : "1.5px solid #cbd5e1"),
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -891,16 +810,17 @@ export default function PendingSos() {
                                   transition: "all 0.15s ease",
                                 }}
                               >
-                                {isSelected && <Check size={11} strokeWidth={3.5} color="#ffffff" />}
+                                {isSelected && <Check size={12} strokeWidth={3.5} color="#ffffff" />}
                               </div>
 
                               {/* Online status dot */}
                               <span
                                 style={{
-                                  width: "6px",
-                                  height: "6px",
+                                  width: "7px",
+                                  height: "7px",
                                   borderRadius: "50%",
                                   backgroundColor: "#22c55e",
+                                  boxShadow: "0 0 6px rgba(34, 197, 94, 0.6)",
                                   flexShrink: 0,
                                 }}
                               />
@@ -908,22 +828,22 @@ export default function PendingSos() {
                               {/* Responder Name */}
                               <span
                                 style={{
-                                  fontSize: "12px",
-                                  fontWeight: isSelected ? "800" : "700",
+                                  fontSize: "12.5px",
+                                  fontWeight: isSelected ? "800" : "600",
                                   color: isSelected
                                     ? (isDark ? "#4ade80" : "#14532d")
-                                    : (isDark ? "#cbd5e1" : "#0f172a"),
+                                    : (isDark ? "#f8fafc" : "#0f172a"),
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
                                 }}
                               >
-                                {getResponderOptionLabel(r)}
+                                {`${r.unit_name ? `${r.unit_name} - ` : ""}${r.first_name || ""} ${r.last_name || ""}`.trim() || r.email || "Responder"}
                               </span>
                             </div>
 
                             {/* Department Badge */}
-                            {renderDepartmentBadge(r.department, isDark)}
+                            <DepartmentBadge department={r.department} isDark={isDark} size="sm" />
                           </div>
                         );
                       });
@@ -944,7 +864,7 @@ export default function PendingSos() {
                         gap: "6px",
                         padding: "10px 14px",
                         borderRadius: "10px",
-                        border: "none",
+                        border: selectedIds.length > 0 ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0"),
                         background: selectedIds.length > 0
                           ? "linear-gradient(135deg, #15803d 0%, #166534 100%)"
                           : (isDark ? "#1e293b" : "#cbd5e1"),
@@ -952,14 +872,12 @@ export default function PendingSos() {
                         fontSize: "13px",
                         fontWeight: "800",
                         cursor: selectedIds.length > 0 ? "pointer" : "not-allowed",
-                        boxShadow: selectedIds.length > 0 ? "0 4px 12px rgba(21, 128, 61, 0.25)" : "none",
+                        boxShadow: selectedIds.length > 0 ? "0 4px 14px rgba(34, 197, 94, 0.35)" : "none",
                       }}
                     >
                       {assigningId === sos.id ? <Loader className="animate-spin" size={15} /> : <Send size={15} />}
                       <span>{assigningId === sos.id ? "Deploying..." : `Dispatch (${selectedIds.length})`}</span>
                     </button>
-
-
 
                     <button
                       type="button"
@@ -988,6 +906,200 @@ export default function PendingSos() {
           })}
         </div>
       </main>
+
+      {/* LIVE CITIZEN CAMERA MODAL */}
+      {activeVideoId && (() => {
+        const activeSos = sosSignals.find((s) => s.id === activeVideoId);
+        const activeSosDispatches = dispatches.filter((d) => d.sos_id === activeVideoId && d.status?.toLowerCase() !== "resolved");
+        const activeSosUser = activeSos?.expand?.user || activeSos?.expand?.users;
+        const callerName = activeSosUser ? `${activeSosUser.first_name || ""} ${activeSosUser.last_name || ""}`.trim() : "Resident";
+
+        return (
+          <div
+            className="lightboxModalBackdrop"
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(3, 7, 18, 0.88)",
+              backdropFilter: "blur(12px)",
+              zIndex: 99999,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "20px",
+            }}
+            onClick={() => handleToggleVideo(activeVideoId)}
+          >
+            <div
+              className="lightboxModalCard"
+              style={{
+                backgroundColor: isDark ? "#131c2e" : "#0f172a",
+                borderRadius: "20px",
+                width: "100%",
+                maxWidth: "960px",
+                overflow: "hidden",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #334155",
+                boxShadow: isDark ? "0 25px 60px -15px rgba(0, 0, 0, 0.9)" : "0 25px 60px -15px rgba(0, 0, 0, 0.6)",
+                display: "flex",
+                flexDirection: "column",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 22px",
+                  borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.1)",
+                  backgroundColor: isDark ? "#172338" : "#1e293b",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "10px",
+                      backgroundColor: "rgba(239, 68, 68, 0.2)",
+                      border: "1px solid rgba(239, 68, 68, 0.4)",
+                      color: "#f87171",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                    className="urgent-status-pulse"
+                  >
+                    <Video size={18} color="#f87171" />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#f8fafc", letterSpacing: "-0.01em" }}>
+                        Live Citizen Camera Stream
+                      </h3>
+                      <span
+                        style={{
+                          fontSize: "10.5px",
+                          fontWeight: "800",
+                          backgroundColor: "rgba(239, 68, 68, 0.25)",
+                          color: "#f87171",
+                          border: "1px solid rgba(239, 68, 68, 0.5)",
+                          padding: "2px 7px",
+                          borderRadius: "6px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#ef4444" }} className="animate-ping" />
+                        Live Feed
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "12px", color: "#94a3b8", display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <User size={12} /> {callerName} • <Phone size={12} /> {activeSosUser?.contact_number || "No contact"} • Brgy. {activeSosUser?.baranggay || "Lagonglong"}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="animatedCloseButton"
+                  onClick={() => handleToggleVideo(activeVideoId)}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #475569",
+                    backgroundColor: isDark ? "#1e293b" : "#334155",
+                    color: "#f8fafc",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={17} />
+                </button>
+              </div>
+
+              {/* Video Player Box */}
+              <div style={{ width: "100%", height: "520px", maxHeight: "65vh", backgroundColor: "#070b14", position: "relative" }}>
+                <Suspense
+                  fallback={
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8", gap: "10px" }}>
+                      <Loader className="animate-spin" size={28} color="#ef4444" />
+                      <span style={{ fontSize: "13.5px", fontWeight: "700" }}>Connecting to high-definition stream...</span>
+                    </div>
+                  }
+                >
+                  <LiveVideoPlayer
+                    channelName={activeVideoId}
+                    responderId={activeSosDispatches[0]?.responder_id || null}
+                  />
+                </Suspense>
+              </div>
+
+              {/* Modal Footer / Telemetry Bar */}
+              <div
+                style={{
+                  padding: "14px 22px",
+                  borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.1)",
+                  backgroundColor: isDark ? "#172338" : "#1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "14px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", fontSize: "12.5px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#f8fafc" }}>
+                    <MapPin size={14} color="#4ade80" />
+                    <span style={{ color: "#cbd5e1" }}>
+                      {addresses[activeVideoId] || (activeSos?.latitude ? `Lat: ${activeSos.latitude.toFixed(5)}, Lng: ${activeSos.longitude.toFixed(5)}` : "GPS Telemetry")}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <ShieldAlert size={14} color={activeSosDispatches.length > 0 ? "#4ade80" : "#f87171"} />
+                    <span style={{ color: "#94a3b8" }}>Responders:</span>
+                    {activeSosDispatches.length > 0 ? (
+                      <span style={{ color: "#4ade80", fontWeight: "700" }}>
+                        {activeSosDispatches.length} Unit(s) Active
+                      </span>
+                    ) : (
+                      <span style={{ color: "#f87171", fontWeight: "700" }}>
+                        No Units Dispatched Yet
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleVideo(activeVideoId)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #475569",
+                    backgroundColor: isDark ? "#1e293b" : "#334155",
+                    color: "#f8fafc",
+                    fontSize: "12.5px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                  }}
+                >
+                  Close Live Feed
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* FULLSCREEN MAP LIGHTBOX */}
       {selectedMap && (

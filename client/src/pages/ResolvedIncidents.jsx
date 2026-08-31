@@ -66,50 +66,60 @@ const getAvatarStyle = (name) => {
   return palettes[index];
 };
 
-const getTypeBadge = (type, isSos) => {
+const getTypeBadge = (type, isSos = false) => {
   if (isSos) {
     return {
-      label: "SOS DISTRESS",
+      label: "SOS RESCUE",
       icon: <Radio size={13} />,
       bg: "#fef2f2",
       color: "#b91c1c",
       border: "#fecaca",
     };
   }
-  switch ((type || "").toLowerCase()) {
-    case "fire":
-      return {
-        label: "FIRE EMERGENCY",
-        icon: <Flame size={13} />,
-        bg: "#fff7ed",
-        color: "#c2410c",
-        border: "#ffedd5",
-      };
-    case "accident":
-      return {
-        label: "ROAD ACCIDENT",
-        icon: <Car size={13} />,
-        bg: "#fefce8",
-        color: "#a16207",
-        border: "#fef9c3",
-      };
-    case "landslide":
-      return {
-        label: "LANDSLIDE",
-        icon: <Mountain size={13} />,
-        bg: "#fef3c7",
-        color: "#92400e",
-        border: "#fde68a",
-      };
-    default:
-      return {
-        label: (type || "INCIDENT").toUpperCase(),
-        icon: <AlertTriangle size={13} />,
-        bg: "#eff6ff",
-        color: "#1d4ed8",
-        border: "#dbeafe",
-      };
+  const t = (type || "").toLowerCase();
+  if (t.includes("fire")) {
+    return {
+      label: "FIRE EMERGENCY",
+      icon: <Flame size={13} />,
+      bg: "#fef2f2",
+      color: "#b91c1c",
+      border: "#fecaca",
+    };
   }
+  if (t.includes("accident") || t.includes("traffic") || t.includes("car")) {
+    return {
+      label: "ROAD ACCIDENT",
+      icon: <Car size={13} />,
+      bg: "#fefce8",
+      color: "#854d0e",
+      border: "#fef08a",
+    };
+  }
+  if (t.includes("police") || t.includes("crime") || t.includes("security") || t.includes("pnp")) {
+    return {
+      label: "POLICE & SECURITY",
+      icon: <Shield size={13} />,
+      bg: "#eff6ff",
+      color: "#1d4ed8",
+      border: "#bfdbfe",
+    };
+  }
+  if (t.includes("landslide")) {
+    return {
+      label: "LANDSLIDE",
+      icon: <Mountain size={13} />,
+      bg: "#fef3c7",
+      color: "#78350f",
+      border: "#fed7aa",
+    };
+  }
+  return {
+    label: (type || "INCIDENT").toUpperCase(),
+    icon: <AlertTriangle size={13} />,
+    bg: "#eff6ff",
+    color: "#1d4ed8",
+    border: "#dbeafe",
+  };
 };
 
 export default function ResolvedIncidents() {
