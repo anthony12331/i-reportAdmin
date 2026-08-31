@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import assistantSvg from "../assets/icons/assistant.svg";
+import phoneCallSvg from "../assets/icons/phone-call.svg";
 
 /**
  * ============================================================================
@@ -49,6 +50,8 @@ export const CUSTOM_ICONS = {
   sos: Radio, // Critical SOS Beacon (Crimson)
   assistant: assistantSvg, // Assistant / Backup reinforcement icon
   backup: assistantSvg, // Backup Siren Beacon icon
+  phone: phoneCallSvg, // Phone Call Icon
+  phoneCall: phoneCallSvg, // Phone Call Icon
   general: AlertOctagon, // General / Other
 };
 

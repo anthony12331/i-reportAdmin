@@ -40,6 +40,7 @@ import { getReadableAddress } from "../utils/utils";
 import { getIncidentResponseTime, getIncidentTimingMetrics } from "../utils/timeUtils";
 import CustomIcon from "../components/CustomIcon";
 import { getCategoryBadgeMeta, getDepartmentBadgeMeta } from "../utils/categoryIcons";
+import phoneCallSvg from "../assets/icons/phone-call.svg";
 
 const formatDate = (value) => {
   if (!value) return "Not available";
@@ -897,9 +898,15 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                             <strong style={{ fontSize: "13.5px", color: isDark ? "#f8fafc" : "#0f172a", display: "block" }}>
                               {requester ? displayName(requester) : "Primary Field Responder"}
                             </strong>
-                            <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", marginTop: "2px" }}>
-                              Unit: {requester?.unit_name || (requester?.department ? `${requester.department.toUpperCase()} Team` : "Field Unit")}
-                              {requester?.contact_number && ` • 📞 ${requester.contact_number}`}
+                            <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", marginTop: "2px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              <span>Unit: {requester?.unit_name || (requester?.department ? `${requester.department.toUpperCase()} Team` : "Field Unit")}</span>
+                              {requester?.contact_number && (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                  <span>•</span>
+                                  <CustomIcon icon={phoneCallSvg} size={12} color={isDark ? "#94a3b8" : "#64748b"} />
+                                  <span>{requester.contact_number}</span>
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -920,9 +927,15 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                                 <strong style={{ fontSize: "13.5px", color: isDark ? "#f8fafc" : "#0f172a", display: "block" }}>
                                   {displayName(assignedResp)}
                                 </strong>
-                                <div style={{ fontSize: "12px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "600", marginTop: "2px" }}>
-                                  Unit: {assignedResp.unit_name || `${assignedResp.department?.toUpperCase()} Backup`}
-                                  {assignedResp.contact_number && ` • 📞 ${assignedResp.contact_number}`}
+                                <div style={{ fontSize: "12px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "600", marginTop: "2px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                  <span>Unit: {assignedResp.unit_name || `${assignedResp.department?.toUpperCase()} Backup`}</span>
+                                  {assignedResp.contact_number && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                      <span>•</span>
+                                      <CustomIcon icon={phoneCallSvg} size={12} color={isDark ? "#4ade80" : "#15803d"} />
+                                      <span>{assignedResp.contact_number}</span>
+                                    </span>
+                                  )}
                                 </div>
                                 {bReq.accepted_at && (
                                   <div style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", marginTop: "4px" }}>

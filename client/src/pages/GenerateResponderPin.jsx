@@ -1568,7 +1568,6 @@ export default function GenerateResponderPin() {
                             {/* Department */}
                             <td>
                               <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                                <Building2 size={14} color={isDark ? "#94a3b8" : "#64748b"} />
                                 <span
                                   style={{
                                     fontSize: "12.5px",

@@ -41,7 +41,6 @@ export default function DepartmentBadge({
         ...style,
       }}
     >
-      <CustomIcon icon={meta.icon} size={iconSize} color={meta.color} />
       <span>{showFullLabel ? meta.label : meta.shortLabel}</span>
     </span>
   );
