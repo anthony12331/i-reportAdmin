@@ -288,21 +288,23 @@ export default function VerifiedUserDetails() {
           </button>
         </div>
 
-        {/* PROFILE BANNER CARD */}
+        {/* TOP CITIZEN BANNER */}
         <div
-          className="premium-table-card verified-user-profile-banner"
+          className="premium-table-card verified-user-banner"
           style={{
             padding: "24px 28px",
             marginBottom: "24px",
-            borderLeft: isSuspended ? "5px solid #ef4444" : "5px solid #15803d",
+            backgroundColor: isDark ? "#131c2e" : "#ffffff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+            borderLeft: `5px solid ${isSuspended ? "#ef4444" : "#15803d"}`,
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "flex-start",
             flexWrap: "wrap",
             gap: "20px",
           }}
         >
-          <div className="verified-user-banner-profile" style={{ display: "flex", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
+          <div className="verified-user-banner-profile" style={{ display: "flex", alignItems: "flex-start", gap: "18px", minWidth: 0, flex: 1 }}>
             <div
               onClick={() => selfieUrl && setPreviewImage({ src: selfieUrl, label: "Citizen Profile Photo" })}
               style={{
@@ -320,6 +322,7 @@ export default function VerifiedUserDetails() {
                 overflow: "hidden",
                 cursor: selfieUrl ? "zoom-in" : "default",
                 flexShrink: 0,
+                marginTop: "2px",
               }}
             >
               {selfieUrl ? (
@@ -329,32 +332,75 @@ export default function VerifiedUserDetails() {
               )}
             </div>
 
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-                <h1 style={{ margin: 0, fontSize: "clamp(18px, 2.5vw, 22px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a" }}>
-                  {fullName || "Verified Citizen"}
-                </h1>
-                <span style={{
-                  fontSize: "12px",
-                  color: isDark ? "#4ade80" : "#15803d",
-                  fontWeight: "800",
-                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
-                  border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0"
-                }}>
-                  Citizen ID #{user.user_id || "N/A"}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              {/* Overline: Citizen ID badge & Account Status */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "800",
+                    padding: "3px 9px",
+                    borderRadius: "6px",
+                    backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                    color: isDark ? "#4ade80" : "#15803d",
+                    border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <span style={{ color: isDark ? "#86efac" : "#166534" }}>Citizen ID:</span>
+                  <span style={{ fontFamily: "monospace", fontWeight: "800" }}>#{user.user_id || "N/A"}</span>
+                </span>
+
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    padding: "3px 9px",
+                    borderRadius: "6px",
+                    backgroundColor: isDark ? "#1e293b" : "#f1f5f9",
+                    color: isDark ? "#cbd5e1" : "#475569",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                  }}
+                >
+                  Account: <strong style={{ color: isSuspended ? (isDark ? "#f87171" : "#b91c1c") : (isDark ? "#4ade80" : "#15803d") }}>{isSuspended ? "Suspended" : "Verified Citizen"}</strong>
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: isDark ? "#94a3b8" : "#64748b", fontSize: "13px", flexWrap: "wrap" }}>
-                <span>Brgy. {user.baranggay || "Lagonglong"}</span>
+
+              {/* Citizen Full Name Heading */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                <User size={20} color={isDark ? "#4ade80" : "#15803d"} style={{ flexShrink: 0 }} />
+                <h1 style={{ margin: 0, fontSize: "clamp(18px, 2.5vw, 22px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", letterSpacing: "-0.02em" }}>
+                  {fullName || "Verified Citizen"}
+                </h1>
+              </div>
+
+              {/* Detailed Metadata Row */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: isDark ? "#94a3b8" : "#64748b", fontSize: "12.5px", flexWrap: "wrap" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                  <MapPin size={13} color={isDark ? "#4ade80" : "#15803d"} />
+                  <span><strong>Barangay:</strong> Brgy. {user.baranggay || "Lagonglong"}</span>
+                </span>
                 <span>•</span>
-                <span>Submitted: {formatDate(user.date_time || user.created)}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                  <Calendar size={13} />
+                  <span><strong>Registered:</strong> {formatDate(user.date_time || user.created)}</span>
+                </span>
+                {user.contact_number && (
+                  <>
+                    <span>•</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <Phone size={13} />
+                      <span><strong>Contact:</strong> {user.contact_number}</span>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="verified-user-banner-badge" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="verified-user-banner-badge" style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0, marginTop: "2px" }}>
             <span
               style={{
                 display: "inline-flex",

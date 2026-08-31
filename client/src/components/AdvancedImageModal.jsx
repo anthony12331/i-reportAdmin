@@ -271,7 +271,9 @@ export default function AdvancedImageModal({
               transform: `translate(${position.x}px, ${position.y}px) rotate(${rotation}deg) scale(${scale})`,
               transformOrigin: "center center",
               transition: isDragging ? "none" : "transform 0.15s ease-out",
-              display: "inline-block",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <img
@@ -279,11 +281,15 @@ export default function AdvancedImageModal({
               alt={alt}
               draggable={false}
               style={{
-                maxWidth: "85vw",
-                maxHeight: "75vh",
+                width: "auto",
+                height: "auto",
+                minWidth: "min(560px, 88vw)",
+                minHeight: "min(400px, 68vh)",
+                maxWidth: "88vw",
+                maxHeight: "78vh",
                 objectFit: "contain",
-                borderRadius: "8px",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8)",
+                borderRadius: "12px",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.85)",
                 pointerEvents: "none",
               }}
             />

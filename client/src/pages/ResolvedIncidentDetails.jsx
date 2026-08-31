@@ -268,6 +268,16 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
   const responseTime = getIncidentResponseTime(incident);
   const timing = getIncidentTimingMetrics(incident);
 
+  const incidentLocation =
+    address ||
+    (incident.barangay || incident.baranggay || reporter?.baranggay || reporter?.barangay
+      ? `Brgy. ${incident.barangay || incident.baranggay || reporter?.baranggay || reporter?.barangay}, Lagonglong`
+      : null) ||
+    incident.location ||
+    (incident.latitude != null && incident.longitude != null
+      ? `Coordinates (${Number(incident.latitude).toFixed(5)}, ${Number(incident.longitude).toFixed(5)})`
+      : `Case #${incident.id}`);
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: isDark ? "#0b0f19" : "#f8fafc", color: isDark ? "#f8fafc" : "#0f172a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
@@ -332,12 +342,11 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
             borderLeft: `5px solid ${cat.color}`,
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
+            alignItems: "flex-start",
             gap: "20px",
           }}
         >
-          <div className="resolved-header-title-group" style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div className="resolved-header-title-group" style={{ display: "flex", alignItems: "flex-start", gap: "16px", minWidth: 0, flex: 1 }}>
             <div
               style={{
                 width: "52px",
@@ -349,16 +358,33 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
+                marginTop: "2px",
               }}
             >
               {cat.icon}
             </div>
 
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
-                <h1 style={{ margin: 0, fontSize: "clamp(18px, 2.5vw, 22px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", letterSpacing: "-0.02em" }}>
-                  Case #{incident.id}
-                </h1>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              {/* Overline with Case ID & Category */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "800",
+                    padding: "3px 9px",
+                    borderRadius: "6px",
+                    backgroundColor: isDark ? "#1e293b" : "#f1f5f9",
+                    color: isDark ? "#cbd5e1" : "#475569",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Case ID:</span>
+                  <span style={{ fontFamily: "monospace", fontWeight: "700" }}>#{incident.id}</span>
+                </span>
+
                 <span
                   className={`details-type-badge type-${(incident.type || (isSos ? "sos" : "default")).toLowerCase()}`}
                   style={{
@@ -376,6 +402,15 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 </span>
               </div>
 
+              {/* Main Incident Location */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "8px" }}>
+                <MapPin size={20} color={isDark ? "#4ade80" : "#15803d"} style={{ flexShrink: 0, marginTop: "3px" }} />
+                <h1 style={{ margin: 0, fontSize: "clamp(17px, 2.2vw, 21px)", fontWeight: "900", color: isDark ? "#f8fafc" : "#0f172a", letterSpacing: "-0.02em", lineHeight: "1.3" }}>
+                  {incidentLocation}
+                </h1>
+              </div>
+
+              {/* Metadata row */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px", color: isDark ? "#94a3b8" : "#64748b", fontSize: "12.5px", flexWrap: "wrap" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <CalendarDays size={13} /> Reported: {formatDate(incident.created)}
@@ -385,14 +420,14 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                   <Clock size={13} /> Resolved: {formatDate(incident.updated)}
                 </span>
                 <span>•</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#0f766e", fontWeight: "800", backgroundColor: "#f0fdfa", padding: "2px 8px", borderRadius: "6px", border: "1px solid #99f6e4" }}>
-                  <Timer size={12} color="#0d9488" /> {responseTime}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: isDark ? "#2dd4bf" : "#0f766e", fontWeight: "800", backgroundColor: isDark ? "rgba(20, 184, 166, 0.16)" : "#f0fdfa", padding: "2px 8px", borderRadius: "6px", border: isDark ? "1px solid rgba(20, 184, 166, 0.35)" : "1px solid #99f6e4" }}>
+                  <Timer size={12} color={isDark ? "#2dd4bf" : "#0d9488"} /> Response Time: {responseTime}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="resolved-header-badge-group" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <div className="resolved-header-badge-group" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, marginTop: "2px" }}>
             {reportersCount > 1 && (
               <span
                 style={{
@@ -433,9 +468,10 @@ export default function ResolvedIncidentDetails({ recordType = "incident" }) {
                 fontSize: "12.5px",
                 fontWeight: "800",
                 textTransform: "uppercase",
+                flexShrink: 0,
               }}
             >
-              <CheckCircle2 size={15} />
+              <CheckCircle2 size={16} />
               {incident.status || "Resolved"}
             </span>
           </div>
