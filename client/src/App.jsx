@@ -345,7 +345,7 @@ function App() {
     const syncVersion = ++alarmSyncVersionRef.current;
 
     try {
-      const [openIncidentRecords, openSosRecords, openBackupRecords] = await Promise.all([
+      const [openIncidentRecords, openSosRecords] = await Promise.all([
         pb.collection("incident_reports").getFullList({
           filter: 'status = "new" || status = "pending"',
           fields: "id",
@@ -353,11 +353,6 @@ function App() {
         }),
         pb.collection("sos_tracking").getFullList({
           filter: 'status = "active" && dispatch_status != "assigned"',
-          fields: "id",
-          requestKey: null,
-        }),
-        pb.collection("backup_requests").getFullList({
-          filter: 'dispatch_status = "pending"',
           fields: "id",
           requestKey: null,
         }),
@@ -374,7 +369,7 @@ function App() {
         openIncidentRecords.map((record) => record.id)
       );
       const nextSosIds = new Set(openSosRecords.map((record) => record.id));
-      const nextBackupIds = new Set(openBackupRecords.map((record) => record.id));
+      const nextBackupIds = new Set();
 
       const hasNewIncident = [...nextIncidentIds].some(
         (id) => !previousIncidentIds.has(id)
@@ -489,17 +484,7 @@ function App() {
             handleSosEvent(e.record, e.action);
           });
           
-        backupUnsubscribe = await pb
-          .collection("backup_requests")
-          .subscribe("*", (e) => {
-            if (!isMountedRef.current || !e?.record) return;
-            const shouldAlert = syncSignalStateFromRecord(
-              "backup_requests",
-              e.record,
-              e.action
-            );
-            // Optionally could emit a global event for the backup map like handled for SOS
-          });
+
       } catch (subError) {
         console.error(
           "Real-time telemetry streaming failed to mount:",
