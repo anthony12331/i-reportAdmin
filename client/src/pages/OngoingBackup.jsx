@@ -50,16 +50,22 @@ export default function OngoingBackup() {
     fetchBackups();
 
     let unsubscribeBackups;
+    let timeout;
+    const debouncedFetch = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        fetchBackups();
+      }, 800);
+    };
 
     const setupSubscriptions = async () => {
-      unsubscribeBackups = await pb.collection("backup_requests").subscribe("*", () => {
-        fetchBackups();
-      });
+      unsubscribeBackups = await pb.collection("backup_requests").subscribe("*", debouncedFetch);
     };
 
     setupSubscriptions();
 
     return () => {
+      clearTimeout(timeout);
       if (unsubscribeBackups) unsubscribeBackups();
     };
   }, []);
@@ -343,34 +349,6 @@ export default function OngoingBackup() {
                     </button>
                   </div>
                 )}
-
-                {/* Complete Action Button */}
-                <div style={{ marginTop: "auto", borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", paddingTop: "12px" }}>
-                  <button
-                    type="button"
-                    onClick={() => handleResolve(backup.id)}
-                    disabled={processingId === backup.id}
-                    style={{
-                      width: "100%",
-                      padding: "10px 16px",
-                      borderRadius: "10px",
-                      border: "none",
-                      background: "linear-gradient(135deg, #15803d 0%, #166534 100%)",
-                      color: "#ffffff",
-                      fontSize: "13px",
-                      fontWeight: "800",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      boxShadow: "0 4px 12px rgba(21, 128, 61, 0.25)",
-                    }}
-                  >
-                    {processingId === backup.id ? <Loader className="animate-spin" size={15} /> : <CheckCircle2 size={16} />}
-                    <span>{processingId === backup.id ? "Completing..." : "Complete Backup Deployment"}</span>
-                  </button>
-                </div>
               </div>
             );
           })}
