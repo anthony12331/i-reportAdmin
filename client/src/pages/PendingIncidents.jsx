@@ -191,14 +191,17 @@ export default function PendingIncidents() {
   useEffect(() => {
     fetchAvailableResponders();
     let unsubscribe;
+    let timeout;
     const startResponderSubscription = async () => {
       unsubscribe = await pb.collection("responder_accounts").subscribe("*", () => {
-        fetchAvailableResponders();
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fetchAvailableResponders(), 800);
       });
     };
     startResponderSubscription();
     return () => {
       if (typeof unsubscribe === "function") unsubscribe().catch(() => {});
+      clearTimeout(timeout);
     };
   }, [fetchAvailableResponders]);
 

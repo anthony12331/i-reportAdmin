@@ -122,11 +122,14 @@ export default function RequestBackup() {
     let unsubscribeResponders;
 
     const setupSubscriptions = async () => {
+      let timeout1, timeout2;
       unsubscribeBackups = await pb.collection("backup_requests").subscribe("*", (e) => {
-        fetchBackups();
+        clearTimeout(timeout1);
+        timeout1 = setTimeout(() => fetchBackups(), 800);
       });
       unsubscribeResponders = await pb.collection("responder_accounts").subscribe("*", () => {
-        fetchAvailableResponders();
+        clearTimeout(timeout2);
+        timeout2 = setTimeout(() => fetchAvailableResponders(), 800);
       });
     };
 

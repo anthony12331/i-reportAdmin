@@ -224,7 +224,7 @@ export default function Sidebar({
     let fetchTimeout;
     const debouncedFetchCounts = () => {
       clearTimeout(fetchTimeout);
-      fetchTimeout = setTimeout(fetchCounts, 400);
+      fetchTimeout = setTimeout(fetchCounts, 5000);
     };
 
     const startSubscriptions = async () => {

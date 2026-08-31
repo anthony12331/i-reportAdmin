@@ -281,14 +281,18 @@ export default function PendingSos() {
       await fetchSosSignals();
       await fetchAvailableResponders();
 
+      let timeout1, timeout2, timeout3;
       unsubSos = await pb.collection("sos_tracking").subscribe("*", () => {
-        if (isMounted) fetchSosSignals();
+        clearTimeout(timeout1);
+        timeout1 = setTimeout(() => { if (isMounted) fetchSosSignals(); }, 800);
       });
       unsubDispatches = await pb.collection("dispatches").subscribe("*", () => {
-        if (isMounted) fetchSosSignals();
+        clearTimeout(timeout2);
+        timeout2 = setTimeout(() => { if (isMounted) fetchSosSignals(); }, 800);
       });
       unsubResponders = await pb.collection("responder_accounts").subscribe("*", () => {
-        if (isMounted) fetchAvailableResponders();
+        clearTimeout(timeout3);
+        timeout3 = setTimeout(() => { if (isMounted) fetchAvailableResponders(); }, 800);
       });
     };
 

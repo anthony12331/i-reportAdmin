@@ -120,15 +120,16 @@ export default function OngoingIncidents() {
       await fetchIncidents();
       if (!isMounted) return;
 
-      unsubIncidents = await pb.collection("incident_reports").subscribe("*", () => {
-        if (isMounted) fetchIncidents();
-      });
-      unsubDispatches = await pb.collection("dispatches").subscribe("*", () => {
-        if (isMounted) fetchIncidents();
-      });
-      unsubResponders = await pb.collection("responder_accounts").subscribe("*", () => {
-        if (isMounted) fetchIncidents();
-      });
+      let fetchTimeout;
+      const debouncedFetch = () => {
+        if (!isMounted) return;
+        clearTimeout(fetchTimeout);
+        fetchTimeout = setTimeout(() => fetchIncidents(), 800);
+      };
+
+      unsubIncidents = await pb.collection("incident_reports").subscribe("*", debouncedFetch);
+      unsubDispatches = await pb.collection("dispatches").subscribe("*", debouncedFetch);
+      unsubResponders = await pb.collection("responder_accounts").subscribe("*", debouncedFetch);
     };
 
     loadAndSubscribe();
