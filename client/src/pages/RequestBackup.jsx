@@ -210,8 +210,11 @@ export default function RequestBackup() {
       // Update backup request
       const updateData = {
         assigned_responder: selectedIds[0], // primary
-        dispatch_status: "dispatched",
+        dispatch_status: "assigned",
       };
+      if (createdDispatchIds.length > 0) {
+        updateData.dispatch_id = createdDispatchIds[0];
+      }
       await pb.collection("backup_requests").update(backupId, updateData);
 
       const requesterName = targetBackup?.expand?.requester_id
