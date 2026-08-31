@@ -55,7 +55,7 @@ export default function OngoingBackup() {
       clearTimeout(timeout);
       timeout = setTimeout(() => {
         fetchBackups();
-      }, 800);
+      }, 2000);
     };
 
     const setupSubscriptions = async () => {
