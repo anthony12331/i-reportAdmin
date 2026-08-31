@@ -290,6 +290,12 @@ export default function Sidebar({
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
+  const getIconColor = (path) => {
+    const active = location.pathname === path || location.pathname.startsWith(`${path}/`);
+    if (active) return isDark ? "#4ade80" : "#15803d";
+    return isDark ? "#94a3b8" : "#64748b";
+  };
+
   const getBadgeStyle = (colorType = "red") => {
     if (colorType === "red") {
       return {
@@ -417,7 +423,7 @@ export default function Sidebar({
             onClick={() => navigate("/dashboard")}
           >
             <div style={styles.navLinkGroup}>
-              <LayoutDashboard size={17} color={isActive("/dashboard") ? "#15803d" : "#64748b"} />
+              <LayoutDashboard size={17} color={getIconColor("/dashboard")} />
               <span>Dashboard</span>
             </div>
           </div>
@@ -431,7 +437,7 @@ export default function Sidebar({
                 onClick={() => navigate("/pending-incidents")}
               >
                 <div style={styles.navLinkGroup}>
-                  <AlertTriangle size={17} color={isActive("/pending-incidents") ? "#15803d" : "#64748b"} />
+                  <AlertTriangle size={17} color={getIconColor("/pending-incidents")} />
                   <span>Pending Reports</span>
                 </div>
                 {counts.pendingIncidents > 0 && (
@@ -444,7 +450,7 @@ export default function Sidebar({
                 onClick={() => navigate("/ongoing-incidents")}
               >
                 <div style={styles.navLinkGroup}>
-                  <Activity size={17} color={isActive("/ongoing-incidents") ? "#15803d" : "#64748b"} />
+                  <Activity size={17} color={getIconColor("/ongoing-incidents")} />
                   <span>Ongoing Incidents</span>
                 </div>
                 {counts.ongoingIncidents > 0 && (
@@ -457,7 +463,7 @@ export default function Sidebar({
                 onClick={() => navigate("/resolved-incidents")}
               >
                 <div style={styles.navLinkGroup}>
-                  <CheckCircle2 size={17} color={location.pathname === "/resolved-incidents" ? "#15803d" : "#64748b"} />
+                  <CheckCircle2 size={17} color={getIconColor("/resolved-incidents")} />
                   <span>Resolved Incidents</span>
                 </div>
               </div>
@@ -467,7 +473,7 @@ export default function Sidebar({
                 onClick={() => navigate("/incident-map")}
               >
                 <div style={styles.navLinkGroup}>
-                  <Map size={17} color={isActive("/incident-map") ? "#15803d" : "#64748b"} />
+                  <Map size={17} color={getIconColor("/incident-map")} />
                   <span>Incidents Map</span>
                 </div>
               </div>
@@ -477,7 +483,7 @@ export default function Sidebar({
                   onClick={() => navigate("/resolved-incidents")}
                 >
                   <div style={styles.navLinkGroup}>
-                    <ClipboardList size={15} />
+                    <ClipboardList size={15} color={isDark ? "#4ade80" : "#15803d"} />
                     <span>Incident Details</span>
                   </div>
                 </div>
@@ -488,7 +494,7 @@ export default function Sidebar({
                 onClick={() => navigate("/request-backup")}
               >
                 <div style={styles.navLinkGroup}>
-                  <ShieldCheck size={17} color={isActive("/request-backup") ? "#15803d" : "#64748b"} />
+                  <ShieldCheck size={17} color={getIconColor("/request-backup")} />
                   <span>Request Backup</span>
                 </div>
                 {counts.pendingBackups > 0 && <span style={getBadgeStyle("red")}>{counts.pendingBackups}</span>}
@@ -499,7 +505,7 @@ export default function Sidebar({
                 onClick={() => navigate("/ongoing-backup")}
               >
                 <div style={styles.navLinkGroup}>
-                  <Activity size={17} color={isActive("/ongoing-backup") ? "#15803d" : "#64748b"} />
+                  <Activity size={17} color={getIconColor("/ongoing-backup")} />
                   <span>Ongoing Backup</span>
                 </div>
                 {counts.ongoingBackups > 0 && <span style={getBadgeStyle("orange")}>{counts.ongoingBackups}</span>}
@@ -535,7 +541,7 @@ export default function Sidebar({
                   >
                     <Radio
                       size={14}
-                      color={counts.pendingSos > 0 ? (isDark ? "#f87171" : "#dc2626") : isActive("/pending-sos") ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b")}
+                      color={counts.pendingSos > 0 ? (isDark ? "#f87171" : "#dc2626") : getIconColor("/pending-sos")}
                     />
                   </div>
                   <span style={counts.pendingSos > 0 ? { color: isDark ? "#f87171" : "#dc2626", fontWeight: "800" } : {}}>
@@ -557,7 +563,7 @@ export default function Sidebar({
                 onClick={() => navigate("/pending-users")}
               >
                 <div style={styles.navLinkGroup}>
-                  <Users size={17} color={isActive("/pending-users") ? "#15803d" : "#64748b"} />
+                  <Users size={17} color={getIconColor("/pending-users")} />
                   <span>Pending Verification</span>
                 </div>
                 {counts.pendingUsers > 0 && (
@@ -570,7 +576,7 @@ export default function Sidebar({
                 onClick={() => navigate("/verified-users")}
               >
                 <div style={styles.navLinkGroup}>
-                  <ShieldCheck size={17} color={location.pathname === "/verified-users" ? "#15803d" : "#64748b"} />
+                  <ShieldCheck size={17} color={getIconColor("/verified-users")} />
                   <span>Verified Users</span>
                 </div>
               </div>
@@ -580,7 +586,7 @@ export default function Sidebar({
                   onClick={() => navigate("/verified-users")}
                 >
                   <div style={styles.navLinkGroup}>
-                    <ClipboardList size={15} />
+                    <ClipboardList size={15} color={isDark ? "#4ade80" : "#15803d"} />
                     <span>User Details</span>
                   </div>
                 </div>
@@ -596,7 +602,7 @@ export default function Sidebar({
                 onClick={() => navigate("/reports")}
               >
                 <div style={styles.navLinkGroup}>
-                  <BarChart3 size={17} color={isActive("/reports") ? "#15803d" : "#64748b"} />
+                  <BarChart3 size={17} color={getIconColor("/reports")} />
                   <span>Generate Reports</span>
                 </div>
               </div>
@@ -605,7 +611,7 @@ export default function Sidebar({
                 onClick={() => navigate("/calamities")}
               >
                 <div style={styles.navLinkGroup}>
-                  <AlertTriangle size={17} color={isActive("/calamities") ? "#15803d" : "#64748b"} />
+                  <AlertTriangle size={17} color={getIconColor("/calamities")} />
                   <span>Hazards & Calamities</span>
                 </div>
               </div>
@@ -620,7 +626,7 @@ export default function Sidebar({
                 onClick={() => navigate("/responder-pins")}
               >
                 <div style={styles.navLinkGroup}>
-                  <KeyRound size={17} color={isActive("/responder-pins") || isActive("/responders") ? "#15803d" : "#64748b"} />
+                  <KeyRound size={17} color={isActive("/responder-pins") || isActive("/responders") ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#94a3b8" : "#64748b")} />
                   <span>Responder Management</span>
                 </div>
               </div>
@@ -635,7 +641,7 @@ export default function Sidebar({
                 onClick={() => navigate("/manage-admins")}
               >
                 <div style={styles.navLinkGroup}>
-                  <Shield size={17} color={isActive("/manage-admins") ? "#15803d" : "#64748b"} />
+                  <Shield size={17} color={getIconColor("/manage-admins")} />
                   <span>Manage Admins</span>
                 </div>
               </div>
@@ -645,7 +651,7 @@ export default function Sidebar({
                 onClick={() => navigate("/rbac-settings")}
               >
                 <div style={styles.navLinkGroup}>
-                  <Settings size={17} color={isActive("/rbac-settings") ? "#15803d" : "#64748b"} />
+                  <Settings size={17} color={getIconColor("/rbac-settings")} />
                   <span>Access Control</span>
                 </div>
               </div>
@@ -655,7 +661,7 @@ export default function Sidebar({
                 onClick={() => navigate("/audit-logs")}
               >
                 <div style={styles.navLinkGroup}>
-                  <History size={17} color={isActive("/audit-logs") ? "#15803d" : "#64748b"} />
+                  <History size={17} color={getIconColor("/audit-logs")} />
                   <span>Audit Logs</span>
                 </div>
               </div>

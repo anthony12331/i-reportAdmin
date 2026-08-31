@@ -25,6 +25,10 @@ import {
   AlertOctagon,
   ZoomIn,
   ZoomOut,
+  Copy,
+  FileText,
+  CheckCheck,
+  CreditCard,
 } from "lucide-react";
 import { pb } from "../config/pocketbase";
 import Sidebar from "../components/Sidebar";
@@ -50,45 +54,84 @@ const formatDate = (value) => {
       });
 };
 
-const DetailRow = ({ label, value, fullWidth = false, isDark = false }) => (
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "column",
-      gap: "4px",
-      padding: "10px 14px",
-      borderRadius: "10px",
-      backgroundColor: isDark ? "#172338" : "#f8fafc",
-      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
-      minWidth: 0,
-      gridColumn: fullWidth ? "1 / -1" : "auto",
-    }}
-  >
-    <span
+const InfoField = ({ label, value, icon, fullWidth = false, isDark = false, copyable = false }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    if (!value || value === "Not provided") return;
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <div
       style={{
-        fontSize: "11px",
-        color: isDark ? "#94a3b8" : "#64748b",
-        fontWeight: "700",
-        textTransform: "uppercase",
-        letterSpacing: "0.03em",
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+        padding: "10px 14px",
+        borderRadius: "10px",
+        backgroundColor: isDark ? "#131c2e" : "#ffffff",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+        minWidth: 0,
+        gridColumn: fullWidth ? "1 / -1" : "auto",
+        transition: "border-color 0.15s ease",
       }}
     >
-      {label}
-    </span>
-    <strong
-      style={{
-        fontSize: "13.5px",
-        color: isDark ? "#f8fafc" : "#0f172a",
-        fontWeight: "700",
-        wordBreak: "break-word",
-        overflowWrap: "anywhere",
-        lineHeight: "1.4",
-      }}
-    >
-      {value || "Not provided"}
-    </strong>
-  </div>
-);
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          {icon && <span style={{ color: isDark ? "#94a3b8" : "#64748b", display: "inline-flex" }}>{icon}</span>}
+          <span
+            style={{
+              fontSize: "11px",
+              color: isDark ? "#94a3b8" : "#64748b",
+              fontWeight: "700",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}
+          >
+            {label}
+          </span>
+        </div>
+
+        {copyable && value && value !== "Not provided" && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            title={`Copy ${label}`}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "2px",
+              display: "inline-flex",
+              alignItems: "center",
+              color: copied ? (isDark ? "#4ade80" : "#15803d") : (isDark ? "#64748b" : "#94a3b8"),
+              transition: "color 0.15s ease",
+            }}
+          >
+            {copied ? <CheckCheck size={13} /> : <Copy size={13} />}
+          </button>
+        )}
+      </div>
+
+      <strong
+        style={{
+          fontSize: "13.5px",
+          color: value && value !== "None" ? (isDark ? "#f8fafc" : "#0f172a") : (isDark ? "#64748b" : "#94a3b8"),
+          fontWeight: "700",
+          wordBreak: "break-word",
+          overflowWrap: "anywhere",
+          lineHeight: "1.4",
+        }}
+      >
+        {value || "Not provided"}
+      </strong>
+    </div>
+  );
+};
 
 export default function VerifiedUserDetails() {
   const { userId } = useParams();
@@ -428,71 +471,165 @@ export default function VerifiedUserDetails() {
           {/* LEFT COLUMN: Identity Verification & Incident History */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Side-by-Side Information Comparison Card */}
-            <div className="premium-table-card" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "18px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <ShieldCheck size={18} color={isDark ? "#4ade80" : "#15803d"} /> Identity Verification Comparison
-                </h3>
-                <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
+            <div className="premium-table-card" style={{ padding: "24px", backgroundColor: isDark ? "#131c2e" : "#ffffff", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "14px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0", color: isDark ? "#4ade80" : "#15803d", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
+                      Identity Verification Comparison
+                    </h3>
+                    <p style={{ margin: "2px 0 0", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
+                      Cross-reference registered citizen record against uploaded government ID proof
+                    </p>
+                  </div>
+                </div>
+
+                <span style={{ fontSize: "11px", fontWeight: "800", textTransform: "uppercase", padding: "4px 10px", borderRadius: "8px", backgroundColor: isDark ? "#0f172a" : "#f1f5f9", color: isDark ? "#94a3b8" : "#475569", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0", letterSpacing: "0.03em" }}>
                   Submitted Form Data vs ID Proof
                 </span>
               </div>
 
-              <div className="verified-user-id-comparison-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(min(100%, 260px), 0.95fr)", gap: "20px" }}>
-                {/* Form Data Column with 2-column Grid */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", display: "block", letterSpacing: "0.04em" }}>
-                    Registered Form Data
-                  </span>
+              <div className="verified-user-id-comparison-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.35fr) minmax(min(100%, 280px), 1fr)", gap: "20px", alignItems: "stretch" }}>
+                {/* Form Data Column with Grouped Information Sections */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  
+                  {/* Group 1: Personal Identification */}
+                  <div style={{ backgroundColor: isDark ? "#0f172a" : "#f8fafc", borderRadius: "12px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", padding: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", paddingBottom: "6px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0" }}>
+                      <User size={14} color={isDark ? "#4ade80" : "#15803d"} />
+                      <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        Personal Identification
+                      </span>
+                    </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px" }}>
-                    <DetailRow label="First Name" value={user.first_name} isDark={isDark} />
-                    <DetailRow label="Middle Name" value={user.middle_name || "None"} isDark={isDark} />
-                    <DetailRow label="Last Name" value={user.last_name} isDark={isDark} />
-                    {user.extension && <DetailRow label="Extension" value={user.extension} isDark={isDark} />}
-                    <DetailRow label="Birthdate" value={formatDate(user.birthdate)} isDark={isDark} />
-                    <DetailRow label="Contact Phone" value={user.contact_number} isDark={isDark} />
-                    <DetailRow label="Email" value={user.email} fullWidth isDark={isDark} />
-                    <DetailRow label="Street Address" value={user.street_address} isDark={isDark} />
-                    <DetailRow label="Barangay" value={user.baranggay} isDark={isDark} />
-                    <DetailRow label="Municipality" value={user.municipality} isDark={isDark} />
-                    <DetailRow label="Province" value={user.province} isDark={isDark} />
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" }}>
+                      <InfoField label="First Name" value={user.first_name} isDark={isDark} />
+                      <InfoField label="Middle Name" value={user.middle_name || "None"} isDark={isDark} />
+                      <InfoField label="Last Name" value={user.last_name} isDark={isDark} />
+                      {user.extension && <InfoField label="Extension" value={user.extension} isDark={isDark} />}
+                      <InfoField label="Birthdate" value={formatDate(user.birthdate)} icon={<Calendar size={12} />} isDark={isDark} />
+                    </div>
                   </div>
+
+
+
+                  {/* Group 3: Residential Address */}
+                  <div style={{ backgroundColor: isDark ? "#0f172a" : "#f8fafc", borderRadius: "12px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", padding: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", paddingBottom: "6px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0" }}>
+                      <MapPin size={14} color={isDark ? "#4ade80" : "#15803d"} />
+                      <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        Residential Address & Jurisdiction
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" }}>
+                      <InfoField label="Street Address" value={user.street_address} isDark={isDark} fullWidth />
+                      <InfoField label="Barangay" value={user.baranggay ? `Brgy. ${user.baranggay}` : null} isDark={isDark} />
+                      <InfoField label="Municipality" value={user.municipality} isDark={isDark} />
+                      <InfoField label="Province" value={user.province} isDark={isDark} />
+                    </div>
+                  </div>
+
                 </div>
 
-                {/* Uploaded ID Card Column */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", textTransform: "uppercase", display: "block", letterSpacing: "0.04em" }}>
-                    Uploaded Proof of ID
-                  </span>
-
-                  {idPhotoUrl ? (
-                    <div
-                      onClick={() => setPreviewImage({ src: idPhotoUrl, label: "Uploaded ID Proof" })}
-                      style={{
-                        height: "380px",
-                        borderRadius: "14px",
-                        overflow: "hidden",
-                        backgroundColor: "#070b14",
-                        border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #e2e8f0",
-                        position: "relative",
-                        cursor: "zoom-in",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <img src={idPhotoUrl} alt="Government ID" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                      <div style={{ position: "absolute", bottom: "10px", right: "10px", backgroundColor: "rgba(15, 23, 42, 0.75)", color: "#fff", padding: "5px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", display: "flex", alignItems: "center", gap: "5px", backdropFilter: "blur(4px)" }}>
-                        <Maximize2 size={12} /> Click to Enlarge ID
+                {/* Uploaded ID Inspection Panel & Contact Info Column */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+                      borderRadius: "14px",
+                      border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* ID Header Bar */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", backgroundColor: isDark ? "#172338" : "#ffffff", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <CreditCard size={15} color={isDark ? "#4ade80" : "#15803d"} />
+                        <span style={{ fontSize: "12px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                          Uploaded Proof of ID
+                        </span>
                       </div>
+                      {idPhotoUrl && (
+                        <span style={{ fontSize: "10.5px", fontWeight: "800", color: isDark ? "#4ade80" : "#15803d", backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4", border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0", padding: "2px 8px", borderRadius: "6px" }}>
+                          Government ID
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div style={{ height: "380px", borderRadius: "14px", border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1", display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#64748b" : "#94a3b8", fontSize: "13px" }}>
-                      No ID proof uploaded.
+
+                    {/* ID Preview Box */}
+                    <div style={{ padding: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {idPhotoUrl ? (
+                        <div
+                          onClick={() => setPreviewImage({ src: idPhotoUrl, label: "Uploaded Government ID Proof" })}
+                          style={{
+                            width: "100%",
+                            height: "210px",
+                            borderRadius: "10px",
+                            overflow: "hidden",
+                            backgroundColor: isDark ? "#060911" : "#0f172a",
+                            border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #cbd5e1",
+                            position: "relative",
+                            cursor: "zoom-in",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
+                          }}
+                        >
+                          <img
+                            src={idPhotoUrl}
+                            alt="Government ID"
+                            style={{ width: "100%", height: "100%", objectFit: "contain", padding: "4px", display: "block" }}
+                          />
+                          <div
+                            style={{
+                              position: "absolute",
+                              bottom: "8px",
+                              right: "8px",
+                              backgroundColor: "rgba(15, 23, 42, 0.85)",
+                              backdropFilter: "blur(6px)",
+                              color: "#ffffff",
+                              padding: "5px 10px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              border: "1px solid rgba(255, 255, 255, 0.15)",
+                            }}
+                          >
+                            <Maximize2 size={12} /> Click to Inspect & Zoom
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ width: "100%", height: "180px", borderRadius: "10px", border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed #cbd5e1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", color: isDark ? "#64748b" : "#94a3b8" }}>
+                          <ImageIcon size={28} strokeWidth={1.5} />
+                          <span style={{ fontSize: "13px", fontWeight: "600" }}>No ID proof image attached</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Contact Information — below ID panel */}
+                  <div style={{ backgroundColor: isDark ? "#0f172a" : "#f8fafc", borderRadius: "12px", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", padding: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", paddingBottom: "6px", borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0" }}>
+                      <Phone size={14} color={isDark ? "#4ade80" : "#15803d"} />
+                      <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        Contact Information
+                      </span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "8px" }}>
+                      <InfoField label="Contact Phone" value={user.contact_number} icon={<Phone size={12} />} isDark={isDark} copyable />
+                      <InfoField label="Email Address" value={user.email} icon={<Mail size={12} />} fullWidth isDark={isDark} copyable />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -842,21 +979,23 @@ export default function VerifiedUserDetails() {
                   type="button"
                   onClick={handleStatusChange}
                   disabled={processing || !reason.trim()}
+                  className="suspend-resident-submit-btn"
                   style={{
                     width: "100%",
-                    padding: "10px",
+                    padding: "12px 16px",
                     borderRadius: "10px",
-                    border: "none",
-                    backgroundColor: reason.trim() ? "#dc2626" : (isDark ? "#334155" : "#cbd5e1"),
-                    color: "#ffffff",
                     fontSize: "13px",
                     fontWeight: "800",
-                    cursor: reason.trim() ? "pointer" : "not-allowed",
-                    boxShadow: reason.trim() ? "0 4px 12px rgba(220, 38, 38, 0.3)" : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
                     transition: "all 0.15s ease",
+                    opacity: processing ? 0.7 : 1,
                   }}
                 >
-                  Suspend Resident with Notes
+                  <ShieldAlert size={16} />
+                  {processing ? "Processing..." : "Suspend Resident with Notes"}
                 </button>
               </div>
             )}

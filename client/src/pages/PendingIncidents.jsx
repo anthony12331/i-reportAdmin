@@ -47,6 +47,7 @@ import {
   ChevronDown,
   Eye,
   Mountain,
+  Check,
 } from "lucide-react";
 import DepartmentBadge from "../components/DepartmentBadge";
 import CustomIcon from "../components/CustomIcon";
