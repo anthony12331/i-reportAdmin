@@ -16,6 +16,7 @@ import {
   MapPin,
   Search,
   ShieldCheck,
+  Shield,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
