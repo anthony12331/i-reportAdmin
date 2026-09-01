@@ -337,7 +337,6 @@ export default function Dashboard() {
     const agencies = {
       BFP: { label: "Fire Protection", available: 0, total: 0, color: "#dc2626", icon: Flame },
       PNP: { label: "National Police", available: 0, total: 0, color: "#7c3aed", icon: Shield },
-      EMS: { label: "Medical Services", available: 0, total: 0, color: "#0284c7", icon: Ambulance },
       MDRRMO: { label: "Disaster Risk", available: 0, total: 0, color: "#15803d", icon: Activity },
     };
 
@@ -346,7 +345,6 @@ export default function Dashboard() {
       let key = "MDRRMO";
       if (dept.includes("FIRE") || dept.includes("BFP")) key = "BFP";
       else if (dept.includes("POLICE") || dept.includes("PNP")) key = "PNP";
-      else if (dept.includes("AMBULANCE") || dept.includes("EMS") || dept.includes("MED")) key = "EMS";
 
       if (agencies[key]) {
         agencies[key].total++;
@@ -769,40 +767,7 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Map Legend Ribbon */}
-            <div
-              style={{
-                padding: isTvMode ? "8px 24px" : "8px 14px",
-                backgroundColor: isTvMode ? "rgba(15, 23, 42, 0.95)" : (isDark ? "#131c2e" : "#ffffff"),
-                backdropFilter: isTvMode ? "blur(16px)" : "none",
-                borderTop: isTvMode || isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-around",
-                flexWrap: "wrap",
-                gap: isTvMode ? "12px" : "8px",
-                fontSize: isTvMode ? "11.5px" : "11px",
-                fontWeight: "800",
-                color: isTvMode || isDark ? "#cbd5e1" : "#475569",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#dc2626", display: "inline-block", boxShadow: "0 0 0 2px rgba(220, 38, 38, 0.4)" }} />
-                <span>SOS Alert</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ea580c", display: "inline-block" }} />
-                <span>Incident</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#0284c7", display: "inline-block" }} />
-                <span>Responder</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#15803d", display: "inline-block" }} />
-                <span>Station Base</span>
-              </div>
-            </div>
+
           </div>
 
           {/* COLUMN 2: ACTIVE OPERATIONS & DISPATCH (Triage Queue & Fleet Readiness) */}

@@ -618,6 +618,8 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         maxBoundsViscosity={0.8}
         minZoom={11}
         preferCanvas={true}
+        zoomControl={false}
+        attributionControl={false}
       >
         <MapFlyToListener reports={validReports} sos={validSos} />
         
