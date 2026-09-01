@@ -6,8 +6,6 @@ node_modules/
 .env
 .env.local
 .env.*
-!.env.example
-!.env.*.example
 
 # Build outputs
 dist/
@@ -22,7 +20,19 @@ audit.text
 .DS_Store
 Thumbs.db
 
-# Testing & Attack Simulation Scripts
+# Scripts
 scripts/
-# Testing & Attack Scripts
-scripts/
+deploy.js
+deploy_express.js
+read_db_logs.py
+read_schema.py
+schema.json
+spatial_dedup.pb.js
+start.js
+task.md
+test_cache.js
+test_db.js
+test_db_hook.js
+test_race.js
+watchdog.bat
+deploy_server/
