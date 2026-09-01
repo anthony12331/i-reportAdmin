@@ -39,6 +39,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getReadableAddress } from "../utils/utils";
+import { getIncidentResponseTime, calculateResponseDuration } from "../utils/timeUtils";
 
 // Chart.js imports and configuration
 import {
@@ -139,7 +140,7 @@ export default function Report() {
     setIsLoading(true);
     setIsDataLoaded(false);
     setLoadingProgress(10);
-    setLoadingStep("Querying municipal telemetry database...");
+    setLoadingStep("Querying resolved incident records...");
 
     try {
       const start = new Date(startDate).toISOString().replace("T", " ");
@@ -149,20 +150,20 @@ export default function Report() {
 
       let rawData = [];
       if (reportSource === "incident") {
-        let filterQuery = `created >= "${start}" && created <= "${end}"`;
+        let filterQuery = `status = "resolved" && updated >= "${start}" && updated <= "${end}"`;
         if (selectedIncidentType !== "ALL") {
           filterQuery += ` && type = "${selectedIncidentType}"`;
         }
         rawData = await pb.collection("incident_reports").getFullList({
           filter: filterQuery,
-          sort: "-created",
+          sort: "-updated",
           expand: "users",
         });
       } else {
         rawData = await pb.collection("sos_tracking").getFullList({
-          filter: `created >= "${start}" && created <= "${end}"`,
-          sort: "-created",
-          expand: "user",
+          filter: `status = "resolved" && updated >= "${start}" && updated <= "${end}"`,
+          sort: "-updated",
+          expand: "user,assigned_responder",
         });
       }
 
@@ -176,7 +177,7 @@ export default function Report() {
       });
 
       setLoadingProgress(50);
-      setLoadingStep("Resolving geographic coordinates & incident locations...");
+      setLoadingStep("Resolving geographic coordinates & computing response times...");
 
       // Group dispatches by incident/sos
       const dispatchesByIncident = {};
@@ -190,10 +191,10 @@ export default function Report() {
 
       // Parse and resolve locations
       const typeCounter = {};
-      const statusCounter = { pending: 0, ongoing: 0, resolved: 0 };
       const areaCounter = {};
       const responderCounter = {};
       const reporterCounter = {};
+      const responseTimeValues = [];
 
       const totalItems = rawData.length;
       let completedItems = 0;
@@ -215,25 +216,6 @@ export default function Report() {
           const rawType = reportSource === "incident" ? item.type || "OTHER" : item.assigned_department || "EMERGENCY SOS";
           const type = rawType.toUpperCase();
           typeCounter[type] = (typeCounter[type] || 0) + 1;
-
-          let normalizedStatus = (item.status || "").toLowerCase();
-          if (reportSource === "sos") {
-            normalizedStatus = (item.dispatch_status || item.status || "pending").toLowerCase();
-          }
-
-          if (normalizedStatus === "resolved") {
-            statusCounter.resolved++;
-          } else if (
-            normalizedStatus === "ongoing" ||
-            normalizedStatus === "assigned" ||
-            normalizedStatus === "accepted" ||
-            normalizedStatus === "en_route" ||
-            normalizedStatus === "at_scene"
-          ) {
-            statusCounter.ongoing++;
-          } else {
-            statusCounter.pending++;
-          }
 
           if (resolvedLocation) {
             const locKey = resolvedLocation.split(",")[0].trim() || "Lagonglong Center";
@@ -257,11 +239,40 @@ export default function Report() {
             responderCounter[respName] = (responderCounter[respName] || 0) + 1;
           });
 
+          // Compute response time using the resolved incident helper
+          const itemWithDispatches = { ...item, dispatches: matchedDispatches };
+          const responseTime = getIncidentResponseTime(itemWithDispatches);
+
+          // Compute numeric resolution duration in minutes for averaging
+          const resolvedDate = item.updated || item.resolved_at;
+          let resolutionMinutes = null;
+          if (item.created && resolvedDate) {
+            const diffMs = new Date(resolvedDate).getTime() - new Date(item.created).getTime();
+            if (diffMs > 0) {
+              resolutionMinutes = Math.round(diffMs / 60000);
+              responseTimeValues.push(resolutionMinutes);
+            }
+          }
+
+          // Extract resolution notes from dispatches
+          const resolutionNotes = matchedDispatches
+            .filter((d) => d.description && d.description.trim())
+            .map((d) => {
+              const resp = d.expand?.responder_id;
+              const name = resp ? `${resp.first_name || ""} ${resp.last_name || ""}`.trim() : d.department || "Unit";
+              return `${name}: ${d.description.trim()}`;
+            })
+            .join(" | ");
+
           return {
             ...item,
             resolvedLocation,
             reporterUser,
             dispatches: matchedDispatches,
+            responseTime,
+            resolutionMinutes,
+            resolvedDate: resolvedDate || item.updated,
+            resolutionNotes,
           };
         })
       );
@@ -278,13 +289,21 @@ export default function Report() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
+      // Compute average response time
+      const avgResponseMinutes = responseTimeValues.length > 0
+        ? Math.round(responseTimeValues.reduce((a, b) => a + b, 0) / responseTimeValues.length)
+        : 0;
+      const fastestResponse = responseTimeValues.length > 0 ? Math.min(...responseTimeValues) : 0;
+
       setReports(processedData);
       setAnalytics({
         types: typeCounter,
-        statuses: statusCounter,
+        statuses: { pending: 0, ongoing: 0, resolved: processedData.length },
         topAreas,
         topResponders,
         topReporters,
+        avgResponseMinutes,
+        fastestResponse,
       });
 
       setLoadingProgress(100);
@@ -360,10 +379,10 @@ export default function Report() {
     doc.text("EXECUTIVE PERFORMANCE INDICATORS", 14, 34);
 
     const summaryData = [
-      ["Total Logged Incidents", reports.length.toString()],
-      ["Resolved Emergencies", `${analytics.statuses.resolved} (${resolutionRate}% efficiency)`],
-      ["Active / Ongoing Operations", analytics.statuses.ongoing.toString()],
-      ["Pending Intake Queue", analytics.statuses.pending.toString()],
+      ["Total Resolved Cases", reports.length.toString()],
+      ["Resolution Efficiency", `100% (All ${reports.length} cases resolved)`],
+      ["Average Resolution Time", analytics.avgResponseMinutes > 60 ? `${Math.floor(analytics.avgResponseMinutes / 60)}h ${analytics.avgResponseMinutes % 60}m per case` : `${analytics.avgResponseMinutes} minutes per case`],
+      ["Fastest Resolution", analytics.fastestResponse > 60 ? `${Math.floor(analytics.fastestResponse / 60)}h ${analytics.fastestResponse % 60}m` : `${analytics.fastestResponse} minutes`],
       ["Primary Incident Driver", `${primaryIncidentType.name} (${primaryIncidentType.count} cases / ${primaryIncidentType.pct}%)`],
     ];
 
@@ -402,12 +421,14 @@ export default function Report() {
     doc.text("INCIDENT LOG AUDIT RECORDS", 14, 16);
 
     const tableHeaders = [
-      "Timestamp",
       "Classification",
-      "Resolved Location",
-      "Reporter Citizen",
-      "Status",
+      "Reported",
+      "Resolved",
+      "Response Time",
+      "Location",
+      "Reporter",
       "Assigned Units",
+      "Resolution Notes",
     ];
 
     const tableRows = reports.map((r) => {
@@ -430,6 +451,7 @@ export default function Report() {
       const rawType = reportSource === "incident" ? r.type || "OTHER" : r.assigned_department || "EMERGENCY SOS";
 
       return [
+        rawType.toUpperCase(),
         new Date(r.created).toLocaleDateString([], {
           month: "short",
           day: "numeric",
@@ -437,11 +459,18 @@ export default function Report() {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        rawType.toUpperCase(),
+        r.resolvedDate ? new Date(r.resolvedDate).toLocaleDateString([], {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) : "N/A",
+        r.responseTime || "N/A",
         r.resolvedLocation || "N/A",
         reporterName,
-        (r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE")).toUpperCase().replace("_", " "),
         unit,
+        r.resolutionNotes ? (r.resolutionNotes.length > 80 ? r.resolutionNotes.substring(0, 80) + "..." : r.resolutionNotes) : "—",
       ];
     });
 
@@ -450,8 +479,18 @@ export default function Report() {
       head: [tableHeaders],
       body: tableRows,
       theme: "striped",
-      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
-      styles: { fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: [21, 128, 61], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+      styles: { fontSize: 6.5, cellPadding: 1.8 },
+      columnStyles: {
+        0: { cellWidth: 18 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 16 },
+        4: { cellWidth: 28 },
+        5: { cellWidth: 22 },
+        6: { cellWidth: 22 },
+        7: { cellWidth: 32 },
+      },
       margin: { left: 14, right: 14 },
     });
 
@@ -927,26 +966,26 @@ export default function Report() {
                 </div>
               </div>
 
-              {/* Active Dispatches Card */}
+              {/* Average Response Time Card */}
               <div
                 className="premium-table-card"
                 style={{
                   padding: "22px 24px",
-                  borderLeft: "6px solid #f59e0b",
+                  borderLeft: "6px solid #0284c7",
                   backgroundColor: isDark ? "#131c2e" : "#ffffff",
                 }}
               >
-                <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#fbbf24" : "#d97706", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Activity size={14} color={isDark ? "#fbbf24" : "#d97706"} /> Active Field Units
+                <span style={{ fontSize: "11.5px", fontWeight: "800", color: isDark ? "#38bdf8" : "#0284c7", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Clock size={14} color={isDark ? "#38bdf8" : "#0284c7"} /> Avg Resolution Time
                 </span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "10px" }}>
-                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: isDark ? "#fbbf24" : "#d97706", margin: 0, letterSpacing: "-0.03em" }}>
-                    {analytics.statuses.ongoing}
+                  <h2 style={{ fontSize: "38px", fontWeight: "900", color: isDark ? "#38bdf8" : "#0284c7", margin: 0, letterSpacing: "-0.03em" }}>
+                    {analytics.avgResponseMinutes > 60 ? `${Math.floor(analytics.avgResponseMinutes / 60)}h ${analytics.avgResponseMinutes % 60}m` : `${analytics.avgResponseMinutes}m`}
                   </h2>
-                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: isDark ? "#fde68a" : "#b45309" }}>en route / scene</span>
+                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: isDark ? "#7dd3fc" : "#0369a1" }}>per case</span>
                 </div>
                 <div style={{ marginTop: "12px", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
-                  {analytics.statuses.pending} awaiting assignment
+                  Fastest: {analytics.fastestResponse > 60 ? `${Math.floor(analytics.fastestResponse / 60)}h ${analytics.fastestResponse % 60}m` : `${analytics.fastestResponse}m`}
                 </div>
               </div>
 
@@ -1177,19 +1216,22 @@ export default function Report() {
                         Classification
                       </th>
                       <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
-                        Date & Time
+                        Date Reported
                       </th>
                       <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
-                        Resolved Incident Location
+                        Date Resolved
+                      </th>
+                      <th style={{ textAlign: "center", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                        Response Time
                       </th>
                       <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
-                        Reporter Citizen
+                        Location
                       </th>
                       <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800" }}>
+                        Reporter
+                      </th>
+                      <th style={{ textAlign: "left", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "0 10px 0 0" }}>
                         Assigned Units
-                      </th>
-                      <th style={{ textAlign: "center", padding: "12px 14px", backgroundColor: isDark ? "#14532d" : "#15803d", color: "#ffffff", fontSize: "12px", fontWeight: "800", borderRadius: "0 10px 0 0" }}>
-                        Status
                       </th>
                     </tr>
                   </thead>
@@ -1236,6 +1278,29 @@ export default function Report() {
                               minute: "2-digit",
                             })}
                           </td>
+                          <td style={{ padding: "12px 14px", fontSize: "12.5px", color: isDark ? "#4ade80" : "#15803d", fontWeight: "700", whiteSpace: "nowrap" }}>
+                            {r.resolvedDate ? new Date(r.resolvedDate).toLocaleDateString([], {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }) : "N/A"}
+                          </td>
+                          <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: "800",
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                backgroundColor: isDark ? "rgba(2, 132, 199, 0.2)" : "#f0f9ff",
+                                color: isDark ? "#38bdf8" : "#0284c7",
+                                border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid #bae6fd",
+                              }}
+                            >
+                              {r.responseTime || "N/A"}
+                            </span>
+                          </td>
                           <td style={{ padding: "12px 14px", fontSize: "12.5px", color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "700", maxWidth: "260px" }}>
                             <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
                               <MapPin size={13} color={isDark ? "#4ade80" : "#15803d"} style={{ flexShrink: 0, marginTop: "2px" }} />
@@ -1247,34 +1312,6 @@ export default function Report() {
                           </td>
                           <td style={{ padding: "12px 14px", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b" }}>
                             {assignedUnits}
-                          </td>
-                          <td style={{ padding: "12px 14px", textAlign: "center" }}>
-                            <span
-                              style={{
-                                fontSize: "10.5px",
-                                fontWeight: "800",
-                                padding: "2px 8px",
-                                borderRadius: "6px",
-                                backgroundColor: r.status === "resolved"
-                                  ? (isDark ? "rgba(34, 197, 94, 0.2)" : "#f0fdf4")
-                                  : r.status === "ongoing"
-                                  ? (isDark ? "rgba(245, 158, 11, 0.2)" : "#fffbeb")
-                                  : (isDark ? "rgba(239, 68, 68, 0.2)" : "#fef2f2"),
-                                color: r.status === "resolved"
-                                  ? (isDark ? "#4ade80" : "#15803d")
-                                  : r.status === "ongoing"
-                                  ? (isDark ? "#fbbf24" : "#b45309")
-                                  : (isDark ? "#f87171" : "#b91c1c"),
-                                border: r.status === "resolved"
-                                  ? (isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0")
-                                  : r.status === "ongoing"
-                                  ? (isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fde68a")
-                                  : (isDark ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid #fecaca"),
-                                textTransform: "uppercase",
-                              }}
-                            >
-                              {(r.status || (reportSource === "incident" ? "PENDING" : "ACTIVE")).replace("_", " ")}
-                            </span>
                           </td>
                         </tr>
                       );
