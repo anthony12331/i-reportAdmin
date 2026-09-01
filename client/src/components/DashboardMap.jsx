@@ -485,34 +485,74 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
             positions={[[responder.latitude, responder.longitude], [target.latitude, target.longitude]]} 
             pathOptions={{ color: '#2563eb', dashArray: '5, 10', weight: 3, opacity: 0.8 }} 
           />
-          <Marker 
-            position={[responder.latitude, responder.longitude]}
-            icon={createResponderIcon()}
-            zIndexOffset={1000}
-          >
-            <Popup>
-              <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '14px', marginBottom: '4px' }}>
-                {responder.unit_name || `${responder.first_name} ${responder.last_name}`}
-              </div>
-              <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                <strong>Dept:</strong> <span style={{ textTransform: 'capitalize' }}>{responder.department}</span>
-              </div>
-              <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                <strong>Target:</strong> <span style={{ textTransform: 'capitalize' }}>{isSosTarget ? 'SOS Alert' : (target.type || 'Incident')}</span>
-              </div>
-              <hr style={{ margin: '6px 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
-              <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
-                <strong>Distance:</strong> {metrics.distance} km
-              </div>
-              <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
-                <strong>ETA:</strong> {metrics.eta}
-              </div>
-            </Popup>
-          </Marker>
         </React.Fragment>
       );
     });
   }, [dispatches, responders, validReports, validSos]);
+
+  const responderMarkers = useMemo(() => {
+    return responders.filter(r => r.latitude && r.longitude).map(responder => {
+      // Find if they are dispatched to show ETA
+      const dispatch = dispatches.find(d => d.responder_id === responder.id);
+      let target = null;
+      let isSosTarget = false;
+      let metrics = null;
+
+      if (dispatch) {
+        target = validReports.find(r => r.id === dispatch.incident_id);
+        if (!target) {
+          target = validSos.find(s => s.id === dispatch.sos_id || s.id === dispatch.incident_id);
+          isSosTarget = true;
+        }
+        if (target && target.latitude && target.longitude) {
+          metrics = calculateDistanceAndETA(
+            responder.latitude, responder.longitude,
+            target.latitude, target.longitude
+          );
+        }
+      }
+
+      return (
+        <Marker 
+          key={`responder-${responder.id}`}
+          position={[responder.latitude, responder.longitude]}
+          icon={createResponderIcon()}
+          zIndexOffset={1000}
+        >
+          <Popup>
+            <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '14px', marginBottom: '4px' }}>
+              {responder.unit_name || `${responder.first_name} ${responder.last_name}`}
+            </div>
+            <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+              <strong>Dept:</strong> <span style={{ textTransform: 'capitalize' }}>{responder.department}</span>
+            </div>
+            {target && (
+              <>
+                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                  <strong>Target:</strong> <span style={{ textTransform: 'capitalize' }}>{isSosTarget ? 'SOS Alert' : (target.type || 'Incident')}</span>
+                </div>
+                {metrics && (
+                  <>
+                    <div style={{ fontSize: '12px', color: '#334155', marginBottom: '2px' }}>
+                      <strong>Distance:</strong> {metrics.distance} km
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#334155' }}>
+                      <strong>ETA:</strong> {metrics.eta}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+            {!target && (
+              <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 'bold' }}>
+                🟢 On Patrol / Standby
+              </div>
+            )}
+          </Popup>
+        </Marker>
+      );
+    });
+  }, [responders, dispatches, validReports, validSos]);
 
   return (
     <div style={{ width: '100%', height: '100%', minHeight: 0, flex: 1, borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', position: 'relative' }}>
@@ -627,6 +667,7 @@ export default function DashboardMap({ reports = [], sos = [], responders = [], 
         {reportMarkers}
         {sosMarkers}
         {backupMarkers}
+        {responderMarkers}
         {dispatchPaths}
       </MapContainer>
     </div>

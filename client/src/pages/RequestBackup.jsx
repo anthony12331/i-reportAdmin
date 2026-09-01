@@ -180,7 +180,6 @@ export default function RequestBackup() {
     if (!isConfirmed) return;
 
     setProcessingId(backupId);
-    let createdDispatchIds = [];
     let reservedResponders = [];
 
     try {
@@ -191,20 +190,6 @@ export default function RequestBackup() {
           is_available: false,
         });
         reservedResponders.push(responder);
-
-        const dispatchPayload = {
-          responder_id: responder.id,
-          department: responder.department || targetBackup.department || "MDRRMO",
-          status: "pending",
-        };
-        if (targetBackup?.incident_id) {
-          dispatchPayload.incident_id = targetBackup.incident_id;
-        }
-        if (targetBackup?.sos_id) {
-          dispatchPayload.sos_id = targetBackup.sos_id;
-        }
-        const dispatchRecord = await pb.collection("dispatches").create(dispatchPayload);
-        createdDispatchIds.push(dispatchRecord.id);
       }
 
       // Update backup request
@@ -212,9 +197,6 @@ export default function RequestBackup() {
         assigned_responder: selectedIds[0], // primary
         dispatch_status: "assigned",
       };
-      if (createdDispatchIds.length > 0) {
-        updateData.dispatch_id = createdDispatchIds[0];
-      }
       await pb.collection("backup_requests").update(backupId, updateData);
 
       const requesterName = targetBackup?.expand?.requester_id
@@ -239,9 +221,6 @@ export default function RequestBackup() {
       console.error("Dispatch error:", err);
       for (const r of reservedResponders) {
         await pb.collection("responder_accounts").update(r.id, { is_available: true }).catch(() => {});
-      }
-      for (const dId of createdDispatchIds) {
-        await pb.collection("dispatches").delete(dId).catch(() => {});
       }
       showAlert("Failed to dispatch backup unit: " + (err.message || "Unknown error"), { title: "Error" });
     } finally {
