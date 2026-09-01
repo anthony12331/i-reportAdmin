@@ -67,7 +67,6 @@ export default function PendingIncidents() {
   const [availableResponders, setAvailableResponders] = useState([]);
   const [selectedResponderIds, setSelectedResponderIds] = useState({});
   const [departmentFilters, setDepartmentFilters] = useState({});
-  const [soundMuted, setSoundMuted] = useState(false);
 
   const [filters, setFilters] = useState({
     type: "",
@@ -79,16 +78,14 @@ export default function PendingIncidents() {
 
   const fetchedAddressIds = useRef(new Set());
 
-  // Audio Siren Trigger Helper
   const triggerEmergencyAlert = useCallback(() => {
-    if (soundMuted) return;
     try {
       const audio = new Audio("/notification_sound.mp3");
       audio.play().catch(() => {}).catch((e) => console.warn("Autoplay block or missing file:", e));
     } catch (e) {
       console.warn("Audio alert failed:", e);
     }
-  }, [soundMuted]);
+  }, []);
 
   const isOpenIncident = useCallback((record) => ["new", "pending"].includes(record?.status), []);
 
@@ -350,30 +347,6 @@ export default function PendingIncidents() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="pending-audio-btn"
-              onClick={() => setSoundMuted(!soundMuted)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "7px 14px",
-                borderRadius: "10px",
-                border: soundMuted ? "1px solid #cbd5e1" : "1px solid #fed7aa",
-                backgroundColor: soundMuted ? "#ffffff" : "#fff7ed",
-                color: soundMuted ? "#64748b" : "#c2410c",
-                fontSize: "12.5px",
-                fontWeight: "700",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              title={soundMuted ? "Unmute emergency audio siren" : "Mute emergency audio siren"}
-            >
-              {soundMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-              <span>{soundMuted ? "Audio Muted" : "Audio Active"}</span>
-            </button>
-
             <span
               className="pending-feed-badge"
               style={{

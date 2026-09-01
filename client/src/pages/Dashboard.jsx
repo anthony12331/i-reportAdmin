@@ -80,7 +80,6 @@ export default function Dashboard() {
     backupRequests: [],
   });
   const [addresses, setAddresses] = useState({});
-  const [soundMuted, setSoundMuted] = useState(false);
   const [isTvMode, setIsTvMode] = useState(false);
   const mapCardRef = useRef(null);
   const prevSosCount = useRef(0);
@@ -142,16 +141,14 @@ export default function Dashboard() {
     }
   }, [navigate]);
 
-  // Audio Dispatch Alert Trigger
   const triggerEmergencyAlert = useCallback(() => {
-    if (soundMuted) return;
     try {
       const audio = new Audio("/notification_sound.mp3");
       audio.play().catch(() => { });
     } catch (e) {
       console.warn("Audio alert failed to play:", e);
     }
-  }, [soundMuted]);
+  }, []);
 
   // Parallel reverse-geocoding with persistent cache.
   // Items already resolved (ID present in `addresses`) are skipped entirely
@@ -407,31 +404,6 @@ export default function Dashboard() {
 
           {/* Right Header Live Telemetry Controls */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            {/* Audio Siren Mute / Unmute Toggle */}
-            <button
-              type="button"
-              className="dashboard-sirens-btn"
-              onClick={() => setSoundMuted(!soundMuted)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 14px",
-                borderRadius: "10px",
-                border: soundMuted ? "1px solid #cbd5e1" : "1px solid #bbf7d0",
-                backgroundColor: soundMuted ? "#ffffff" : "#f0fdf4",
-                color: soundMuted ? "#64748b" : "#15803d",
-                fontSize: "12px",
-                fontWeight: "800",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-              title={soundMuted ? "Audio sirens muted" : "Audio sirens active"}
-            >
-              {soundMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              <span>{soundMuted ? "Sirens Muted" : "Sirens Active"}</span>
-            </button>
-
             {/* Live Clock Pill */}
             <div
               className="dashboard-clock-pill"
