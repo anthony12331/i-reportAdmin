@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Sidebar from '../components/Sidebar';
 import { useTheme } from '../themes/ThemeContext';
-import { Activity, Wind, AlertTriangle, Info, CloudRain, ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { Activity, Wind, AlertTriangle, Info, CloudRain, ChevronDown, ChevronUp, Layers, Waves } from 'lucide-react';
 
 const COMMAND_CENTER = [8.8066, 124.788];
 const MAP_BOUNDS = [
@@ -117,6 +117,7 @@ export default function Calamities() {
   const [landslideHazardJSON, setLandslideHazardJSON] = useState(null);
   const [earthquakes, setEarthquakes] = useState([]);
   const [weather, setWeather] = useState(null);
+  const [marine, setMarine] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showHazardLegend, setShowHazardLegend] = useState(true);
 
@@ -167,7 +168,20 @@ export default function Calamities() {
       }
     };
 
-    Promise.all([fetchEarthquakes(), fetchWeather()]).finally(() => {
+    // Fetch Marine Data (Coastal Macajalar Bay)
+    const fetchMarine = async () => {
+      try {
+        const res = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=8.8066&longitude=124.7500&current=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction&timezone=Asia%2FManila`);
+        const data = await res.json();
+        if (!cancelled && data.current) {
+          setMarine(data.current);
+        }
+      } catch (err) {
+        console.error("Error fetching marine:", err);
+      }
+    };
+
+    Promise.all([fetchEarthquakes(), fetchWeather(), fetchMarine()]).finally(() => {
       if (!cancelled) setLoading(false);
     });
 
@@ -281,6 +295,51 @@ export default function Calamities() {
                   )}
                 </div>
               ) : <p>Unable to fetch weather.</p>}
+            </div>
+
+            {/* Marine Panel (Macajalar Bay) */}
+            <div style={{ background: isDark ? '#1e293b' : '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#0ea5e9' }}>
+                <Waves size={20} /> Macajalar Bay Coastal
+              </h3>
+              {loading ? <p>Scanning buoys...</p> : marine ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: isDark ? '#cbd5e1' : '#475569' }}>Wave Height</span>
+                    <span style={{ fontWeight: 'bold' }}>{marine.wave_height} m</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: isDark ? '#cbd5e1' : '#475569' }}>Wave Direction</span>
+                    <span style={{ fontWeight: 'bold' }}>{marine.wave_direction}°</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: isDark ? '#cbd5e1' : '#475569' }}>Ocean Current</span>
+                    <span style={{ fontWeight: 'bold' }}>{marine.ocean_current_velocity} km/h</span>
+                  </div>
+
+                  {(() => {
+                    const wave = marine.wave_height;
+                    let alertColor = "#3b82f6";
+                    let alertTitle = "Safe for Fishing";
+                    let alertBg = isDark ? "#1e3a8a" : "#eff6ff";
+                    if (wave >= 1.0 && wave < 2.0) {
+                      alertColor = "#eab308";
+                      alertTitle = "Caution for Small Boats";
+                      alertBg = isDark ? "#422006" : "#fefce8";
+                    } else if (wave >= 2.0) {
+                      alertColor = "#ef4444";
+                      alertTitle = "Small Craft Warning: NO SAIL";
+                      alertBg = isDark ? "#450a0a" : "#fef2f2";
+                    }
+                    
+                    return (
+                      <div style={{ marginTop: '8px', padding: '10px', backgroundColor: alertBg, color: alertColor, borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', display: 'flex', gap: '6px', alignItems: 'center', border: `1px solid ${alertColor}40` }}>
+                        <AlertTriangle size={15} /> {alertTitle}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : <p>Unable to fetch marine data.</p>}
             </div>
 
             {/* Earthquakes Panel */}
