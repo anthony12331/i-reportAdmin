@@ -120,7 +120,7 @@ export default function Calamities() {
   const [weather, setWeather] = useState(null);
   const [marine, setMarine] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [announcement, setAnnouncement] = useState({ targetBarangay: '', message: '' });
+  const [announcement, setAnnouncement] = useState({ targetBarangay: '', message: '', needsSmsBlast: false });
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   const [showHazardLegend, setShowHazardLegend] = useState(true);
 
@@ -200,10 +200,11 @@ export default function Calamities() {
         message: announcement.message,
         baranggay: announcement.targetBarangay, // Matching the 'baranggay' spelling in users table
         type: 'hazard_alert',
-        isRead: false
+        isRead: false,
+        needs_sms_blast: announcement.needsSmsBlast
       });
       alert('Announcement successfully sent to ' + announcement.targetBarangay);
-      setAnnouncement({ targetBarangay: '', message: '' });
+      setAnnouncement({ targetBarangay: '', message: '', needsSmsBlast: false });
     } catch (error) {
       console.error('Error sending announcement:', error);
       alert('Failed to send announcement. Please ensure the notifications table exists and has title, message, baranggay, and type fields.');
@@ -400,6 +401,16 @@ export default function Calamities() {
                   onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
                   style={{ width: '100%', height: '90px', padding: '10px 12px', borderRadius: '8px', border: isDark ? '2px solid #7f1d1d' : '2px solid #fda4af', background: isDark ? '#2e0a0a' : '#ffffff', color: isDark ? '#fef2f2' : '#881337', outline: 'none', resize: 'none', fontSize: '13.5px' }}
                 />
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: isDark ? '#fecaca' : '#9f1239', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={announcement.needsSmsBlast}
+                    onChange={(e) => setAnnouncement({...announcement, needsSmsBlast: e.target.checked})}
+                    style={{ width: '16px', height: '16px', accentColor: '#e11d48' }}
+                  />
+                  Also send via SMS (Requires SMS Server)
+                </label>
                 
                 <button 
                   onClick={handleSendAnnouncement}
