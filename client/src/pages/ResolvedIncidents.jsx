@@ -11,6 +11,7 @@ import { getReadableAddress } from "../utils/utils";
 import { getIncidentResponseTime, getIncidentTimingMetrics } from "../utils/timeUtils";
 import { getUnitStyles } from "../themes/resolvedStyles"; 
 import { pendingIncidentsStyles as detailStyles } from "../themes/pendingIncidentsStyles";
+import { addAuditLog } from "../utils/auditLog";
 import {
   CheckCircle,
   MapPin,
@@ -32,6 +33,7 @@ import {
   Mountain,
   Clock,
   Timer,
+  ChevronDown,
 } from "lucide-react";
 
 const getFileUrl = (record, field) =>
@@ -112,6 +114,24 @@ const getTypeBadge = (type, isSos = false) => {
       bg: "#fef3c7",
       color: "#78350f",
       border: "#fed7aa",
+    };
+  }
+  if (t.includes("medical") || t.includes("trauma")) {
+    return {
+      label: (type || "MEDICAL").toUpperCase(),
+      icon: <Activity size={13} />,
+      bg: "#f0fdf4",
+      color: "#166534",
+      border: "#bbf7d0",
+    };
+  }
+  if (t.includes("flood") || t.includes("storm surge")) {
+    return {
+      label: (type || "FLOOD").toUpperCase(),
+      icon: <AlertTriangle size={13} />,
+      bg: "#ecfeff",
+      color: "#155e75",
+      border: "#a5f3fc",
     };
   }
   return {
@@ -405,24 +425,65 @@ export default function ResolvedIncidents() {
 
                           {/* Incident Type */}
                           <td>
-                            <span
-                              className={`resolved-type-badge type-${(incident.type || (isSos ? "sos" : "default")).toLowerCase()}`}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "5px",
-                                padding: "4px 10px",
-                                borderRadius: "12px",
-                                fontSize: "12px",
-                                fontWeight: "700",
-                                backgroundColor: typeBadge.bg,
-                                color: typeBadge.color,
-                                border: `1px solid ${typeBadge.border}`,
-                              }}
-                            >
-                              {typeBadge.icon}
-                              {typeBadge.label}
-                            </span>
+                            {!isSos ? (
+                              <div style={{ position: "relative", display: "inline-block" }} onClick={(e) => e.stopPropagation()}>
+                                <select
+                                  value={(incident.type || "").toLowerCase()}
+                                  onChange={(e) => {
+                                    if (window.confirm(`Are you sure you want to change this incident type to ${e.target.value}?`)) {
+                                      handleTypeChange(e, incident.id, isSos, incident.type);
+                                    }
+                                  }}
+                                  style={{
+                                    appearance: "none",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                    padding: "4px 24px 4px 10px",
+                                    borderRadius: "12px",
+                                    fontSize: "12px",
+                                    fontWeight: "700",
+                                    backgroundColor: typeBadge.bg,
+                                    color: typeBadge.color,
+                                    border: `1px solid ${typeBadge.border}`,
+                                    cursor: "pointer",
+                                    outline: "none",
+                                    textTransform: "uppercase"
+                                  }}
+                                >
+                                  <option value={(incident.type || "").toLowerCase()}>{typeBadge.label}</option>
+                                  <option value="medical">MEDICAL</option>
+                                  <option value="trauma">TRAUMA</option>
+                                  <option value="flood">FLOOD</option>
+                                  <option value="landslides">LANDSLIDES</option>
+                                  <option value="storm surge">STORM SURGE</option>
+                                </select>
+                                <ChevronDown 
+                                  size={12} 
+                                  color={typeBadge.color} 
+                                  style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} 
+                                />
+                              </div>
+                            ) : (
+                              <span
+                                className={`resolved-type-badge type-sos`}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  padding: "4px 10px",
+                                  borderRadius: "12px",
+                                  fontSize: "12px",
+                                  fontWeight: "700",
+                                  backgroundColor: typeBadge.bg,
+                                  color: typeBadge.color,
+                                  border: `1px solid ${typeBadge.border}`,
+                                }}
+                              >
+                                {typeBadge.icon}
+                                {typeBadge.label}
+                              </span>
+                            )}
                           </td>
 
                           {/* Location */}
