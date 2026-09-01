@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Sidebar from '../components/Sidebar';
 import { useTheme } from '../themes/ThemeContext';
+import { pb } from '../config/pocketbase';
 import { Activity, Wind, AlertTriangle, Info, CloudRain, ChevronDown, ChevronUp, Layers, Waves } from 'lucide-react';
 
 const COMMAND_CENTER = [8.8066, 124.788];
@@ -119,6 +120,8 @@ export default function Calamities() {
   const [weather, setWeather] = useState(null);
   const [marine, setMarine] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [announcement, setAnnouncement] = useState({ targetBarangay: '', message: '' });
+  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   const [showHazardLegend, setShowHazardLegend] = useState(true);
 
   useEffect(() => {
@@ -187,6 +190,27 @@ export default function Calamities() {
 
     return () => { cancelled = true; };
   }, []);
+
+  const handleSendAnnouncement = async () => {
+    if (!announcement.message || !announcement.targetBarangay) return;
+    setSendingAnnouncement(true);
+    try {
+      await pb.collection('notifications').create({
+        title: 'Hazard & Calamity Alert',
+        message: announcement.message,
+        baranggay: announcement.targetBarangay, // Matching the 'baranggay' spelling in users table
+        type: 'hazard_alert',
+        isRead: false
+      });
+      alert('Announcement successfully sent to ' + announcement.targetBarangay);
+      setAnnouncement({ targetBarangay: '', message: '' });
+    } catch (error) {
+      console.error('Error sending announcement:', error);
+      alert('Failed to send announcement. Please ensure the notifications table exists and has title, message, baranggay, and type fields.');
+    } finally {
+      setSendingAnnouncement(false);
+    }
+  };
 
   const getWeatherDescription = (code) => {
     if (code <= 3) return "Clear / Partly Cloudy";
@@ -340,6 +364,39 @@ export default function Calamities() {
                   })()}
                 </div>
               ) : <p>Unable to fetch marine data.</p>}
+            </div>
+
+            {/* Hazard Announcements Panel */}
+            <div style={{ background: isDark ? '#1e293b' : '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b' }}>
+                <AlertTriangle size={20} /> Broadcast Warning
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <select 
+                  value={announcement.targetBarangay}
+                  onChange={(e) => setAnnouncement({...announcement, targetBarangay: e.target.value})}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: isDark ? '1px solid #334155' : '1px solid #cbd5e1', background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}
+                >
+                  <option value="">Select Target Barangay...</option>
+                  <option value="All">All Barangays (Lagonglong)</option>
+                  {Object.keys(hazardSeverities).map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+                <textarea 
+                  placeholder="Type hazard warning or evacuation notice here..."
+                  value={announcement.message}
+                  onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
+                  style={{ width: '100%', height: '80px', padding: '8px', borderRadius: '6px', border: isDark ? '1px solid #334155' : '1px solid #cbd5e1', background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a', resize: 'none' }}
+                />
+                <button 
+                  onClick={handleSendAnnouncement}
+                  disabled={sendingAnnouncement || !announcement.targetBarangay || !announcement.message}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', background: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? '#94a3b8' : '#f59e0b', color: '#ffffff', fontWeight: 'bold', cursor: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? 'not-allowed' : 'pointer' }}
+                >
+                  {sendingAnnouncement ? 'Broadcasting...' : 'Broadcast Warning'}
+                </button>
+              </div>
             </div>
 
             {/* Earthquakes Panel */}
