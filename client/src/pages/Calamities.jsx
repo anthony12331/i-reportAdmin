@@ -239,11 +239,11 @@ export default function Calamities() {
                      
                      return (
                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
                            <span style={{ color: isDark ? '#cbd5e1' : '#475569', fontSize: '13px', fontWeight: 'bold' }}>PAGASA Heat Index</span>
-                           <span style={{ fontWeight: 'bold', color: heatColor, fontSize: '13px' }}>{heatIndex}°C ({heatLevel})</span>
+                           <span style={{ fontWeight: '900', color: heatColor, fontSize: '15px' }}>{heatIndex}°C <span style={{ fontSize: '12px', fontWeight: '600' }}>({heatLevel})</span></span>
                          </div>
-                         <div style={{ height: '6px', width: '100%', backgroundColor: isDark ? '#334155' : '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                         <div style={{ height: '8px', width: '100%', backgroundColor: isDark ? '#334155' : '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                            <div style={{ height: '100%', width: `${Math.min(100, (heatIndex / 55) * 100)}%`, backgroundColor: heatColor, transition: 'width 1s ease' }}></div>
                          </div>
                        </div>
@@ -263,11 +263,11 @@ export default function Calamities() {
                      
                      return (
                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
                            <span style={{ color: isDark ? '#cbd5e1' : '#475569', fontSize: '13px', fontWeight: 'bold' }}>Flash Flood Risk (Soil Saturation)</span>
-                           <span style={{ fontWeight: 'bold', color: riskColor, fontSize: '13px' }}>{saturation}% ({riskLevel})</span>
+                           <span style={{ fontWeight: '900', color: riskColor, fontSize: '15px' }}>{saturation}% <span style={{ fontSize: '12px', fontWeight: '600' }}>({riskLevel})</span></span>
                          </div>
-                         <div style={{ height: '6px', width: '100%', backgroundColor: isDark ? '#334155' : '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                         <div style={{ height: '8px', width: '100%', backgroundColor: isDark ? '#334155' : '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                            <div style={{ height: '100%', width: `${saturation}%`, backgroundColor: riskColor, transition: 'width 1s ease' }}></div>
                          </div>
                        </div>
@@ -437,15 +437,7 @@ export default function Calamities() {
                     />
                   </LayersControl.BaseLayer>
 
-                  {/* RainViewer Live Radar */}
-                  <LayersControl.Overlay checked name="Live Rain/Storm Radar">
-                    <TileLayer
-                      url="https://tilecache.rainviewer.com/v2/radar/nowcast_4c/256/{z}/{x}/{y}/2/1_1.png"
-                      attribution="&copy; RainViewer"
-                      opacity={0.65}
-                      zIndex={10}
-                    />
-                  </LayersControl.Overlay>
+
                 
                 {/* BOUNDARY OVERLAY */}
                 {lagonglongGeoJSON && (
