@@ -280,6 +280,35 @@ export default function ResolvedIncidents() {
       minute: "2-digit",
     });
 
+  const handleTypeChange = async (e, id, isSos, oldType) => {
+    e.stopPropagation();
+    const newType = e.target.value;
+    if (newType === oldType || !newType) return;
+    
+    try {
+      if (isSos) return;
+      
+      await pb.collection("incident_reports").update(id, { type: newType });
+      
+      setIncidents((prev) => 
+        prev.map((inc) => 
+          inc.id === id ? { ...inc, type: newType } : inc
+        )
+      );
+
+      addAuditLog({
+        action: "INCIDENT_TYPE_UPDATED",
+        target: `Incident ${id}`,
+        details: `Updated incident type from ${oldType} to ${newType}`,
+        actor: pb.authStore.model?.username || "Admin",
+      });
+      
+    } catch (err) {
+      console.error("Failed to update incident type:", err);
+      alert("Failed to update incident type. Please try again.");
+    }
+  };
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8fafc", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Sidebar />
