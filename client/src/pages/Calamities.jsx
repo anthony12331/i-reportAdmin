@@ -157,10 +157,10 @@ export default function Calamities() {
     // Fetch Live Weather from Open-Meteo for Lagonglong
     const fetchWeather = async () => {
       try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=8.8066&longitude=124.7880&current=temperature_2m,wind_speed_10m,precipitation,weather_code&hourly=precipitation_probability&timezone=Asia%2FManila`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=8.8066&longitude=124.7880&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,weather_code&hourly=precipitation_probability,soil_moisture_0_to_7cm&timezone=Asia%2FManila`);
         const data = await res.json();
         if (!cancelled && data.current) {
-          setWeather(data.current);
+          setWeather(data); // Store full data to access hourly soil moisture
         }
       } catch (err) {
         console.error("Error fetching weather:", err);
@@ -208,25 +208,73 @@ export default function Calamities() {
               <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6' }}>
                 <CloudRain size={20} /> Local Weather Status
               </h3>
-              {loading ? <p>Scanning radars...</p> : weather ? (
+              {loading ? <p>Scanning radars...</p> : weather && weather.current ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: isDark ? '#cbd5e1' : '#475569' }}>Condition</span>
-                    <span style={{ fontWeight: 'bold' }}>{getWeatherDescription(weather.weather_code)}</span>
+                    <span style={{ fontWeight: 'bold' }}>{getWeatherDescription(weather.current.weather_code)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: isDark ? '#cbd5e1' : '#475569' }}>Temperature</span>
-                    <span style={{ fontWeight: 'bold' }}>{weather.temperature_2m} °C</span>
+                    <span style={{ fontWeight: 'bold' }}>{weather.current.temperature_2m} °C</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: isDark ? '#cbd5e1' : '#475569' }}>Wind Speed</span>
-                    <span style={{ fontWeight: 'bold' }}>{weather.wind_speed_10m} km/h</span>
+                    <span style={{ fontWeight: 'bold' }}>{weather.current.wind_speed_10m} km/h</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: isDark ? '#cbd5e1' : '#475569' }}>Precipitation</span>
-                    <span style={{ fontWeight: 'bold' }}>{weather.precipitation} mm</span>
+                    <span style={{ fontWeight: 'bold' }}>{weather.current.precipitation} mm</span>
                   </div>
-                  {weather.precipitation > 5 && (
+
+                  {/* Heat Index Gauge */}
+                  {(() => {
+                     const heatIndex = weather.current.apparent_temperature;
+                     let heatColor = "#3b82f6";
+                     let heatLevel = "Safe";
+                     if (heatIndex >= 27 && heatIndex <= 32) { heatColor = "#eab308"; heatLevel = "Caution"; }
+                     else if (heatIndex >= 33 && heatIndex <= 41) { heatColor = "#f97316"; heatLevel = "Extreme Caution"; }
+                     else if (heatIndex >= 42 && heatIndex <= 51) { heatColor = "#ef4444"; heatLevel = "Danger"; }
+                     else if (heatIndex >= 52) { heatColor = "#7f1d1d"; heatLevel = "Extreme Danger"; }
+                     
+                     return (
+                       <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                           <span style={{ color: isDark ? '#cbd5e1' : '#475569', fontSize: '13px', fontWeight: 'bold' }}>PAGASA Heat Index</span>
+                           <span style={{ fontWeight: 'bold', color: heatColor, fontSize: '13px' }}>{heatIndex}°C ({heatLevel})</span>
+                         </div>
+                         <div style={{ height: '6px', width: '100%', backgroundColor: isDark ? '#334155' : '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                           <div style={{ height: '100%', width: `${Math.min(100, (heatIndex / 55) * 100)}%`, backgroundColor: heatColor, transition: 'width 1s ease' }}></div>
+                         </div>
+                       </div>
+                     );
+                  })()}
+
+                  {/* Soil Saturation / Flash Flood Risk */}
+                  {(() => {
+                     const soilRaw = weather.hourly?.soil_moisture_0_to_7cm?.[0] || 0;
+                     // Convert raw m3/m3 (typically 0 to 0.5) to a rough percentage saturation
+                     const saturation = Math.min(100, Math.round((soilRaw / 0.45) * 100));
+                     
+                     let riskColor = "#3b82f6"; // Low
+                     let riskLevel = "Low";
+                     if (saturation > 75) { riskColor = "#f97316"; riskLevel = "High"; }
+                     if (saturation > 90) { riskColor = "#ef4444"; riskLevel = "Extreme"; }
+                     
+                     return (
+                       <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                           <span style={{ color: isDark ? '#cbd5e1' : '#475569', fontSize: '13px', fontWeight: 'bold' }}>Flash Flood Risk (Soil Saturation)</span>
+                           <span style={{ fontWeight: 'bold', color: riskColor, fontSize: '13px' }}>{saturation}% ({riskLevel})</span>
+                         </div>
+                         <div style={{ height: '6px', width: '100%', backgroundColor: isDark ? '#334155' : '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                           <div style={{ height: '100%', width: `${saturation}%`, backgroundColor: riskColor, transition: 'width 1s ease' }}></div>
+                         </div>
+                       </div>
+                     );
+                  })()}
+
+                  {weather.current.precipitation > 5 && (
                     <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', display: 'flex', gap: '4px', alignItems: 'center' }}>
                       <AlertTriangle size={14} /> Heavy Rain Detected - Flood Risk
                     </div>
@@ -370,17 +418,34 @@ export default function Calamities() {
                 scrollWheelZoom={true}
                 maxBounds={MAP_BOUNDS}
               >
-                <LayersControl position="bottomleft">
-                <LayersControl.BaseLayer checked name="Satellite View">
-                  <TileLayer
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                  />
-                </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer name="Dark Tactical View">
-                  <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                  />
-                </LayersControl.BaseLayer>
+                <LayersControl position="topright">
+                  <LayersControl.BaseLayer checked name="OpenStreetMap">
+                    <TileLayer
+                      attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                  </LayersControl.BaseLayer>
+                  <LayersControl.BaseLayer name="Satellite">
+                    <TileLayer
+                      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                      attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+                    />
+                  </LayersControl.BaseLayer>
+                  <LayersControl.BaseLayer name="Dark Tactical View">
+                    <TileLayer
+                      url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    />
+                  </LayersControl.BaseLayer>
+
+                  {/* RainViewer Live Radar */}
+                  <LayersControl.Overlay checked name="Live Rain/Storm Radar">
+                    <TileLayer
+                      url="https://tilecache.rainviewer.com/v2/radar/nowcast_4c/256/{z}/{x}/{y}/2/1_1.png"
+                      attribution="&copy; RainViewer"
+                      opacity={0.65}
+                      zIndex={10}
+                    />
+                  </LayersControl.Overlay>
                 
                 {/* BOUNDARY OVERLAY */}
                 {lagonglongGeoJSON && (
