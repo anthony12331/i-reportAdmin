@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import Sidebar from '../components/Sidebar';
 import { useTheme } from '../themes/ThemeContext';
 import { pb } from '../config/pocketbase';
-import { Activity, Wind, AlertTriangle, Info, CloudRain, ChevronDown, ChevronUp, Layers, Waves } from 'lucide-react';
+import { Activity, Wind, AlertTriangle, Info, CloudRain, ChevronDown, ChevronUp, Layers, Waves, Megaphone, Radio } from 'lucide-react';
 
 const COMMAND_CENTER = [8.8066, 124.788];
 const MAP_BOUNDS = [
@@ -367,34 +367,56 @@ export default function Calamities() {
             </div>
 
             {/* Hazard Announcements Panel */}
-            <div style={{ background: isDark ? '#1e293b' : '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f59e0b' }}>
-                <AlertTriangle size={20} /> Broadcast Warning
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <select 
-                  value={announcement.targetBarangay}
-                  onChange={(e) => setAnnouncement({...announcement, targetBarangay: e.target.value})}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: isDark ? '1px solid #334155' : '1px solid #cbd5e1', background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a' }}
-                >
-                  <option value="">Select Target Barangay...</option>
-                  <option value="All">All Barangays (Lagonglong)</option>
-                  {Object.keys(hazardSeverities).map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
+            <div style={{ background: isDark ? '#450a0a' : '#fff1f2', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(225, 29, 72, 0.2)', border: isDark ? '1px solid #7f1d1d' : '1px solid #fecdd3' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', color: isDark ? '#fca5a5' : '#e11d48' }}>
+                  <Megaphone size={22} strokeWidth={2.5} /> Emergency Broadcast
+                </h3>
+                <span className="pulse-dot" style={{ width: '10px', height: '10px', backgroundColor: '#e11d48', borderRadius: '50%', boxShadow: '0 0 10px #e11d48' }}></span>
+              </div>
+              <p style={{ fontSize: '12.5px', color: isDark ? '#fecaca' : '#9f1239', marginBottom: '16px', lineHeight: '1.4' }}>
+                Push immediate evacuation or hazard alerts directly to citizens' mobile phones in the selected area.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ position: 'relative' }}>
+                  <select 
+                    value={announcement.targetBarangay}
+                    onChange={(e) => setAnnouncement({...announcement, targetBarangay: e.target.value})}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: isDark ? '2px solid #7f1d1d' : '2px solid #fda4af', background: isDark ? '#2e0a0a' : '#ffffff', color: isDark ? '#fef2f2' : '#881337', fontWeight: '600', fontSize: '14px', outline: 'none', appearance: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="">Select Target Barangay...</option>
+                    <option value="All">⚠️ ALL BARANGAYS (Town-Wide Alert)</option>
+                    {Object.keys(hazardSeverities).map(b => (
+                      <option key={b} value={b}>Brgy. {b}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} color={isDark ? '#fca5a5' : '#e11d48'} style={{ position: 'absolute', right: '12px', top: '12px', pointerEvents: 'none' }} />
+                </div>
+
                 <textarea 
-                  placeholder="Type hazard warning or evacuation notice here..."
+                  placeholder="Type official hazard warning or evacuation notice here... (Keep it clear and actionable)"
                   value={announcement.message}
                   onChange={(e) => setAnnouncement({...announcement, message: e.target.value})}
-                  style={{ width: '100%', height: '80px', padding: '8px', borderRadius: '6px', border: isDark ? '1px solid #334155' : '1px solid #cbd5e1', background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#0f172a', resize: 'none' }}
+                  style={{ width: '100%', height: '90px', padding: '10px 12px', borderRadius: '8px', border: isDark ? '2px solid #7f1d1d' : '2px solid #fda4af', background: isDark ? '#2e0a0a' : '#ffffff', color: isDark ? '#fef2f2' : '#881337', outline: 'none', resize: 'none', fontSize: '13.5px' }}
                 />
+                
                 <button 
                   onClick={handleSendAnnouncement}
                   disabled={sendingAnnouncement || !announcement.targetBarangay || !announcement.message}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', background: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? '#94a3b8' : '#f59e0b', color: '#ffffff', fontWeight: 'bold', cursor: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? 'not-allowed' : 'pointer' }}
+                  style={{ 
+                    width: '100%', padding: '12px', borderRadius: '8px', border: 'none', 
+                    background: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? (isDark ? '#4c1d95' : '#cbd5e1') : 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)', 
+                    color: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? (isDark ? '#a78bfa' : '#64748b') : '#ffffff', 
+                    fontWeight: '900', fontSize: '14px', cursor: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? 'not-allowed' : 'pointer',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
+                    boxShadow: (sendingAnnouncement || !announcement.targetBarangay || !announcement.message) ? 'none' : '0 4px 15px rgba(225, 29, 72, 0.4)',
+                    transition: 'all 0.2s ease',
+                    textTransform: 'uppercase', letterSpacing: '0.5px'
+                  }}
                 >
-                  {sendingAnnouncement ? 'Broadcasting...' : 'Broadcast Warning'}
+                  <Radio size={18} />
+                  {sendingAnnouncement ? 'Broadcasting to Network...' : 'SEND PUSH ALERT'}
                 </button>
               </div>
             </div>
@@ -426,6 +448,19 @@ export default function Calamities() {
             </div>
             
           </div>
+
+        <style>
+          {`
+            @keyframes dotPulse {
+              0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
+              70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(225, 29, 72, 0); }
+              100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+            }
+            .pulse-dot {
+              animation: dotPulse 2s infinite;
+            }
+          `}
+        </style>
 
           {/* RIGHT PANEL - Map */}
           <div style={{ flex: 1, borderRadius: '16px', overflow: 'hidden', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
