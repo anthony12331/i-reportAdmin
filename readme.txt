@@ -26,14 +26,15 @@ Note: After deploying new updates, remind users to perform a Hard Refresh (Ctrl 
 -----------------------------------------
 2. BACKEND DEPLOYMENT (POCKETBASE)
 -----------------------------------------
-The backend is powered by PocketBase and should be hosted on a secure Virtual Private Server (VPS).
+The backend is powered by PocketBase and is hosted on a secure DigitalOcean Virtual Private Server (VPS), with DNS routing managed via Hostinger.
 
-1. Provision a Linux VPS (e.g., Ubuntu).
-2. Download the latest PocketBase executable for Linux.
-3. Upload your 'pb_schema.json' to the server to structure your database tables.
-4. Run PocketBase securely behind a reverse proxy (like Nginx) configured with an SSL/TLS certificate (e.g., Let's Encrypt) to ensure HTTPS encryption.
-5. Command to run: ./pocketbase serve --http="127.0.0.1:8090"
-6. Ensure your VPS firewall (UFW) only exposes ports 80 (HTTP) and 443 (HTTPS), blocking direct access to port 8090 from the outside.
+1. Server Provisioning: We use a Linux Droplet on DigitalOcean.
+2. DNS Management: Point your domain's A-records in Hostinger to the DigitalOcean Droplet's public IP.
+3. Download the latest PocketBase executable for Linux on the Droplet.
+4. Upload your 'pb_schema.json' to the server to structure your database tables.
+5. Run PocketBase securely behind a reverse proxy (like Nginx) configured with an SSL/TLS certificate (e.g., Let's Encrypt) to ensure HTTPS encryption.
+6. Command to run: ./pocketbase serve --http="127.0.0.1:8090"
+7. Ensure your DigitalOcean Cloud Firewall and local UFW only expose ports 80 (HTTP) and 443 (HTTPS), blocking direct access to port 8090 from the outside.
 
 -----------------------------------------
 3. SECURITY BEST PRACTICES
