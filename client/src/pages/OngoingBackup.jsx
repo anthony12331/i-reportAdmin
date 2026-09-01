@@ -245,163 +245,181 @@ export default function OngoingBackup() {
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 380px), 1fr))", gap: "22px" }}>
-          {backups.map((backup) => {
-            const requester = backup.expand?.requester_id;
-            const responder = backup.expand?.assigned_responder;
-            const reqName = requester ? requester.unit_name || `${requester.first_name} ${requester.last_name}` : "Field Responder";
-            const resName = responder ? responder.unit_name || `${responder.first_name} ${responder.last_name}` : "Assigned Unit";
-            
-            return (
-              <div
-                key={backup.id}
-                className="premium-table-card ongoing-incident-card"
-                style={{
-                  padding: "22px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                  borderTop: "4px solid #15803d",
-                  backgroundColor: isDark ? "#131c2e" : "#ffffff",
-                  border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
-                  position: "relative",
-                }}
-              >
-                {/* Header */}
-                <div className="ongoing-card-header-bar" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div
-                      style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "10px",
-                        backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
-                        border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Truck size={16} color={isDark ? "#4ade80" : "#15803d"} />
-                    </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
-                        BACKUP DEPLOYMENT
-                      </h3>
-                      <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
-                        <Clock size={12} /> Active for: {formatWaitTime(backup.created)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+          {(() => {
+            const groupedBackups = {};
+            backups.forEach((b) => {
+              const key = b.requester_id ? `${b.requester_id}-${b.reason || ''}` : b.id;
+              if (!groupedBackups[key]) {
+                groupedBackups[key] = {
+                  primary: b,
+                  responders: []
+                };
+              }
+              if (b.expand?.assigned_responder) {
+                groupedBackups[key].responders.push({
+                  backupId: b.id,
+                  responder: b.expand.assigned_responder,
+                  dispatch_status: b.dispatch_status
+                });
+              }
+            });
 
-                {/* Sub Header info */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "11.5px", fontWeight: "700" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px", color: isDark ? "#94a3b8" : "#64748b", backgroundColor: isDark ? "#1e293b" : "#f1f5f9", padding: "4px 8px", borderRadius: "6px" }}>
-                    <MapPin size={12} /> Target: {reqName}
-                  </div>
-                  <span
-                    style={{
-                      padding: "4px 8px",
-                      borderRadius: "6px",
-                      backgroundColor: isDark ? "rgba(245, 158, 11, 0.18)" : "#fff7ed",
-                      color: isDark ? "#fbbf24" : "#c2410c",
-                      border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fed7aa",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {backup.dispatch_status?.replace("_", " ") || "EN ROUTE"}
-                  </span>
-                </div>
+            return Object.values(groupedBackups).map((group) => {
+              const backup = group.primary;
+              const requester = backup.expand?.requester_id;
+              const reqName = requester ? requester.unit_name || `${requester.first_name} ${requester.last_name}` : "Field Responder";
+              const primaryResName = group.responders.length > 0
+                ? group.responders[0].responder.unit_name || `${group.responders[0].responder.first_name} ${group.responders[0].responder.last_name}`
+                : "Assigned Unit";
 
-                {/* Inline Map */}
-                {requester?.latitude != null && requester?.longitude != null && (
-                  <div style={{ width: "100%", height: "140px", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
-                    <iframe
-                      title={`Map Preview for Backup ${backup.id}`}
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      scrolling="no"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={`https://maps.google.com/maps?q=${requester.latitude},${requester.longitude}&z=16&t=k&output=embed`}
-                      style={{ border: 0, pointerEvents: "none", width: "100%", height: "100%" }}
-                    />
-                    <div
-                      onClick={() => setSelectedMap({ lat: requester.latitude, lng: requester.longitude, address: `Backup Target: ${reqName}` })}
-                      style={{
-                        position: "absolute",
-                        bottom: "8px",
-                        right: "8px",
-                        backgroundColor: "rgba(15, 23, 42, 0.75)",
-                        color: "#ffffff",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        backdropFilter: "blur(4px)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <ExternalLink size={12} /> Enlarge Map
-                    </div>
-                  </div>
-                )}
-
-                {/* Requester Profile */}
-                <div style={{ padding: "14px", borderRadius: "10px", backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
-                  <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
-                    Requester Profile
-                  </h4>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
-                    <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Unit:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{reqName}</strong></div>
-                    <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Dept:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>{requester?.department || "N/A"}</strong></div>
-                  </div>
-                  {backup.reason && (
-                    <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", fontSize: "13px" }}>
-                      <span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Reason:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{backup.reason}</strong>
-                    </div>
-                  )}
-                </div>
-
-                {/* Deployed Unit */}
-                <div>
-                  <h4 style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "800", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <ShieldCheck size={14} /> DEPLOYED UNIT
-                  </h4>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      backgroundColor: isDark ? "#172338" : "#ffffff",
-                      border: isDark ? "1px solid rgba(59, 130, 246, 0.3)" : "1px solid #bfdbfe",
-                      boxShadow: isDark ? "none" : "0 2px 8px rgba(59, 130, 246, 0.05)",
-                    }}
-                  >
+              return (
+                <div
+                  key={backup.id}
+                  className="premium-table-card ongoing-incident-card"
+                  style={{
+                    padding: "22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                    borderTop: "4px solid #15803d",
+                    backgroundColor: isDark ? "#131c2e" : "#ffffff",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+                    position: "relative",
+                  }}
+                >
+                  {/* Header */}
+                  <div className="ongoing-card-header-bar" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "#dbeafe", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Truck size={16} />
+                      <div
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "10px",
+                          backgroundColor: isDark ? "rgba(34, 197, 94, 0.18)" : "#f0fdf4",
+                          border: isDark ? "1px solid rgba(34, 197, 94, 0.35)" : "1px solid #bbf7d0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Truck size={16} color={isDark ? "#4ade80" : "#15803d"} />
                       </div>
                       <div>
-                        <div style={{ fontSize: "13.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>{resName}</div>
-                        <div style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "700", textTransform: "uppercase" }}>{responder?.department || "MDRRMO"}</div>
+                        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
+                          BACKUP DEPLOYMENT
+                        </h3>
+                        <span style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                          <Clock size={12} /> Active for: {formatWaitTime(backup.created)}
+                        </span>
                       </div>
                     </div>
-                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#1d4ed8", padding: "4px 8px", backgroundColor: "#eff6ff", borderRadius: "6px", textTransform: "uppercase" }}>
-                      {backup.dispatch_status?.replace("_", " ") || "ACCEPTED"}
-                    </span>
+                  </div>
+
+                  {/* Sub Header info */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "11.5px", fontWeight: "700" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px", color: isDark ? "#94a3b8" : "#64748b", backgroundColor: isDark ? "#1e293b" : "#f1f5f9", padding: "4px 8px", borderRadius: "6px" }}>
+                      <MapPin size={12} /> Target: {reqName}
+                    </div>
+                  </div>
+
+                  {/* Inline Map */}
+                  {requester?.latitude != null && requester?.longitude != null && (
+                    <div style={{ width: "100%", height: "140px", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
+                      <iframe
+                        title={`Map Preview for Backup ${backup.id}`}
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        scrolling="no"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://maps.google.com/maps?q=${requester.latitude},${requester.longitude}&z=16&t=k&output=embed`}
+                        style={{ border: 0, pointerEvents: "none", width: "100%", height: "100%" }}
+                      />
+                      <div
+                        onClick={() => setSelectedMap({ lat: requester.latitude, lng: requester.longitude, address: `Backup Target: ${reqName}` })}
+                        style={{
+                          position: "absolute",
+                          bottom: "8px",
+                          right: "8px",
+                          backgroundColor: "rgba(15, 23, 42, 0.75)",
+                          color: "#ffffff",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          backdropFilter: "blur(4px)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <ExternalLink size={12} /> Enlarge Map
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Requester Profile */}
+                  <div style={{ padding: "14px", borderRadius: "10px", backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc", border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0" }}>
+                    <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>
+                      Requester Profile
+                    </h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px", fontSize: "13px" }}>
+                      <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Unit:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{reqName}</strong></div>
+                      <div><span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Dept:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a", textTransform: "uppercase" }}>{requester?.department || "N/A"}</strong></div>
+                    </div>
+                    {backup.reason && (
+                      <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0", fontSize: "13px" }}>
+                        <span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Reason:</span> <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{backup.reason}</strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Deployed Units */}
+                  <div>
+                    <h4 style={{ margin: "0 0 10px 0", fontSize: "12px", fontWeight: "800", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <ShieldCheck size={14} /> DEPLOYED UNITS ({group.responders.length})
+                    </h4>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {group.responders.map((rInfo) => {
+                        const resName = rInfo.responder.unit_name || `${rInfo.responder.first_name} ${rInfo.responder.last_name}`;
+                        return (
+                          <div
+                            key={rInfo.backupId}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "10px 14px",
+                              borderRadius: "10px",
+                              backgroundColor: isDark ? "#172338" : "#ffffff",
+                              border: isDark ? "1px solid rgba(59, 130, 246, 0.3)" : "1px solid #bfdbfe",
+                              boxShadow: isDark ? "none" : "0 2px 8px rgba(59, 130, 246, 0.05)",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "#dbeafe", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <Truck size={16} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: "13.5px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>{resName}</div>
+                                <div style={{ fontSize: "11.5px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "700", textTransform: "uppercase" }}>{rInfo.responder?.department || "MDRRMO"}</div>
+                              </div>
+                            </div>
+                            <span style={{ fontSize: "11px", fontWeight: "800", color: "#1d4ed8", padding: "4px 8px", backgroundColor: "#eff6ff", borderRadius: "6px", textTransform: "uppercase" }}>
+                              {rInfo.dispatch_status?.replace("_", " ") || "ACCEPTED"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </main>
 
