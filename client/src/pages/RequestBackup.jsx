@@ -192,12 +192,27 @@ export default function RequestBackup() {
         reservedResponders.push(responder);
       }
 
-      // Update backup request
+      // Update backup request for primary responder
       const updateData = {
-        assigned_responder: selectedIds[0], // primary
+        assigned_responder: selectedIds[0],
         dispatch_status: "assigned",
       };
       await pb.collection("backup_requests").update(backupId, updateData);
+
+      // If multiple responders selected, clone the backup request for the rest
+      if (selectedIds.length > 1) {
+        for (let i = 1; i < selectedIds.length; i++) {
+          await pb.collection("backup_requests").create({
+            department: targetBackup.department || "",
+            incident_id: targetBackup.incident_id || "",
+            reason: targetBackup.reason || "",
+            requester_id: targetBackup.requester_id || "",
+            sos_id: targetBackup.sos_id || "",
+            assigned_responder: selectedIds[i],
+            dispatch_status: "assigned",
+          });
+        }
+      }
 
       const requesterName = targetBackup?.expand?.requester_id
         ? `${targetBackup.expand.requester_id.first_name || ""} ${targetBackup.expand.requester_id.last_name || ""}`.trim()
